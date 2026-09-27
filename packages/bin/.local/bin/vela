@@ -1,0 +1,1170 @@
+#!/usr/bin/env bash
+# vela -- control script for the vela desktop shell.
+set -euo pipefail
+
+CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/vela"
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/vela"
+MATUGEN_CONFIG="$CONFIG_DIR/matugen.toml"
+SHELL_CONFIG="$CONFIG_DIR/shell.json"
+# Shared with services/Wallpaper.qml, so the CLI and the shell agree on which
+# wallpaper is current whether or not the shell is running.
+WALLPAPER_STATE="$STATE_DIR/wallpaper.json"
+
+die() { printf 'vela: %s\n' "$1" >&2; exit 1; }
+
+usage() {
+    cat <<'USAGE'
+usage: vela <command> [args]
+
+  wallpaper <path> [--light|--dark]   Set the wallpaper and retheme from it
+  wallpaper                           Print the current wallpaper path
+  theme [light|dark|toggle]           Switch light/dark and retheme
+  retint <image> [light|dark] [scheme]
+                                      Regenerate every palette from an image
+                                      (what the shell runs; no wallpaper change)
+  shell [start|stop|restart|log]      Manage the Quickshell instance
+  colours                             Print the current generated palette
+  greet                               The terminal greeting: fastfetch in the
+                                      palette
+  calendar [list|sync [id]|remove <id>|keyring]
+                                      The calendars Home's month shows: list
+                                      the accounts, sync them, remove one,
+                                      check the keyring their secrets are in
+  calendar add                        Add an account, from VELA_CAL_PROVIDER,
+                                      _NAME, _URL, _USER and _PASS (what the
+                                      settings window runs)
+  calendar event add|edit <uid>|delete <uid>
+                                      Write an event into a CalDAV calendar,
+                                      from VELA_EV_PATH, _TITLE, _START, _END
+                                      and _LOCATION (what Home's month runs)
+  idle on power|battery               Succeed only on that power source (what
+                                      hypridle's listeners check)
+  idle dim|undim                      Dim the backlight for idle, and put it
+                                      back
+USAGE
+}
+
+# Read one value out of a JSON file: json_get <file> <key> [<key>...]
+json_get() {
+    python3 - "$@" <<'PY' 2>/dev/null
+import json, sys
+try:
+    v = json.load(open(sys.argv[1]))
+    for k in sys.argv[2:]:
+        v = v[k]
+    print(v)
+except Exception:
+    sys.exit(1)
+PY
+}
+
+current_wallpaper() {
+    json_get "$WALLPAPER_STATE" current && return
+    # Written by matugen on every retint, so it knows the last image even if
+    # the shell never ran.
+    json_get "$STATE_DIR/colours.json" wallpaper
+}
+
+# The mode the last retint used, lower-case: "light" or "dark".
+last_mode() {
+    local m
+    m=$(json_get "$STATE_DIR/colours.json" mode) || m=dark
+    case "$m" in
+        [Ll]ight) echo light ;;
+        *)        echo dark ;;
+    esac
+}
+
+# The mode to retint in when none is given: shell.json's, unless that is
+# "auto" (only the running shell knows where the sun is), then the last one.
+preferred_mode() {
+    local m
+    m=$(json_get "$SHELL_CONFIG" appearance mode) || m=""
+    case "$m" in
+        light|dark) echo "$m" ;;
+        *)          last_mode ;;
+    esac
+}
+
+scheme_type() {
+    json_get "$SHELL_CONFIG" appearance scheme || echo scheme-tonal-spot
+}
+
+# qs exits 255 when no instance of the config is running.
+shell_running() {
+    command -v qs >/dev/null 2>&1 && qs -c vela ipc show >/dev/null 2>&1
+}
+
+# Set appearance.mode in shell.json. The shell watches that file, so a running
+# shell switches immediately and re-runs the retint for the other apps itself.
+set_shell_mode() {
+    [ -f "$SHELL_CONFIG" ] || return 0
+    python3 - "$SHELL_CONFIG" "$1" <<'PY'
+import json, sys
+path, mode = sys.argv[1], sys.argv[2]
+with open(path) as f:
+    cfg = json.load(f)
+cfg.setdefault("appearance", {})["mode"] = mode
+with open(path + ".tmp", "w") as f:
+    json.dump(cfg, f, indent=4)
+    f.write("\n")
+import os
+os.replace(path + ".tmp", path)
+PY
+}
+
+# Record the wallpaper where the shell will find it on its next start.
+record_wallpaper() {
+    mkdir -p "$STATE_DIR"
+    python3 - "$WALLPAPER_STATE" "$1" <<'PY'
+import json, os, sys
+path, wall = sys.argv[1], sys.argv[2]
+try:
+    s = json.load(open(path))
+except Exception:
+    s = {}
+if s.get("current") and s["current"] != wall:
+    s["previous"] = s["current"]
+s["current"] = wall
+s["perMonitor"] = {}
+with open(path + ".tmp", "w") as f:
+    json.dump(s, f)
+os.replace(path + ".tmp", path)
+PY
+}
+
+# Push new colours into apps that are already running.
+#
+# The shell, Hyprland and fuzzel all watch their generated files and need
+# nothing. These two do not:
+#
+#   kitty  reads its config only at startup, but every instance listens on
+#          unix:@mykitty-<pid> (see listen_on in kitty.conf), and set-colors
+#          applies a palette live. SIGUSR1 does not do it.
+#   cava   reads its colours at startup, and SIGUSR2 reloads them. The shell's
+#          own cava -- its waveform, `-p ~/.cache/vela/cava.conf` -- has no
+#          colours to reload and is left alone.
+#   GTK    reads ~/.config/gtk-{3,4}.0/gtk.css once, at startup, and offers no
+#          way to reload it. The gsettings in set_colour_scheme keep light/dark
+#          consistent for anything that consults them -- libadwaita, and
+#          Chromium and Firefox, which follow the portal's colour scheme live --
+#          and take effect for apps launched from now on; already-open GTK3
+#          windows keep their old accent colours until they are restarted.
+#
+# Every kitty is told at once rather than one after another: each `kitty @`
+# is a process of its own that takes a moment to start, and in turn they
+# added up to the terminals changing well after everything else.
+notify_running_apps() {
+    if command -v kitty >/dev/null 2>&1; then
+        local pid
+        for pid in $(pgrep -x kitty 2>/dev/null || true); do
+            kitty @ --to "unix:@mykitty-$pid" set-colors --all --configured \
+                "${XDG_CONFIG_HOME:-$HOME/.config}/kitty/colours.conf" >/dev/null 2>&1 &
+        done
+    fi
+
+    local pid args
+    while read -r pid args; do
+        case "$args" in *vela/cava.conf*) continue ;; esac
+        kill -USR2 "$pid" 2>/dev/null || true
+    done < <(pgrep -a -x cava 2>/dev/null || true)
+
+    wait
+}
+
+# Light or dark for everything that asks the desktop: said first, before the
+# palette is regenerated, because it needs nothing from it and browsers and
+# libadwaita apps take a moment to repaint after hearing it.
+set_colour_scheme() {
+    command -v gsettings >/dev/null 2>&1 || return 0
+    if [ "$1" = "light" ]; then
+        gsettings set org.gnome.desktop.interface color-scheme 'prefer-light' 2>/dev/null || true
+        gsettings set org.gnome.desktop.interface gtk-theme 'adw-gtk3' 2>/dev/null || true
+    else
+        gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark' 2>/dev/null || true
+        gsettings set org.gnome.desktop.interface gtk-theme 'adw-gtk3-dark' 2>/dev/null || true
+    fi
+}
+
+# Regenerate every template from an image. The single place matugen is run to
+# write anything: the shell's wallpaper switcher calls this too.
+#
+# `--source-color-index 0` takes the most dominant colour. Without it matugen 4
+# asks which of several candidates to use, and with no terminal attached -- the
+# shell, a keybind -- it exits with an error instead.
+# The scheme is shell.json's unless given. The shell gives it: it has just
+# written a new one there, and that write can land after this reads the file.
+cmd_retint() {
+    local path="${1:-}" mode="${2:-}" scheme="${3:-}"
+    [ -n "$path" ] || die "usage: vela retint <image> [light|dark] [scheme]"
+    [ -f "$path" ] || die "no such file: $path"
+    [ -f "$MATUGEN_CONFIG" ] || die "missing $MATUGEN_CONFIG (did you stow the vela package?)"
+    command -v matugen >/dev/null 2>&1 || die "matugen is not installed"
+    [ -n "$mode" ] || mode=$(preferred_mode)
+    case "$mode" in
+        light|dark) ;;
+        *) die "unknown mode: $mode (use light or dark)" ;;
+    esac
+    [ -n "$scheme" ] || scheme=$(scheme_type)
+    local config="${XDG_CONFIG_HOME:-$HOME/.config}"
+    mkdir -p "$STATE_DIR" "$config/gtk-3.0" "$config/gtk-4.0" "$config/fastfetch" "$config/cava"
+    set_colour_scheme "$mode"
+    matugen --config "$MATUGEN_CONFIG" -q --source-color-index 0 -t "$scheme" -m "$mode" image "$path"
+    notify_running_apps
+}
+
+# The greeting a new terminal opens with: fastfetch, in the palette (its
+# config is a matugen template), information only.
+cmd_greet() {
+    command -v fastfetch >/dev/null 2>&1 || return 0
+    exec fastfetch
+}
+
+# Switch light/dark without naming a wallpaper.
+cmd_theme() {
+    local mode="${1:-toggle}" wall
+
+    if [ "$mode" = "toggle" ]; then
+        case "$(preferred_mode)" in
+            light) mode=dark ;;
+            *)     mode=light ;;
+        esac
+    fi
+
+    case "$mode" in
+        light|dark) ;;
+        *) die "unknown mode: $mode (use light, dark or toggle)" ;;
+    esac
+
+    set_shell_mode "$mode"
+    if shell_running; then
+        printf 'vela: %s mode\n' "$mode"
+        return
+    fi
+
+    wall=$(current_wallpaper) || die "no wallpaper set yet; run: vela wallpaper <path>"
+    cmd_retint "$wall" "$mode"
+    printf 'vela: retinted from %s (%s)\n' "$wall" "$mode"
+}
+
+cmd_wallpaper() {
+    if [ $# -eq 0 ]; then
+        current_wallpaper || die "no wallpaper set yet"
+        return
+    fi
+
+    local path mode=""
+    path=$(realpath -e "$1") || die "no such file: $1"
+    shift
+    case "${1:-}" in
+        --light) mode=light ;;
+        --dark)  mode=dark ;;
+        "")      ;;
+        *) die "unknown option: $1" ;;
+    esac
+
+    [ -z "$mode" ] || set_shell_mode "$mode"
+
+    # A running shell owns the wallpaper: it draws it, keeps the previous one
+    # for super + shift + W, and runs the retint itself.
+    if shell_running; then
+        qs -c vela ipc call wallpaper apply "$path" >/dev/null
+        printf 'vela: wallpaper set to %s\n' "$path"
+        return
+    fi
+
+    [ -n "$mode" ] || mode=$(preferred_mode)
+    record_wallpaper "$path"
+    cmd_retint "$path" "$mode"
+    printf 'vela: retinted from %s (%s)\n' "$path" "$mode"
+}
+
+cmd_shell() {
+    case "${1:-restart}" in
+        # -n: a second start while one is up would otherwise be a second
+        # shell -- two bars, and IPC calls landing on either.
+        start)   qs -c vela -n -d ;;
+        # Never pkill -f here: the pattern also matches the shell running this script.
+        # `qs kill` only asks, so this waits (up to 3 s) until it has gone.
+        stop)
+            qs kill -c vela >/dev/null 2>&1 || true
+            local i
+            for i in $(seq 30); do
+                shell_running || break
+                sleep 0.1
+            done
+            ;;
+        restart) cmd_shell stop; cmd_shell start ;;
+        log)     qs log -c vela -f ;;
+        *)       die "unknown shell command: $1" ;;
+    esac
+}
+
+# What hypridle's listeners run when a laptop has one set of timeouts for on
+# power and another for on battery (Settings, Lock screen). hypridle knows
+# nothing of power, so a listener that is for one of the two asks as it
+# fires, `if vela idle on battery; then loginctl lock-session; fi`, and does
+# nothing on the other. A listener with no such check is for both, which is all a
+# desktop ever has.
+#
+# On battery is UPower's answer, the one the bar's battery shows; without
+# UPower, a battery (not a mouse's) with no charger online. Anything that
+# cannot be read counts as on power, so a listener for on power still acts.
+on_battery() {
+    local v s online=0 battery=0
+    if v=$(busctl get-property org.freedesktop.UPower /org/freedesktop/UPower org.freedesktop.UPower OnBattery 2>/dev/null); then
+        [ "$v" = "b true" ]
+        return
+    fi
+    for s in /sys/class/power_supply/*; do
+        [ -r "$s/type" ] || continue
+        case "$(cat "$s/type" 2>/dev/null)" in
+            Mains|USB*) [ "$(cat "$s/online" 2>/dev/null)" = 1 ] && online=1 ;;
+            Battery)    [ "$(cat "$s/scope" 2>/dev/null)" = Device ] || battery=1 ;;
+        esac
+    done
+    [ "$battery" = 1 ] && [ "$online" = 0 ]
+}
+
+# Dimming, when there are two dim listeners: with a power cord pulled halfway
+# through, both can fire in one idle stretch, and the second must not save
+# the dimmed level as the one to go back to. So it saves only from above the
+# dim level -- which also leaves a screen already down at 5% alone rather
+# than brightening it -- and waking puts back only what was dimmed.
+IDLE_DIM=10
+IDLE_DIMMED="${XDG_RUNTIME_DIR:-/tmp}/vela-idle-dimmed"
+
+cmd_idle() {
+    case "${1:-}" in
+        on)
+            case "${2:-}" in
+                battery) on_battery ;;
+                power)   ! on_battery ;;
+                *)       die "usage: vela idle on power|battery" ;;
+            esac
+            ;;
+        dim)
+            local now
+            now=$(brightnessctl -m 2>/dev/null | cut -d, -f4 | tr -d %) || return 0
+            [ -n "$now" ] && [ "$now" -gt "$IDLE_DIM" ] || return 0
+            brightnessctl -s set "$IDLE_DIM%" >/dev/null && : > "$IDLE_DIMMED"
+            ;;
+        undim)
+            [ -e "$IDLE_DIMMED" ] || return 0
+            rm -f "$IDLE_DIMMED"
+            brightnessctl -r >/dev/null
+            ;;
+        *) die "usage: vela idle on power|battery | dim | undim" ;;
+    esac
+}
+
+# The calendar accounts added in Settings, Calendars, and everything made from
+# them, in one folder only the user can read:
+#
+#   accounts.json       the accounts: provider, name, server, username
+#   state.json          the same, each with its calendars and how its last
+#                       sync went -- what the shell reads
+#   vdirsyncer.conf     one vdirsyncer pair per account
+#   khal-calendars.conf the calendar blocks the shell splices into its copy of
+#                       the khal config (services/Calendar.qml)
+#   data/<id>/          the synced events, one vdir per calendar
+#
+# A calendar link (Google's secret address, Outlook's published calendar, any
+# .ics) is read-only and fetched whole on each sync; a CalDAV account (iCloud,
+# Nextcloud, anything else that speaks it) brings every calendar it has.
+#
+# THE SECRETS ARE IN THE KEYRING, NOT IN THE FOLDER. A password, and a link
+# (a secret address is as good as a password), is stored with secret-tool in
+# the Secret Service -- gnome-keyring, which autostart.lua starts and the
+# login screen unlocks -- encrypted with the login password. vdirsyncer reads
+# it from there at sync time (`password.fetch`, `url.fetch`), so no file here
+# ever holds one. With no keyring, accounts cannot be added: there is no
+# falling back to writing the password down.
+#
+# EVENTS are written into a CalDAV account's calendars here, as .ics files in
+# its local copy, and reach the server with the next sync. So an event made
+# while the server is out of reach -- a Nextcloud at home, from a cafe -- is
+# in the month at once, counted as waiting, and uploaded the next time a sync
+# gets through. A link calendar is read-only and never written; nor is an
+# event that repeats, whose one file is the whole series; nor a calendar the
+# server says is read-only (Nextcloud's contact birthdays, a calendar shared
+# with you to read).
+CALENDAR_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/vela/calendar"
+
+cmd_calendar() {
+    VELA_CALENDAR_DIR="$CALENDAR_DIR" python3 - "$@" <<'PY'
+import glob, hashlib, json, os, re, secrets, shutil, subprocess, sys, time
+import xml.etree.ElementTree as ET
+
+root = os.environ["VELA_CALENDAR_DIR"]
+SERVICE = "vela-calendar"
+accounts_path = os.path.join(root, "accounts.json")
+state_path = os.path.join(root, "state.json")
+vdir_conf = os.path.join(root, "vdirsyncer.conf")
+khal_blocks = os.path.join(root, "khal-calendars.conf")
+data_dir = os.path.join(root, "data")
+status_dir = os.path.join(root, "status")
+
+PROVIDERS = {
+    "google": {"kind": "link", "label": "Google Calendar"},
+    "outlook": {"kind": "link", "label": "Outlook"},
+    "link": {"kind": "link", "label": "Calendar"},
+    "icloud": {"kind": "caldav", "label": "iCloud", "url": "https://caldav.icloud.com/"},
+    "nextcloud": {"kind": "caldav", "label": "Nextcloud"},
+    "caldav": {"kind": "caldav", "label": "CalDAV"},
+}
+
+
+def die(msg):
+    print(f"vela: {msg}", file=sys.stderr)
+    sys.exit(1)
+
+
+# The Secret Service, through secret-tool. Every item is filed under this
+# command's service name, the account's id and which secret it is.
+def keyring_problem():
+    if not shutil.which("secret-tool"):
+        return "secret-tool is not installed (sudo dnf install libsecret)"
+    try:
+        p = subprocess.run(["secret-tool", "lookup", "service", SERVICE, "account", "probe", "field", "probe"],
+                           capture_output=True, text=True, timeout=15)
+    except subprocess.TimeoutExpired:
+        return "the keyring did not answer"
+    # Found, or simply not there: either way something answered. A missing
+    # keyring says so on stderr.
+    if p.returncode == 0 or (p.returncode == 1 and not p.stderr.strip()):
+        return ""
+    return "no keyring is running: " + re.sub(r"^secret-tool:\s*", "", complaint(p.stderr), flags=re.I)
+
+
+def secret_store(aid, field, value, label):
+    try:
+        # Long enough for a locked keyring to ask for its password.
+        p = subprocess.run(["secret-tool", "store", "--label", label, "service", SERVICE, "account", aid, "field", field],
+                           input=value, capture_output=True, text=True, timeout=120)
+    except subprocess.TimeoutExpired:
+        raise RuntimeError("the keyring did not answer")
+    if p.returncode != 0:
+        raise RuntimeError("the keyring refused it: " + re.sub(r"^secret-tool:\s*", "", complaint(p.stderr), flags=re.I))
+
+
+def secret_clear(aid):
+    if shutil.which("secret-tool"):
+        subprocess.run(["secret-tool", "clear", "service", SERVICE, "account", aid], capture_output=True, timeout=30)
+
+
+def fetch(aid, field):
+    return ["command", "secret-tool", "lookup", "service", SERVICE, "account", aid, "field", field]
+
+
+# Accounts written before the keyring kept their secrets in accounts.json.
+# Moved across the first time anything needs the keyring anyway; if it cannot
+# be reached the file is left as it was rather than losing them.
+def migrate(accs):
+    moved = False
+    for a in accs:
+        if "password" in a:
+            secret_store(a["id"], "password", a["password"], f"vela calendar: {a['name']}")
+            del a["password"]
+            moved = True
+        if a["kind"] == "link" and "url" in a:
+            secret_store(a["id"], "url", a["url"], f"vela calendar link: {a['name']}")
+            a["host"] = host_of(a["url"])
+            del a["url"]
+            moved = True
+    if moved:
+        save_accounts(accs)
+
+
+def ensure_dir():
+    os.makedirs(root, mode=0o700, exist_ok=True)
+    os.chmod(root, 0o700)
+
+
+def write_private(path, text):
+    ensure_dir()
+    tmp = path + ".tmp"
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w") as f:
+        f.write(text)
+    os.replace(tmp, path)
+
+
+def load_json(path, empty):
+    try:
+        with open(path) as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return empty
+    except Exception as e:
+        die(f"{path} is unreadable: {e}")
+
+
+def accounts():
+    return load_json(accounts_path, {"accounts": []}).setdefault("accounts", [])
+
+
+def save_accounts(accs):
+    write_private(accounts_path, json.dumps({"accounts": accs}, indent=2) + "\n")
+
+
+def host_of(url):
+    rest = url.split("://", 1)[-1]
+    return rest.split("/", 1)[0]
+
+
+def normalise_url(provider, url):
+    url = url.strip()
+    if url.startswith("webcal://"):
+        url = "https://" + url[len("webcal://"):]
+    if url and "://" not in url:
+        url = "https://" + url
+    if provider == "nextcloud" and url and "/remote.php/dav" not in url:
+        url = url.rstrip("/") + "/remote.php/dav/"
+    return url
+
+
+# vdirsyncer reads its values as JSON, so a password with a quote in it
+# still comes out whole.
+def q(value):
+    return json.dumps(value)
+
+
+def section(account):
+    return hashlib.sha256(json.dumps(account, sort_keys=True).encode()).hexdigest()[:16]
+
+
+def collections_of(account):
+    path = os.path.join(data_dir, account["id"])
+    out = []
+    for sub in sorted(glob.glob(os.path.join(path, "*", ""))):
+        name = ""
+        try:
+            with open(os.path.join(sub, "displayname")) as f:
+                name = f.read().strip()
+        except OSError:
+            pass
+        folder = sub.rstrip("/")
+        out.append({"name": name or os.path.basename(folder), "path": folder, "collection": os.path.basename(folder)})
+    return out
+
+
+# ---- which calendars take events -------------------------------------------
+#
+# Not every calendar on a CalDAV account can be written to: Nextcloud's
+# contact birthdays are made from the address book, a Deck board's from its
+# cards, and a calendar someone shared with you to read is theirs. An event
+# written into one is refused at the next sync -- and, refused, fails every
+# sync after it. So the server is asked which (each calendar's
+# current-user-privilege-set, three small requests on each sync), and the
+# answer kept, for when it cannot be asked. Until it first answers,
+# Nextcloud's own read-only calendars are known by name.
+DAV, CALDAV = "{DAV:}", "{urn:ietf:params:xml:ns:caldav}"
+
+
+def known_readonly(collection):
+    return collection == "contact_birthdays" or collection.startswith("app-generated--")
+
+
+def readonly_of(account, status):
+    ro = status.get(account["id"], {}).get("readonly")
+    if ro is not None:
+        return set(ro)
+    return {c["collection"] for c in collections_of(account) if known_readonly(c["collection"])}
+
+
+def writable_of(account, status):
+    if account["kind"] != "caldav":
+        return []
+    ro = readonly_of(account, status)
+    return [c for c in collections_of(account) if c["collection"] not in ro]
+
+
+def password_of(aid):
+    p = subprocess.run(["secret-tool", "lookup", "service", SERVICE, "account", aid, "field", "password"],
+                       capture_output=True, text=True, timeout=120)
+    if p.returncode != 0:
+        raise RuntimeError("the keyring did not give the password")
+    return p.stdout
+
+
+def propfind(url, auth, props, depth):
+    import urllib.error, urllib.request
+    body = ('<?xml version="1.0" encoding="utf-8"?><d:propfind xmlns:d="DAV:" '
+            'xmlns:c="urn:ietf:params:xml:ns:caldav"><d:prop>' + props + "</d:prop></d:propfind>")
+    # urllib follows a redirect only for GET; a server that moves its DAV
+    # root (a well-known URL) is followed here, a few times at most.
+    for _ in range(4):
+        req = urllib.request.Request(url, data=body.encode(), method="PROPFIND", headers={
+            "Depth": depth, "Content-Type": "application/xml; charset=utf-8", "Authorization": auth})
+        try:
+            with urllib.request.urlopen(req, timeout=20) as r:
+                return r.geturl(), ET.fromstring(r.read())
+        except urllib.error.HTTPError as e:
+            if e.code in (301, 302, 307, 308) and e.headers.get("Location"):
+                from urllib.parse import urljoin
+                url = urljoin(url, e.headers["Location"])
+                continue
+            raise
+    raise RuntimeError("too many redirects")
+
+
+# {href: {property: element}}, from each response's successful properties.
+def responses(tree):
+    out = {}
+    for resp in tree.iter(DAV + "response"):
+        found = {}
+        for ps in resp.findall(DAV + "propstat"):
+            if " 200 " not in (ps.findtext(DAV + "status") or "") + " ":
+                continue
+            for prop in ps.findall(DAV + "prop"):
+                for child in prop:
+                    found[child.tag] = child
+        out[(resp.findtext(DAV + "href") or "").strip()] = found
+    return out
+
+
+def first_href(tree, prop):
+    for found in responses(tree).values():
+        el = found.get(prop)
+        href = el.findtext(DAV + "href") if el is not None else None
+        if href:
+            return href.strip()
+    return None
+
+
+# {collection: takes events} for every calendar the server has, by the same
+# name vdirsyncer gives its folder (the last part of its address).
+def calendar_rights(account):
+    import base64
+    from urllib.parse import unquote, urljoin, urlparse
+    token = base64.b64encode(f"{account['username']}:{password_of(account['id'])}".encode()).decode()
+    auth = "Basic " + token
+    # Where the account says, or, as vdirsyncer does when that is not it,
+    # the server's well-known address and then its root.
+    principal = None
+    for start in (account["url"], urljoin(account["url"], "/.well-known/caldav"), urljoin(account["url"], "/")):
+        try:
+            url, tree = propfind(start, auth, "<d:current-user-principal/>", "0")
+        except Exception as e:
+            if unreachable(str(e)):
+                raise
+            continue
+        principal = first_href(tree, DAV + "current-user-principal")
+        if principal:
+            break
+    if not principal:
+        raise RuntimeError("the server did not say whose calendars these are")
+    url, tree = propfind(urljoin(url, principal), auth, "<c:calendar-home-set/>", "0")
+    home = first_href(tree, CALDAV + "calendar-home-set")
+    if not home:
+        raise RuntimeError("the server did not say where the calendars are")
+    url, tree = propfind(urljoin(url, home), auth, "<d:resourcetype/><d:current-user-privilege-set/>", "1")
+    out = {}
+    for href, found in responses(tree).items():
+        kind = found.get(DAV + "resourcetype")
+        if kind is None or kind.find(CALDAV + "calendar") is None:
+            continue
+        name = unquote(urlparse(href).path.rstrip("/").rsplit("/", 1)[-1])
+        privs = found.get(DAV + "current-user-privilege-set")
+        if privs is None:
+            # Not said: taken as writable, unless it is known not to be.
+            out[name] = not known_readonly(name)
+            continue
+        have = {c.tag for p in privs.findall(DAV + "privilege") for c in p}
+        out[name] = bool(have & {DAV + "all", DAV + "write", DAV + "bind", DAV + "write-content"})
+    return out
+
+
+def is_made_here(path):
+    try:
+        with open(path, encoding="utf-8") as f:
+            return any(line.startswith("UID:") and line.strip().endswith("@vela") for line in f)
+    except OSError:
+        return False
+
+
+# A calendar newly known to be read-only may hold what was written into it
+# before anyone knew: an event made here, which the server will never take,
+# or one of its own changed or deleted, which it will never let go. The
+# events made here move to the account's first calendar that takes them (so
+# they are kept, and uploaded there), and the rest of the local copy is
+# started afresh from the server.
+def settle_readonly(account, collections, st):
+    home = next((c for c in writable_of(account, {account["id"]: st})), None)
+    moved = 0
+    for name in collections:
+        folder = os.path.join(data_dir, account["id"], name)
+        for f in glob.glob(os.path.join(folder, "*.ics")):
+            if is_made_here(f) and home:
+                os.replace(f, os.path.join(home["path"], os.path.basename(f)))
+                moved += 1
+            else:
+                os.remove(f)
+        items = os.path.join(status_dir, f"acc_{account['id']}", f"{name}.items")
+        if os.path.exists(items):
+            os.remove(items)
+    if moved:
+        st["pending"] = st.get("pending", 0) + moved
+
+
+def calendars_of(account):
+    if account["kind"] == "link":
+        return [account["name"]]
+    return [c["name"] for c in collections_of(account)]
+
+
+def write_configs(accs):
+    ensure_dir()
+    if not accs:
+        for path in (vdir_conf, khal_blocks):
+            if os.path.exists(path):
+                os.remove(path)
+        return
+    conf = ["[general]", f"status_path = {q(status_dir + '/')}", ""]
+    blocks = []
+    used = set()
+    for a in accs:
+        pair = f"acc_{a['id']}"
+        path = os.path.join(data_dir, a["id"])
+        os.makedirs(path, exist_ok=True)
+        conf += [f"[pair {pair}]", f"a = {q(pair + '_remote')}", f"b = {q(pair + '_local')}"]
+        if a["kind"] == "link":
+            conf += ["collections = null", 'conflict_resolution = "a wins"', ""]
+            conf += [f"[storage {pair}_remote]", 'type = "http"', f"url.fetch = {q(fetch(a['id'], 'url'))}", ""]
+        else:
+            conf += ['collections = ["from a"]', 'conflict_resolution = "a wins"', 'metadata = ["displayname", "color"]', ""]
+            conf += [f"[storage {pair}_remote]", 'type = "caldav"', f"url = {q(a['url'])}",
+                     f"username = {q(a['username'])}", f"password.fetch = {q(fetch(a['id'], 'password'))}", ""]
+        conf += [f"[storage {pair}_local]", 'type = "filesystem"', f"path = {q(path + '/')}", 'fileext = ".ics"', ""]
+        if a["kind"] == "link":
+            # khal's name for it is the account's: brackets would end the
+            # section header, and two with one name would be one section.
+            name = "".join(c for c in a["name"] if c not in "[]\n").strip() or "Calendar"
+            base, n = name, 2
+            while name.lower() in used:
+                name, n = f"{base} {n}", n + 1
+            used.add(name.lower())
+            blocks += [f"[[{name}]]", f'path = "{path}/"', "readonly = True", ""]
+        else:
+            # Each calendar the account has, named by its own display name.
+            blocks += [f"[[{pair}]]", f'path = "{path}/*"', "type = discover", ""]
+    write_private(vdir_conf, "\n".join(conf))
+    write_private(khal_blocks, "\n".join(blocks))
+
+
+def write_state(accs, status):
+    out = []
+    for a in accs:
+        st = status.get(a["id"], {})
+        out.append({
+            "id": a["id"],
+            "provider": a["provider"],
+            "kind": a["kind"],
+            "name": a["name"],
+            "host": a.get("host") or host_of(a.get("url", "")),
+            "username": a.get("username", ""),
+            "calendars": calendars_of(a),
+            # The calendars events can be written to: a CalDAV account's,
+            # but for those the server keeps read-only.
+            "writable": [{"name": c["name"], "path": c["path"]} for c in writable_of(a, status)],
+            "ok": st.get("ok"),
+            "error": st.get("error", ""),
+            "offline": st.get("offline", False),
+            "pending": st.get("pending", 0),
+            "synced": st.get("synced", 0),
+            "discovered": st.get("discovered", ""),
+        })
+    status = {a["id"]: status[a["id"]] for a in accs if a["id"] in status}
+    write_private(state_path, json.dumps({"accounts": out, "status": status}, indent=2) + "\n")
+
+
+def status_map():
+    return load_json(state_path, {}).get("status", {})
+
+
+# The line of vdirsyncer's complaint worth showing: its first error, without
+# the label.
+def complaint(text):
+    lines = [l.strip() for l in text.splitlines() if l.strip()]
+    found = lines[-1] if lines else "failed"
+    for l in lines:
+        low = l.lower()
+        hit = next((label for label in ("critical:", "error:") if low.startswith(label)), None)
+        if hit:
+            found = l[len(hit):].strip()
+            break
+    # vdirsyncer names the pair it was working on, which is this command's
+    # business, not the reader's.
+    found = re.sub(r"^Unknown error occurred for acc_[0-9a-f]+\S*:\s*", "", found)
+    found = re.sub(r"\s*\bacc_[0-9a-f]+(_remote|_local)?\b", "", found)
+    return found[:1].upper() + found[1:]
+
+
+UNREACHABLE = ("cannot connect to host", "name or service not known", "temporary failure in name resolution",
+               "connection refused", "network is unreachable", "no route to host", "timed out", "timeout",
+               "server disconnected", "getaddrinfo", "connection reset", "clientconnectorerror")
+
+
+def unreachable(text):
+    low = text.lower()
+    # The keyring's own "Connection refused" (no keyring running) is not the
+    # server being out of reach, and is not to be told as such.
+    if "keyring" in low or "secret-tool" in low:
+        return False
+    return any(k in low for k in UNREACHABLE)
+
+
+def run(args, answer=""):
+    try:
+        p = subprocess.run(args, input=answer, capture_output=True, text=True, timeout=180)
+    except subprocess.TimeoutExpired:
+        raise RuntimeError("timed out")
+    if p.returncode != 0:
+        raise RuntimeError(complaint(p.stderr + "\n" + p.stdout))
+
+
+def cmd_add():
+    env = os.environ
+    provider = env.get("VELA_CAL_PROVIDER", "").strip().lower()
+    if provider not in PROVIDERS:
+        die(f"unknown provider: {provider or '(none)'} (one of {', '.join(PROVIDERS)})")
+    kind = PROVIDERS[provider]["kind"]
+    url = normalise_url(provider, env.get("VELA_CAL_URL", "") or PROVIDERS[provider].get("url", ""))
+    if not url.startswith(("http://", "https://")) or not host_of(url):
+        die("that is not a link")
+    account = {
+        "id": secrets.token_hex(4),
+        "provider": provider,
+        "kind": kind,
+        "name": env.get("VELA_CAL_NAME", "").strip() or PROVIDERS[provider]["label"],
+        "host": host_of(url),
+    }
+    user, password = env.get("VELA_CAL_USER", "").strip(), env.get("VELA_CAL_PASS", "")
+    if kind == "caldav" and (not user or not password):
+        die("a CalDAV account needs a username and a password")
+    problem = keyring_problem()
+    if problem:
+        die(problem)
+    accs = accounts()
+    try:
+        migrate(accs)
+        if kind == "link":
+            secret_store(account["id"], "url", url, f"vela calendar link: {account['name']}")
+        else:
+            account["url"], account["username"] = url, user
+            secret_store(account["id"], "password", password, f"vela calendar: {account['name']}")
+    except RuntimeError as e:
+        secret_clear(account["id"])
+        die(str(e))
+    accs.append(account)
+    save_accounts(accs)
+    write_configs(accs)
+    write_state(accs, status_map())
+    print(account["id"])
+
+
+def cmd_remove(aid):
+    accs = accounts()
+    left = [a for a in accs if a["id"] != aid]
+    if len(left) == len(accs):
+        die(f"no account {aid}")
+    save_accounts(left)
+    secret_clear(aid)
+    shutil.rmtree(os.path.join(data_dir, aid), ignore_errors=True)
+    for f in glob.glob(os.path.join(status_dir, f"acc_{aid}*")):
+        shutil.rmtree(f, ignore_errors=True) if os.path.isdir(f) else os.remove(f)
+    write_configs(left)
+    status = status_map()
+    status.pop(aid, None)
+    write_state(left, status)
+
+
+def cmd_sync(only):
+    accs = accounts()
+    # Every account's secret is in the keyring, so without one nothing can
+    # sync -- said once, plainly, rather than as vdirsyncer's complaint about
+    # a command that failed.
+    problem = keyring_problem() if accs else ""
+    if not problem:
+        try:
+            migrate(accs)
+        except RuntimeError as e:
+            problem = str(e)
+    write_configs(accs)
+    status = status_map()
+    chosen = [a for a in accs if not only or a["id"] == only]
+    if only and not chosen:
+        die(f"no account {only}")
+    failed = []
+    have = shutil.which("vdirsyncer") is not None
+    for a in chosen:
+        st = status.setdefault(a["id"], {})
+        pair = f"acc_{a['id']}"
+        try:
+            if problem:
+                raise RuntimeError(problem[:1].upper() + problem[1:])
+            if not have:
+                raise RuntimeError("vdirsyncer is not installed")
+            # Discovery once per account (and again if it changes): it asks
+            # the server which calendars there are, and says yes to making
+            # a local copy of each.
+            rights = None
+            if a["kind"] == "caldav":
+                try:
+                    rights = calendar_rights(a)
+                except Exception as e:
+                    # Out of reach, or a server that will not say: the last
+                    # answer stands, and the sync below says what is wrong.
+                    if unreachable(str(e)):
+                        raise RuntimeError(str(e))
+            # A calendar the server has and this copy does not (made since,
+            # on the phone or the web) is discovered too.
+            have_here = {c["collection"] for c in collections_of(a)}
+            new_there = rights is not None and any(n not in have_here for n in rights)
+            if st.get("discovered") != section(a) or new_there:
+                run(["vdirsyncer", "-c", vdir_conf, "discover", pair], "y\n" * 64)
+                if a["kind"] == "caldav":
+                    run(["vdirsyncer", "-c", vdir_conf, "metasync", pair])
+                st["discovered"] = section(a)
+            if rights is not None:
+                ro = sorted(n for n, w in rights.items() if not w)
+                known = st.get("readonly")
+                before = set(known) if known is not None else set()
+                fresh = [n for n in ro if n not in before]
+                st["readonly"] = ro
+                if fresh:
+                    settle_readonly(a, fresh, st)
+            run(["vdirsyncer", "-c", vdir_conf, "sync", pair])
+            # Everything written here has reached the server now.
+            st.update(ok=True, error="", offline=False, pending=0, synced=int(time.time()))
+        except RuntimeError as e:
+            # Out of reach is not broken: a server at home, a laptop out.
+            # Said as such, and what was written meanwhile keeps waiting.
+            offline = unreachable(str(e))
+            host = a.get("host") or host_of(a.get("url", ""))
+            st.update(ok=False, offline=offline, error=f"Can't reach {host}" if offline else str(e))
+            failed.append(f"{a['name']}: {st['error']}")
+    write_state(accs, status)
+    # A vdirsyncer set up by hand is synced too, so this can be the one sync
+    # command in shell.json either way.
+    own = os.path.join(os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config"), "vdirsyncer", "config")
+    if not only and have and os.path.exists(own):
+        try:
+            run(["vdirsyncer", "sync"])
+        except RuntimeError as e:
+            failed.append(f"vdirsyncer: {e}")
+    if failed:
+        die(failed[0])
+
+
+def cmd_list():
+    accs = accounts()
+    status = status_map()
+    if not accs:
+        print("No calendar accounts. Add one in Settings, Calendars.")
+        return
+    for a in accs:
+        st = status.get(a["id"], {})
+        how = "synced" if st.get("ok") else (st.get("error") or "not synced yet")
+        print(f"{a['id']}  {a['provider']:<9}  {a['name']}  ({a.get('host') or host_of(a.get('url', ''))})  {how}")
+        for c in calendars_of(a):
+            print(f"          - {c}")
+
+
+# ---- events --------------------------------------------------------------
+#
+# From the environment, like `add`: VELA_EV_PATH (the calendar: one of an
+# account's `writable` paths), VELA_EV_TITLE, VELA_EV_START and VELA_EV_END
+# ("2026-09-28T15:00" in local time, or "2026-09-28" for an all-day event,
+# END inclusive) and VELA_EV_LOCATION. Timed events are written in UTC, which
+# every client reads the same wherever it is; all-day ones as dates.
+def ical():
+    try:
+        import icalendar
+        return icalendar
+    except ImportError:
+        die("python3-icalendar is not installed (sudo dnf install python3-icalendar)")
+
+
+def writable_paths(accs, status=None):
+    status = status_map() if status is None else status
+    return {c["path"]: a for a in accs for c in writable_of(a, status)}
+
+
+def find_event(accs, uid):
+    for path, account in writable_paths(accs).items():
+        for f in glob.glob(os.path.join(path, "*.ics")):
+            try:
+                with open(f, encoding="utf-8") as fh:
+                    text = fh.read()
+            except OSError:
+                continue
+            if any(line.strip() == f"UID:{uid}" for line in text.splitlines()):
+                return f, account
+    return None, None
+
+
+def event_times():
+    from datetime import date, datetime, timedelta, timezone
+    start, end = os.environ.get("VELA_EV_START", "").strip(), os.environ.get("VELA_EV_END", "").strip()
+    try:
+        if "T" not in start:
+            first = date.fromisoformat(start)
+            last = date.fromisoformat(end) if end else first
+            if last < first:
+                die("the event ends before it starts")
+            return first, last + timedelta(days=1)
+        # A naive time is the machine's own zone; astimezone() says which.
+        s = datetime.fromisoformat(start).astimezone().astimezone(timezone.utc)
+        e = datetime.fromisoformat(end).astimezone().astimezone(timezone.utc) if end else s + timedelta(hours=1)
+    except ValueError:
+        die(f"not a time: {start} {end}")
+    if e <= s:
+        die("the event ends before it starts")
+    return s, e
+
+
+def write_ics(path, cal):
+    tmp = path + ".tmp"
+    with open(tmp, "wb") as f:
+        f.write(cal.to_ical())
+    os.replace(tmp, path)
+
+
+def mark_pending(account, status):
+    st = status.setdefault(account["id"], {})
+    st["pending"] = st.get("pending", 0) + 1
+
+
+def fill(event, title, start, end, location):
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc)
+    for key in ("summary", "dtstart", "dtend", "duration", "location", "dtstamp", "last-modified"):
+        if key in event:
+            del event[key]
+    event.add("summary", title)
+    event.add("dtstart", start)
+    event.add("dtend", end)
+    if location:
+        event.add("location", location)
+    event.add("dtstamp", now)
+    event.add("last-modified", now)
+
+
+def cmd_event_add():
+    import uuid
+    from datetime import datetime, timezone
+    icalendar = ical()
+    accs = accounts()
+    target = os.environ.get("VELA_EV_PATH", "")
+    account = writable_paths(accs).get(target)
+    if not account:
+        die("that calendar can't be written to")
+    title = os.environ.get("VELA_EV_TITLE", "").strip() or "New event"
+    start, end = event_times()
+    uid = f"{uuid.uuid4()}@vela"
+    cal = icalendar.Calendar()
+    cal.add("prodid", "-//vela//calendar//EN")
+    cal.add("version", "2.0")
+    event = icalendar.Event()
+    event.add("uid", uid)
+    event.add("created", datetime.now(timezone.utc))
+    event.add("sequence", 0)
+    fill(event, title, start, end, os.environ.get("VELA_EV_LOCATION", "").strip())
+    cal.add_component(event)
+    write_ics(os.path.join(target, f"{uid.split('@')[0]}.ics"), cal)
+    status = status_map()
+    mark_pending(account, status)
+    write_state(accs, status)
+    print(uid)
+
+
+def open_event(accs, uid):
+    icalendar = ical()
+    path, account = find_event(accs, uid)
+    if not path:
+        die("that event is not in a calendar that can be written to")
+    with open(path, "rb") as f:
+        cal = icalendar.Calendar.from_ical(f.read())
+    events = [c for c in cal.walk("VEVENT") if str(c.get("uid", "")) == uid]
+    if not events:
+        die("that event is not in its file")
+    if any("rrule" in e or "recurrence-id" in e for e in events):
+        die("it repeats: change it in your calendar app, where the whole series can be seen")
+    return path, account, cal, events[0]
+
+
+def cmd_event_edit(uid):
+    accs = accounts()
+    path, account, cal, event = open_event(accs, uid)
+    target = os.environ.get("VELA_EV_PATH", "") or os.path.dirname(path)
+    moving_to = writable_paths(accs).get(target)
+    if not moving_to:
+        die("that calendar can't be written to")
+    start, end = event_times()
+    fill(event, os.environ.get("VELA_EV_TITLE", "").strip() or str(event.get("summary", "")), start, end,
+         os.environ.get("VELA_EV_LOCATION", "").strip())
+    seq = int(event.get("sequence", 0)) + 1
+    if "sequence" in event:
+        del event["sequence"]
+    event.add("sequence", seq)
+    status = status_map()
+    if os.path.dirname(path) == target.rstrip("/"):
+        write_ics(path, cal)
+    else:
+        # Another calendar: written there, taken out of here. The next sync
+        # uploads it to the one and deletes it from the other.
+        write_ics(os.path.join(target, os.path.basename(path)), cal)
+        os.remove(path)
+        mark_pending(moving_to, status)
+    mark_pending(account, status)
+    write_state(accs, status)
+
+
+def cmd_event_delete(uid):
+    accs = accounts()
+    path, account, _cal, _event = open_event(accs, uid)
+    os.remove(path)
+    status = status_map()
+    mark_pending(account, status)
+    write_state(accs, status)
+
+
+args = sys.argv[1:]
+cmd = args[0] if args else "list"
+if cmd == "list":
+    cmd_list()
+elif cmd == "add":
+    cmd_add()
+elif cmd == "remove" and len(args) == 2:
+    cmd_remove(args[1])
+elif cmd == "sync":
+    cmd_sync(args[1] if len(args) > 1 else "")
+elif cmd == "event" and len(args) >= 2 and args[1] == "add":
+    cmd_event_add()
+elif cmd == "event" and len(args) == 3 and args[1] == "edit":
+    cmd_event_edit(args[2])
+elif cmd == "event" and len(args) == 3 and args[1] == "delete":
+    cmd_event_delete(args[2])
+elif cmd == "keyring":
+    problem = keyring_problem()
+    print(problem or "ok")
+    sys.exit(1 if problem else 0)
+else:
+    die("usage: vela calendar [list|add|sync [id]|remove <id>|keyring|event add|event edit <uid>|event delete <uid>]")
+PY
+}
+
+case "${1:-}" in
+    wallpaper) shift; cmd_wallpaper "$@" ;;
+    theme)     shift; cmd_theme "$@" ;;
+    retint)    shift; cmd_retint "$@" ;;
+    shell)     shift; cmd_shell "$@" ;;
+    colours)   cat "$STATE_DIR/colours.json" 2>/dev/null || die "no palette generated yet" ;;
+    greet)     cmd_greet ;;
+    calendar)  shift; cmd_calendar "$@" ;;
+    idle)      shift; cmd_idle "$@" ;;
+    -h|--help|help|"") usage ;;
+    *) die "unknown command: $1 (try 'vela help')" ;;
+esac

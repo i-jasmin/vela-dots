@@ -1,0 +1,23 @@
+#%PAM-1.0
+#
+# PAM stack for the vela lock screen.
+#
+# vela points PAM at this directory with pam_start_confdir(3) instead of
+# installing a file under /etc/pam.d, so the lock works from a plain `stow`
+# and never needs root. Authentication still runs against the system
+# databases: pam_unix reaches /etc/shadow through the setuid unix_chkpwd
+# helper, which works fine for an unprivileged process.
+#
+# PASSWORD ONLY, ON PURPOSE. This used to include /etc/pam.d/system-auth, and
+# on Fedora that stack runs pam_fprintd before pam_unix. On a machine with an
+# enrolled fingerprint reader pam_fprintd waits out its own timeout before the
+# password is even asked for, the lock's watchdog fired first, and three of
+# those "could not judge" results released the lock by design -- so anyone at
+# the keyboard could unlock it by pressing Enter three times and waiting.
+# pam_faillock is left out for the same reason: a locked-out account answers
+# with an error rather than a failure. pam_unix only ever says yes or no.
+#
+# (caelestia's shell does the same, and runs fingerprint as a separate stack.)
+
+auth        required    pam_unix.so
+account     required    pam_unix.so

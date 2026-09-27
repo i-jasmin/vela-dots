@@ -1,0 +1,6 @@
+*.swp
+*.bak
+.DS_Store
+
+# Per-machine Hyprland overrides (monitors, keyboard): never shared.
+packages/hypr/.config/hypr/conf/local.lua

@@ -1,0 +1,74 @@
+# vela's own matugen config, kept separate from ~/.config/matugen so it cannot
+# collide with another rice's templates. This is the only matugen config vela
+# has: the shell's wallpaper switcher and the `vela` CLI both retint through
+# `vela retint`, which runs
+#   matugen --config ~/.config/vela/matugen.toml --source-color-index 0 image <path>
+# `--source-color-index 0` is not optional: without a terminal attached,
+# matugen 4 refuses to pick between several candidate source colours and exits.
+
+[config]
+version_check = false
+
+# The shell's palette, both modes at once so it can flip light/dark itself.
+# tokens/Colours.qml watches this file and recolours the running shell.
+[templates.shell-scheme]
+input_path = '~/.config/vela/templates/shell-scheme.json'
+output_path = '~/.local/state/vela/scheme.json'
+
+# The current mode's roles, plus which wallpaper and mode they came from.
+# `vela colours` prints it, and `vela theme` reads the wallpaper back from it.
+[templates.shell]
+input_path = '~/.config/vela/templates/colours.json'
+output_path = '~/.local/state/vela/colours.json'
+
+# Everything below retints the rest of the desktop from the same wallpaper.
+# Two notes on the output paths:
+#
+#   * Once the hypr/kitty/fuzzel packages are stowed, ~/.config/hypr and
+#     friends are symlinks into this repo, so these writes land in the repo
+#     working tree. That is intended -- the packages ship a default version of
+#     each generated file so the configs are valid before a wallpaper is ever
+#     set -- but it does mean `git status` shows them as modified after every
+#     retint.
+#   * gtk.css has no include mechanism, so the GTK entries own the whole file.
+#     If another rice also generates ~/.config/gtk-3.0/gtk.css, last writer
+#     wins.
+
+[templates.hyprland]
+input_path = '~/.config/vela/templates/hypr-colours.lua'
+output_path = '~/.config/hypr/conf/colours.lua'
+
+# hyprlock is a separate hyprlang binary and cannot read the Lua config, so it
+# keeps a variables-only .conf of its own.
+[templates.hyprlock]
+input_path = '~/.config/vela/templates/hypr-colours.conf'
+output_path = '~/.config/hypr/colours.conf'
+
+[templates.kitty]
+input_path = '~/.config/vela/templates/kitty-colours.conf'
+output_path = '~/.config/kitty/colours.conf'
+
+[templates.fuzzel]
+input_path = '~/.config/vela/templates/fuzzel-colours.ini'
+output_path = '~/.config/fuzzel/colours.ini'
+
+[templates.gtk3]
+input_path = '~/.config/vela/templates/gtk3.css'
+output_path = '~/.config/gtk-3.0/gtk.css'
+
+[templates.gtk4]
+input_path = '~/.config/vela/templates/gtk4.css'
+output_path = '~/.config/gtk-4.0/gtk.css'
+
+# The terminal greeting (`vela greet`) and plain `fastfetch`. fastfetch has no
+# include either, so like GTK this owns the whole file.
+[templates.fastfetch]
+input_path = '~/.config/vela/templates/fastfetch.jsonc'
+output_path = '~/.config/fastfetch/config.jsonc'
+
+# cava in a terminal -- not the shell's own waveform, which has its own config.
+# Owns the whole file for the same reason. `vela retint` sends a running cava
+# SIGUSR2, which reloads its colours in place.
+[templates.cava]
+input_path = '~/.config/vela/templates/cava.ini'
+output_path = '~/.config/cava/config'

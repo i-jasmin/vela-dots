@@ -1,0 +1,197 @@
+{
+    "$comment": "Default runtime config. Live-reloaded via FileView + JsonAdapter — every key here must take effect without restarting the shell. The settings window (screens 17 and 18) writes this file and holds no state of its own.",
+    "appearance": {
+        "eveningWarmth": {
+            "enabled": true,
+            "fromKelvin": 6500,
+            "rampMinutes": 90,
+            "screen": false,
+            "startsAt": "sunset",
+            "toKelvin": 3400
+        },
+        "generateFromWallpaper": true,
+        "mode": "auto",
+        "panelOpacity": 0.8157889410621761,
+        "radiusScale": 0.9063861575600566,
+        "reduceMotion": true,
+        "scheme": "scheme-tonal-spot"
+    },
+    "background": {
+        "transition": "grow",
+        "transitionMs": 900,
+        "transitionOrigin": "cursor"
+    },
+    "bar": {
+        "autohide": {
+            "keepOnFocusedMonitor": false,
+            "mode": "never",
+            "revealDelay": 120
+        },
+        "floating": true,
+        "margin": 10,
+        "modules": {
+            "centre": [
+                "clock"
+            ],
+            "left": [
+                "launcher",
+                "workspaces",
+                "divider",
+                "activeWindow"
+            ],
+            "right": [
+                "media",
+                "resources",
+                "privacy",
+                "tray",
+                "battery",
+                "power"
+            ]
+        },
+        "perMonitor": {
+            "dimUnfocused": 0.62,
+            "enabled": true
+        },
+        "position": "top",
+        "thicknessHorizontal": 40,
+        "thicknessVertical": 58,
+        "workspaces": {
+            "count": 5,
+            "hideEmptyAfter": 5,
+            "stretchActive": true
+        }
+    },
+    "calendar": {
+        "backend": "khal",
+        "sources": [
+            {
+                "colour": "primary",
+                "name": "Work"
+            },
+            {
+                "colour": "tertiary",
+                "name": "Personal"
+            },
+            {
+                "colour": "outlineVariant",
+                "name": "Birthdays"
+            }
+        ],
+        "syncCommand": "vela calendar sync",
+        "syncMinutes": 15
+    },
+    "capture": {
+        "defaultAction": "copy",
+        "ocrLanguage": "eng",
+        "recordDir": "~/Videos/Recordings",
+        "saveDir": "~/Pictures/Screenshots"
+    },
+    "clipboard": {
+        "detectTypes": [
+            "text",
+            "image",
+            "colour",
+            "link"
+        ],
+        "keep": 200,
+        "pinned": []
+    },
+    "dashboard": {
+        "focusTimer": {
+            "countdownInBar": false,
+            "holdNotifications": true,
+            "minutes": 25,
+            "sessions": 4
+        },
+        "profilePicture": "~/.face"
+    },
+    "dock": {
+        "behaviour": "autohide",
+        "enabled": true,
+        "includeRunning": true,
+        "magnify": true,
+        "pinned": [
+            "kitty.desktop",
+            "google-chrome.desktop",
+            "org.gnome.Nautilus.desktop"
+        ],
+        "position": "bottom",
+        "stacks": [
+            {
+                "icon": "download",
+                "path": "~/Downloads",
+                "recent": 6,
+                "view": "grid"
+            },
+            {
+                "icon": "delete",
+                "path": "trash",
+                "view": "grid"
+            }
+        ]
+    },
+    "keybinds": {
+        "$comment": "Bound in Hyprland via the shell's IPC — listed here so the shell can render them in its own UI.",
+        "capture": "super + shift + S",
+        "clipboard": "super + V",
+        "dashboard": "super + D",
+        "launcher": "super + space",
+        "lock": "super + L",
+        "overview": "super (tap)",
+        "power": "super + escape",
+        "sessionRestore": "super + alt + R",
+        "sessionSave": "super + alt + S",
+        "wallpaper": "super + W",
+        "wallpaperRevert": "super + shift + W",
+        "windowPicker": "alt + tab"
+    },
+    "launcher": {
+        "calculator": true,
+        "clipboard": true,
+        "emoji": true,
+        "maxResults": 8,
+        "sources": [
+            "apps",
+            "commands",
+            "web"
+        ],
+        "wallpaperDir": "~/Pictures/Wallpapers",
+        "webSearch": "https://duckduckgo.com/?q="
+    },
+    "lock": {
+        "audioReactiveArc": true,
+        "fingerprint": true,
+        "showMedia": true,
+        "showStats": [
+            "weather",
+            "events",
+            "unread",
+            "battery"
+        ]
+    },
+    "notifications": {
+        "digest": {
+            "enabled": true,
+            "intervalMinutes": 60
+        },
+        "maxVisible": 4,
+        "position": "top-right",
+        "swipeThreshold": 0.3,
+        "timeout": 6000,
+        "urgentBypassesFocus": true
+    },
+    "sessions": {
+        "captureWorkingDirectory": true,
+        "restoreOnLogin": true
+    },
+    "updates": {
+        "aurCommand": "",
+        "checkCommand": "dnf5 check-update --refresh",
+        "showWhatChanged": true,
+        "snapshotBefore": false
+    },
+    "weather": {
+        "location": "auto",
+        "units": "metric"
+    }
+}
