@@ -10,6 +10,8 @@ and [end-4/dots-hyprland](https://github.com/end-4/dots-hyprland) as references.
 Targets **Hyprland 0.56** (Lua config manager), **Quickshell 0.3.1** and
 **matugen 4**.
 
+**Documentation: [i-jasmin.github.io/vela-dots](https://i-jasmin.github.io/vela-dots/)**
+
 ## Layout
 
 ```
@@ -19,7 +21,10 @@ packages/          one stow package per target, each mirroring $HOME
   bin/             ~/.local/bin/vela     the `vela` command
   hypr/            ~/.config/hypr        hyprland.lua + conf/*.lua, hypridle, hyprlock
   kitty/ fish/ fuzzel/ starship/ bash/   terminal, shells, prompt, fallback runner
+install.sh         the one-line install: clone, then bootstrap.sh
 bootstrap.sh       packages + linking
+wallpapers/        the three that come with it
+site/              the documentation site (Starlight), published to GitHub Pages
 docs/              verified Quickshell and Hyprland behaviour -- read these
                    before writing QML or config
 ```
@@ -39,18 +44,28 @@ registration step.
 
 ## Install
 
+On Fedora (Workstation, 42 or newer), in a terminal:
+
 ```sh
-./bootstrap.sh                                  # COPRs, packages, then link
-vela wallpaper ~/Pictures/Wallpapers/wall.jpg   # generate the palette
+curl -fsSL https://raw.githubusercontent.com/i-jasmin/vela-dots/main/install.sh | bash
 ```
 
-Then log into the Hyprland session; `hyprland.lua` starts the shell, hypridle,
-the polkit agent and the clipboard watcher. `./bootstrap.sh --link` only links,
-`./bootstrap.sh --unlink` removes every link.
+It clones the repo to `~/.local/share/vela-dots`, enables the COPRs and
+installs the packages, links the configs into place, sets a first wallpaper
+so the palette exists, and ends with `vela doctor`, which lists anything
+missing. Then log out and pick **Hyprland** on the login screen;
+`hyprland.lua` starts the shell, hypridle, the polkit agent and the clipboard
+watcher.
 
-**Before you stow:** `~/.config/{hypr,kitty,fish,fuzzel,quickshell/vela}` may
-already be real directories from another setup. Stow refuses rather than
-clobbering, so move them aside first.
+- **Your old configs are kept.** Anything already at one of vela's paths
+  (`~/.config/hypr`, `kitty`, `fish`, `fuzzel`, `quickshell/vela`, `vela`,
+  `starship.toml`) is moved, whole, to `~/.local/state/vela/backup-<date>/`.
+- **Updating** is the same line again, or `git pull` in
+  `~/.local/share/vela-dots`.
+- **From a clone of your own:** `./bootstrap.sh` does the packages and the
+  links; `--packages` and `--link` do one each, `--unlink` removes every link.
+- **NVIDIA:** the installer says so if the card has no driver; the driver
+  comes from RPM Fusion (`akmod-nvidia`).
 
 **Keyboard and monitors:** the keyboard layout is the one Fedora was set up
 with (`localectl status` shows it; `localectl set-x11-keymap it` changes it).
@@ -63,7 +78,8 @@ hl.config({ input = { kb_layout = "it" } })
 ```
 
 Wallpapers are read from `launcher.wallpaperDir` in `shell.json`
-(`~/Pictures/Wallpapers` by default).
+(`~/Pictures/Wallpapers` by default). Three come with vela, in `wallpapers/`,
+and are copied there if the folder has no images of its own.
 
 ## Using it
 
@@ -75,6 +91,7 @@ vela retint <image> [light|dark] [scheme] # regenerate every palette from an ima
 vela shell start|stop|restart|log
 vela colours                             # dump the generated palette
 vela calendar [list|sync [id]|remove <id>] # the calendar accounts (added in Settings)
+vela doctor                              # what is installed, linked and running
 vela idle on power|battery               # true only on that power source (hypridle's check)
 ```
 
@@ -204,7 +221,7 @@ meeting link and **Snooze 5 min**; Settings, Calendars, *Reminders* changes
 the default.
 
 **The full guide, per-provider setup and troubleshooting:
-[`docs/calendar.md`](docs/calendar.md).**
+[the calendar guide](https://i-jasmin.github.io/vela-dots/features/calendar/).**
 
 ## Notifications
 
@@ -292,6 +309,7 @@ hyprlock.
 
 ## When something goes wrong
 
+- **First:** `vela doctor` lists what is missing, unlinked or not running.
 - **Shell log:** `vela shell log`, or run it in the foreground with
   `qs -c vela --log-rules 'qml.debug=true'`.
 - **Hyprland config:** `Hyprland --verify-config -c ~/.config/hypr/hyprland.lua`

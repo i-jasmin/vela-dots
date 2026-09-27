@@ -1,19 +1,18 @@
 -- Monitors
 --
--- Names come from `hyprctl monitors all`. This machine has one output, the
--- internal panel, a BOE 1920x1080 60Hz on the Intel card.
-
-hl.monitor({
-    output = "eDP-1",
-    mode = "1920x1080@60",
-    position = "0x0",
-    scale = 1
-})
+-- Every screen gets its own best mode, placed automatically -- the rule at the
+-- bottom. Anything for one machine only (a scale, a position, a refresh rate)
+-- belongs in conf/local.lua, which is loaded last and not committed, so the
+-- same config fits every machine. Names come from `hyprctl monitors all`.
+--
+-- A laptop panel at 1.25x:
+--
+-- hl.monitor({ output = "eDP-1", mode = "preferred", position = "0x0", scale = 1.25 })
 
 -- Adding an external display:
 --
---   * `hyprctl monitors all` while it is plugged in gives its name. DP-1 to
---     DP-4 are on the iGPU (USB-C / dock), HDMI-A-1 is on the NVIDIA card.
+--   * `hyprctl monitors all` while it is plugged in gives its name (DP-1,
+--     HDMI-A-1, ...).
 --   * `auto-right` / `auto-left` / `auto-up` place it relative to whatever is
 --     already positioned, so you never have to compute pixel offsets.
 --   * `preferred` takes the display's own best mode.

@@ -2,8 +2,12 @@
 # Bootstrap vela on a fresh Fedora install.
 #
 #   ./bootstrap.sh            install packages, then link every package
+#   ./bootstrap.sh --packages install packages only, no linking
 #   ./bootstrap.sh --link     link only, no package installation
 #   ./bootstrap.sh --unlink   remove all links
+#   ./bootstrap.sh --targets  print the paths in $HOME that vela links
+#
+# install.sh is the one-line way in: it clones the repo and runs this.
 #
 # Linking is GNU Stow: each directory under packages/ mirrors $HOME, so
 # `stow -d packages -t ~ hypr` puts packages/hypr/.config/hypr at
@@ -32,6 +36,7 @@ COPRS=(
 # feature that silently does nothing, so each non-obvious one says who needs it.
 DNF_PACKAGES=(
     stow python3 xdg-utils
+    gtk3                        # gtk-launch: super + B opens the default browser
     hyprland hyprlock hypridle hyprpicker hyprpolkitagent
     hyprsunset                  # evening warmth (services/NightLight.qml)
     quickshell matugen
@@ -58,8 +63,40 @@ DNF_PACKAGES=(
     bibata-cursor-theme
 )
 
-log()  { printf '\033[1;35m::\033[0m %s\n' "$1"; }
-die()  { printf '\033[1;31mxx\033[0m %s\n' "$1" >&2; exit 1; }
+# What must be there after the install for the desktop to come up at all. A
+# COPR with no build for this Fedora release fails quietly under
+# --skip-unavailable, so these are checked by name afterwards.
+# Each is a command, and the package it comes from.
+ESSENTIAL=(Hyprland:hyprland qs:quickshell matugen:matugen hypridle:hypridle hyprlock:hyprlock kitty:kitty stow:stow)
+
+# The Lua config manager hyprland.lua is written for.
+HYPRLAND_MIN=0.56
+
+if [ -t 1 ]; then M=$'\033[1;35m' Y=$'\033[1;33m' R=$'\033[1;31m' N=$'\033[0m'; else M="" Y="" R="" N=""; fi
+log()  { printf '%s::%s %s\n' "$M" "$N" "$1"; }
+warn() { printf '%s!!%s %s\n' "$Y" "$N" "$1" >&2; }
+die()  { printf '%sxx%s %s\n' "$R" "$N" "$1" >&2; exit 1; }
+
+# Directories vela links into but does not own: they exist on every account,
+# and other programs keep things in them.
+SHARED=(.config .local .local/bin .local/share .local/state .config/quickshell .bashrc.d)
+
+# The paths in $HOME that vela owns, one per line: whatever sits directly
+# inside a shared directory (or at the top of a package). ~/.config/hypr is
+# one, ~/.config is not.
+targets() {
+    local pkg rel parent
+    for pkg in "${PACKAGES[@]}"; do
+        while IFS= read -r rel; do
+            rel="${rel#./}"
+            [[ " ${SHARED[*]} " == *" $rel "* ]] && continue
+            parent="$(dirname "$rel")"
+            if [ "$parent" = "." ] || [[ " ${SHARED[*]} " == *" $parent "* ]]; then
+                printf '%s\n' "$rel"
+            fi
+        done < <(cd "$REPO/packages/$pkg" && find . -mindepth 1)
+    done
+}
 
 install_packages() {
     command -v dnf >/dev/null || die "this script targets Fedora (no dnf found)"
@@ -70,9 +107,27 @@ install_packages() {
     done
 
     # --skip-unavailable: one renamed package should cost that one feature,
-    # not abort the whole transaction and leave nothing linked.
+    # not abort the whole transaction and leave nothing linked. The ones the
+    # desktop cannot do without are checked by name straight after.
     log "Installing packages"
     sudo dnf install -y --skip-unavailable "${DNF_PACKAGES[@]}"
+
+    local missing=() entry
+    for entry in "${ESSENTIAL[@]}"; do
+        command -v "${entry%%:*}" >/dev/null 2>&1 || missing+=("${entry#*:}")
+    done
+    if [ "${#missing[@]}" -gt 0 ]; then
+        die "these did not install: ${missing[*]}. The ones from a COPR (Hyprland's tools, quickshell, matugen) may have no build for Fedora $(rpm -E %fedora) yet -- see \`dnf copr list\` and the COPR pages, then run this again."
+    fi
+
+    # hyprland.lua needs the Lua config manager. Fedora's own repositories can
+    # carry an older Hyprland than the COPR; dnf takes the newest, but say so
+    # if that is still too old rather than leave a login that loads nothing.
+    local version
+    version="$(Hyprland --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -1 || true)"
+    if [ -n "$version" ] && [ "$(printf '%s\n%s\n' "$HYPRLAND_MIN" "$version" | sort -V | head -1)" != "$HYPRLAND_MIN" ]; then
+        warn "Hyprland $version is installed; vela's config needs $HYPRLAND_MIN or newer (the Lua config)."
+    fi
 
     # Material Symbols is the icon font the shell draws every glyph with. The
     # ririko66z COPR packages it; this is the fallback if that ever fails.
@@ -112,6 +167,27 @@ link() {
     mkdir -p "$HOME/.local/bin" "$HOME/.local/share" "$HOME/.local/state" \
         "$HOME/.config/quickshell" "$HOME/.bashrc.d"
 
+    # Stow refuses to link over a file it does not own, and says so in a way
+    # that is easy to miss. So anything already at one of vela's paths -- a
+    # kitty.conf from before, the hyprland.conf Hyprland writes on its first
+    # start -- is moved aside first, whole, into one dated folder. A link that
+    # already points into this repo is vela's own and stays.
+    local rel target backup=""
+    while IFS= read -r rel; do
+        target="$HOME/$rel"
+        [ -e "$target" ] || [ -L "$target" ] || continue
+        if [ -L "$target" ] && [[ "$(readlink -f "$target")" == "$REPO"/* ]]; then
+            continue
+        fi
+        if [ -z "$backup" ]; then
+            backup="$HOME/.local/state/vela/backup-$(date +%Y%m%d-%H%M%S)"
+            mkdir -p "$backup"
+        fi
+        mkdir -p "$backup/$(dirname "$rel")"
+        mv "$target" "$backup/$rel"
+    done < <(targets)
+    [ -n "$backup" ] && log "Moved your existing configs aside, to $backup"
+
     log "Linking packages: ${PACKAGES[*]}"
     stow -d "$REPO/packages" -t "$HOME" --restow "${PACKAGES[@]}"
 }
@@ -123,8 +199,10 @@ unlink_all() {
 }
 
 case "${1:-}" in
-    --link)   link ;;
-    --unlink) unlink_all ;;
+    --packages) install_packages ;;
+    --link)    link ;;
+    --unlink)  unlink_all ;;
+    --targets) targets ;;
     "")       install_packages; link
               log "Done. Set a wallpaper to generate the palette:"
               printf '\n    vela wallpaper ~/Pictures/Wallpapers/your-wallpaper.png\n    vela shell start\n\n' ;;

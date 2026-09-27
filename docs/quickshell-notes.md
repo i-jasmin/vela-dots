@@ -127,7 +127,7 @@ Verified in a nested Hyprland. If the process holding a
 - Restarting the shell does not recover it. A fresh instance reports
   `isLocked: false` and cannot take the existing lock over.
 - Hyprland's documented escape, `hyprctl eval 'hl.clear_crashed_lockscreen()'`,
-  **fails on this install**: "eval is only supported with the lua config manager".
+  **failed on the install these notes were written on**: "eval is only supported with the lua config manager".
 - `loginctl unlock-session` does nothing, because Quickshell does not listen to
   logind.
 - The only verified escape is `hyprctl dispatch exit` from a TTY, which ends the

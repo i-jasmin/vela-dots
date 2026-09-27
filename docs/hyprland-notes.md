@@ -28,7 +28,7 @@ things every older config and guide still uses are now hard errors:
   `layoutmsg, togglesplit`), and hyprlock's `general:grace` (now `--grace` on
   the command line).
 
-## This machine's hybrid graphics
+## Hybrid graphics (an Intel + NVIDIA laptop)
 
 From `/sys/class/drm`: **card1 = i915 drives eDP-1 and DP-1..4; card0 =
 nvidia-drm drives HDMI-A-1 only.** The internal panel physically cannot be driven

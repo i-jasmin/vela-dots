@@ -1,0 +1,51 @@
+# Builds site/ and publishes it to GitHub Pages: https://i-jasmin.github.io/vela-dots/
+#
+# Only in the public repo -- anywhere else (a fork, a private copy) the job is
+# skipped rather than failing for want of Pages. The repo's Settings > Pages
+# must have "GitHub Actions" as its source.
+name: Docs
+
+on:
+  push:
+    branches: [main]
+    paths: ["site/**", ".github/workflows/docs.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    if: github.repository == 'i-jasmin/vela-dots'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: site
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

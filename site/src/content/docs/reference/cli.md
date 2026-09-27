@@ -1,0 +1,57 @@
+---
+title: The vela command
+description: Everything the vela command does.
+---
+
+`vela` is on your `PATH` once vela is installed (`~/.local/bin/vela`).
+
+## Wallpaper and colours
+
+```sh
+vela wallpaper <image> [--light|--dark]   # set the wallpaper and retheme everything
+vela wallpaper                            # print the current one
+vela theme [light|dark|toggle]            # switch light and dark, and retheme
+vela retint <image> [light|dark] [scheme] # regenerate every palette from an image
+vela colours                              # print the current palette
+```
+
+## The shell
+
+```sh
+vela shell start      # start it (if it is not running)
+vela shell stop
+vela shell restart    # super + shift + R does the same
+vela shell log        # follow its log
+```
+
+## vela doctor
+
+```sh
+vela doctor
+```
+
+Checks what vela needs and says what is missing: the Fedora release,
+Hyprland's version, the essential and the optional tools (each with what it is
+for), the icon font, whether every config is linked from the repo, the
+palette, and -- run from inside Hyprland -- whether the shell and hypridle are
+running. It exits with 1 when something essential is missing.
+
+## Calendars
+
+```sh
+vela calendar list              # your accounts, and how their last sync went
+vela calendar sync [id]         # sync all, or one
+vela calendar remove <id>       # remove an account
+vela calendar keyring           # check the keyring the passwords are in
+```
+
+Adding accounts and events is done from the shell; the [calendar
+guide](../../features/calendar/#the-command-line) covers the rest.
+
+## Other
+
+```sh
+vela greet                      # the terminal greeting
+vela idle on power|battery      # succeeds only on that power source (what hypridle checks)
+vela idle dim|undim             # dim the backlight for idle, and restore it
+```

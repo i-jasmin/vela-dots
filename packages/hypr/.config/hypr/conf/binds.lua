@@ -19,7 +19,9 @@
 local mod = "SUPER"
 local term = "kitty"
 local files = "nautilus"
-local browser = "google-chrome-stable"
+-- Whatever the system's default browser is (Settings in GNOME, or
+-- `xdg-settings set default-web-browser firefox.desktop`), not one by name.
+local browser = [[sh -c 'gtk-launch "$(xdg-settings get default-web-browser)"']]
 
 -- Everything the shell does goes through its IPC, so a keybind, a click on the
 -- bar and a terminal command are one code path. `qs -c vela ipc show` lists
@@ -44,8 +46,8 @@ hl.bind(mod .. " + W", hl.dsp.exec_cmd(vela .. " shell toggle wallpaper"), { des
 hl.bind(mod .. " + SHIFT + W", hl.dsp.exec_cmd(vela .. " wallpaper revert"), { description = "Shell › Revert wallpaper" })
 hl.bind(mod .. " + I", hl.dsp.exec_cmd(vela .. " shell toggle settings"), { description = "Shell: Settings" })
 
--- The cheatsheet, on a key neither layout needs shift for. On the Italian
--- layout input.lua sets, `/` is shift + 7, and the cheatsheet used to be bound
+-- The cheatsheet, on a key neither layout needs shift for. On an Italian
+-- layout `/` is shift + 7, and the cheatsheet used to be bound
 -- there as well -- until super + shift + 7 also meant "move the window to
 -- workspace 7", and did both. `<` is a key of its own there, left of Z; on a
 -- US layout it is shift + comma, but `/` is unshifted, so each layout has one.
@@ -232,9 +234,9 @@ for i = 1, 9 do
 end
 
 hl.bind(mod .. " + SHIFT + TAB", hl.dsp.focus({ workspace = "e-1" }), { description = "Workspaces: Previous workspace" })
--- The key left of 1 is grave on a US layout, but backslash on the Italian one
--- input.lua sets, where grave is AltGr + apostrophe and so, like `slash`
--- above, can never fire. Both spellings are bound.
+-- The key left of 1 is grave on a US layout, but backslash on an Italian one,
+-- where grave is AltGr + apostrophe and so, like `slash` above, can never
+-- fire. Both spellings are bound.
 hl.bind(mod .. " + GRAVE", hl.dsp.focus({ workspace = "e+1" }), { description = "Workspaces: Next workspace" })
 hl.bind(mod .. " + backslash", hl.dsp.focus({ workspace = "e+1" }), { description = "Workspaces › Next workspace, Italian layout" })
 hl.bind(mod .. " + mouse_down", no_tap(hl.dsp.focus({ workspace = "e+1" })), { description = "Workspaces › Cycle workspaces" })

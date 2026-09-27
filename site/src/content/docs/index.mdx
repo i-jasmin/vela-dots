@@ -1,0 +1,66 @@
+---
+title: vela
+description: A Hyprland desktop for Fedora, built on Quickshell and retinted from your wallpaper.
+template: splash
+hero:
+  tagline: A Hyprland desktop for Fedora. One bar, one palette taken from your wallpaper, and everything you reach for a keypress away.
+  actions:
+    - text: Install
+      link: start/install/
+      icon: right-arrow
+    - text: View on GitHub
+      link: https://github.com/i-jasmin/vela-dots
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+## One line to install
+
+On a fresh Fedora Workstation, in a terminal:
+
+```sh wrap
+curl -fsSL https://raw.githubusercontent.com/i-jasmin/vela-dots/main/install.sh | bash
+```
+
+Then log out and pick **Hyprland** on the login screen. [What it does, step by step](start/install/).
+
+## What you get
+
+<CardGrid>
+	<Card title="Colours from your wallpaper" icon="seti:image">
+		Pick a wallpaper and the shell, Hyprland, kitty, GTK apps and the lock screen
+		all take its Material palette -- light, dark, or following the sunset.
+		Open windows cross over to the new colours together.
+	</Card>
+	<Card title="A dashboard on the bar" icon="seti:clock">
+		Click the clock: your day and a fold-out month, the music, live system
+		rings, and a focus timer that can hold notifications until you are done.
+	</Card>
+	<Card title="Your calendars" icon="open-book">
+		Google, Outlook, iCloud, Nextcloud or any CalDAV server, together. Add and
+		change events offline; they sync when the network comes back.
+	</Card>
+	<Card title="Notifications like a phone" icon="information">
+		Open a long one out, swipe it away with a finger or two on the touchpad, and
+		keep a history on the bell.
+	</Card>
+	<Card title="Sessions" icon="laptop">
+		Save the windows you work with -- apps, workspaces, sizes, the folder each
+		terminal was in -- and bring them back, at login if you like.
+	</Card>
+	<Card title="Settings for all of it" icon="setting">
+		A settings window (super + I) for the bar, the look, motion, notifications,
+		calendars and the lock screen. Every change applies at once.
+	</Card>
+</CardGrid>
+
+## Where to next
+
+<CardGrid>
+	<LinkCard title="Install" description="What the installer does, and doing it by hand." href="start/install/" />
+	<LinkCard title="First steps" description="Your first five minutes: the keys worth knowing." href="start/first-steps/" />
+	<LinkCard title="Keybinds" description="Every shortcut, and how to change them." href="configure/keybinds/" />
+	<LinkCard title="Troubleshooting" description="vela doctor, logs, and getting out of a stuck lock." href="help/troubleshooting/" />
+</CardGrid>

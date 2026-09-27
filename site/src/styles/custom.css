@@ -1,0 +1,19 @@
+/* vela's own colours: a Material green, the one its default wallpaper
+   generates, in place of Starlight's purple. */
+:root {
+	--sl-color-accent-low: #133322;
+	--sl-color-accent: #3f9a63;
+	--sl-color-accent-high: #bfe6c9;
+	--sl-font: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+:root[data-theme='light'] {
+	--sl-color-accent-low: #d4efdc;
+	--sl-color-accent: #2c7a4b;
+	--sl-color-accent-high: #11361f;
+}
+.hero .tagline {
+	max-width: 36rem;
+}
+.site-title img {
+	color: var(--sl-color-accent-high);
+}

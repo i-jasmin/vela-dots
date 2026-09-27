@@ -1,4 +1,7 @@
-# Calendar
+---
+title: Calendar
+description: Your calendars on the dashboard -- connecting Google, Outlook, iCloud, Nextcloud and CalDAV, events, reminders, offline, and fixing sync.
+---
 
 vela's calendar lives on the dashboard's Home tab: a month that folds out
 under the day, fed by as many calendar accounts as you like, where you can
@@ -6,26 +9,6 @@ read your days, add, change and delete events, and be reminded of them. This
 is the whole guide: using it, connecting your calendars, reminders, how
 syncing and offline work, where things are kept, and what to do when
 something is off.
-
-- [First-time setup](#first-time-setup)
-- [Opening it](#opening-it)
-- [Reading the month](#reading-the-month)
-- [Keyboard](#keyboard)
-- [Connecting calendars](#connecting-calendars)
-  - [Google](#google) · [Outlook](#outlook--microsoft-365) · [iCloud](#icloud) · [Nextcloud](#nextcloud) · [Other CalDAV](#other-caldav-servers) · [Links](#calendar-links)
-- [Several calendars: colours and switching off](#several-calendars-colours-and-switching-off)
-- [Events: adding, changing, deleting](#events-adding-changing-deleting)
-- [Reminders](#reminders)
-- [Syncing, and working offline](#syncing-and-working-offline)
-- [Privacy: where things are kept](#privacy-where-things-are-kept)
-- [The command line](#the-command-line)
-- [Configuration (shell.json)](#configuration-shelljson)
-- [Your own khal or vdirsyncer setup](#your-own-khal-or-vdirsyncer-setup)
-- [Troubleshooting](#troubleshooting)
-- [How it works](#how-it-works)
-- [Limitations](#limitations)
-
----
 
 ## First-time setup
 

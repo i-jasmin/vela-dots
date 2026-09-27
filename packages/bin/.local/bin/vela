@@ -37,6 +37,8 @@ usage: vela <command> [args]
                                       Write an event into a CalDAV calendar,
                                       from VELA_EV_PATH, _TITLE, _START, _END
                                       and _LOCATION (what Home's month runs)
+  doctor                              Check what is installed, linked and
+                                      running, and what is missing
   idle on power|battery               Succeed only on that power source (what
                                       hypridle's listeners check)
   idle dim|undim                      Dim the backlight for idle, and put it
@@ -356,6 +358,116 @@ cmd_idle() {
             ;;
         *) die "usage: vela idle on power|battery | dim | undim" ;;
     esac
+}
+
+# What is there and what is not: the packages the desktop needs, the fonts,
+# the links into the repo, the palette. For a machine vela has just gone on,
+# or one where something stopped working. Exits 1 when something the desktop
+# cannot come up without is missing, so the installer can tell.
+DOCTOR_HYPRLAND_MIN=0.56
+
+cmd_doctor() {
+    local repo bad=0 G="" R="" Y="" N=""
+    repo="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../../../.." && pwd)"
+    if [ -t 1 ]; then G=$'\033[32m' R=$'\033[31m' Y=$'\033[33m' N=$'\033[0m'; fi
+    pass() { printf '  %s✓%s %s\n' "$G" "$N" "$1"; }
+    fail() { printf '  %s✗%s %s\n' "$R" "$N" "$1"; bad=1; }
+    note() { printf '  %s•%s %s\n' "$Y" "$N" "$1"; }
+
+    echo "vela doctor"
+
+    # The system, and Hyprland new enough for the Lua config.
+    if [ -r /etc/os-release ]; then
+        # shellcheck disable=SC1091
+        ( . /etc/os-release; [ "${ID:-}" = fedora ] ) && pass "$(. /etc/os-release; echo "${PRETTY_NAME:-Fedora}")" \
+            || note "$(. /etc/os-release; echo "${PRETTY_NAME:-this system}") -- vela is only tested on Fedora"
+    fi
+    local version
+    version="$(Hyprland --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -1 || true)"
+    if [ -z "$version" ]; then
+        fail "Hyprland is not installed"
+    elif [ "$(printf '%s\n%s\n' "$DOCTOR_HYPRLAND_MIN" "$version" | sort -V | head -1)" = "$DOCTOR_HYPRLAND_MIN" ]; then
+        pass "Hyprland $version"
+    else
+        fail "Hyprland $version -- the config needs $DOCTOR_HYPRLAND_MIN or newer (the Lua config)"
+    fi
+
+    # What the desktop cannot come up without.
+    local cmd pkg
+    for cmd in qs:quickshell matugen:matugen hypridle:hypridle hyprlock:hyprlock kitty:kitty stow:stow; do
+        pkg="${cmd#*:}"; cmd="${cmd%%:*}"
+        command -v "$cmd" >/dev/null 2>&1 && pass "$pkg" || fail "$pkg is not installed (sudo dnf install $pkg)"
+    done
+
+    # What one feature each needs: missing costs that feature, nothing more.
+    local missing=() entry
+    for entry in \
+        "brightnessctl:screen brightness" "playerctl:media keys" "cava:the music visualiser" \
+        "khal:the calendar" "vdirsyncer:calendar sync" "secret-tool:calendar passwords" \
+        "grim:screenshots" "slurp:picking a region" "wl-copy:the clipboard" "cliphist:clipboard history" \
+        "wf-recorder:screen recording" "swappy:annotating screenshots" "tesseract:text from the screen" \
+        "magick:wallpaper thumbnails" "hyprsunset:evening warmth" "fastfetch:the terminal greeting" \
+        "wtype:typing emoji and clips" "fuzzel:the fallback launcher" "fish:the fish shell" "starship:the prompt"; do
+        command -v "${entry%%:*}" >/dev/null 2>&1 || missing+=("${entry%%:*} (${entry#*:})")
+    done
+    if [ "${#missing[@]}" -eq 0 ]; then
+        pass "every optional tool is there"
+    else
+        local m
+        for m in "${missing[@]}"; do note "missing: $m"; done
+    fi
+
+    # The icons are a font: without it every glyph in the shell is a word.
+    local families
+    families="$(fc-list : family 2>/dev/null || true)"
+    grep -q "Material Symbols Rounded" <<<"$families" && pass "Material Symbols Rounded (the icons)" \
+        || fail "the Material Symbols Rounded font is missing -- every icon will show as text"
+    grep -qE "JetBrainsMono Nerd Font|JetBrainsMono NF" <<<"$families" || note "missing font: JetBrainsMono Nerd Font (the prompt and figures)"
+    grep -q "Rubik" <<<"$families" || note "missing font: Rubik (headings)"
+
+    # The configs are links into the repo.
+    local rel unlinked=()
+    if [ -x "$repo/bootstrap.sh" ]; then
+        while IFS= read -r rel; do
+            # Resolving into the repo is what counts: a link of its own, or
+            # inside a linked parent.
+            if [ ! -e "$HOME/$rel" ] || [[ "$(readlink -f "$HOME/$rel")" != "$repo"/* ]]; then
+                unlinked+=("~/$rel")
+            fi
+        done < <("$repo/bootstrap.sh" --targets)
+        if [ "${#unlinked[@]}" -eq 0 ]; then
+            pass "configs linked from $repo"
+        else
+            fail "not linked from the repo: ${unlinked[*]} (run $repo/bootstrap.sh --link)"
+        fi
+    fi
+    [ -f "$HOME/.config/hypr/conf/local.lua" ] && note "~/.config/hypr/conf/local.lua overrides some settings on this machine"
+
+    # The palette every config reads.
+    if [ -f "$STATE_DIR/colours.json" ]; then
+        pass "palette generated, from $(basename "$(current_wallpaper 2>/dev/null || echo "a wallpaper")")"
+    else
+        note "no palette yet: run vela wallpaper <image>"
+    fi
+
+    # Only meaningful from inside the session.
+    if [ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]; then
+        shell_running && pass "the shell is running" || fail "the shell is not running (vela shell start)"
+        pgrep -x hypridle >/dev/null && pass "hypridle is running" || note "hypridle is not running: nothing dims, locks or suspends on its own"
+    else
+        note "not inside Hyprland, so whether the shell is running was not checked"
+    fi
+
+    # A graphics card the open driver cannot run well.
+    local dev
+    for dev in /sys/bus/pci/devices/*; do
+        [ "$(cat "$dev/vendor" 2>/dev/null)" = 0x10de ] || continue
+        case "$(cat "$dev/class" 2>/dev/null)" in
+            0x03*) modinfo nvidia >/dev/null 2>&1 || note "NVIDIA GPU without the NVIDIA driver: see https://i-jasmin.github.io/vela-dots/help/nvidia/"; break ;;
+        esac
+    done
+
+    return "$bad"
 }
 
 # The calendar accounts added in Settings, Calendars, and everything made from
@@ -1165,6 +1277,7 @@ case "${1:-}" in
     greet)     cmd_greet ;;
     calendar)  shift; cmd_calendar "$@" ;;
     idle)      shift; cmd_idle "$@" ;;
+    doctor)    cmd_doctor ;;
     -h|--help|help|"") usage ;;
     *) die "unknown command: $1 (try 'vela help')" ;;
 esac
