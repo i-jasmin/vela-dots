@@ -8,7 +8,7 @@ description: Keep vela up to date, or take it off again.
 Run the installer again -- it pulls the latest version and re-links:
 
 ```sh wrap
-curl -fsSL https://raw.githubusercontent.com/i-jasmin/vela-dots/main/install.sh | bash
+curl -fsSL https://vela.ijasmin.it/install.sh | bash
 ```
 
 Or, by hand:

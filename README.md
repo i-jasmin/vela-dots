@@ -49,8 +49,10 @@ registration step.
 On Fedora (Workstation, 42 or newer), in a terminal:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/i-jasmin/vela-dots/main/install.sh | bash
+curl -fsSL https://vela.ijasmin.it/install.sh | bash
 ```
+
+(The same script is at `https://raw.githubusercontent.com/i-jasmin/vela-dots/main/install.sh`.)
 
 It clones the repo to `~/.local/share/vela-dots`, enables the COPRs and
 installs the packages (with vela's own build of matugen 4 in place of

@@ -8,7 +8,7 @@ name: Docs
 on:
   push:
     branches: [main]
-    paths: ["site/**", ".github/workflows/docs.yml"]
+    paths: ["site/**", "install.sh", ".github/workflows/docs.yml"]
   workflow_dispatch:
 
 permissions:
@@ -36,6 +36,9 @@ jobs:
           cache-dependency-path: site/package-lock.json
       - run: npm ci
       - run: npm run build
+      # The one-line install, https://vela.ijasmin.it/install.sh: the repo's
+      # own install.sh, copied in at each deploy, so there is only ever one.
+      - run: cp ../install.sh dist/install.sh
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site/dist

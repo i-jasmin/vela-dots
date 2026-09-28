@@ -12,8 +12,11 @@ description: Install vela on Fedora with one command, or by hand.
 ## The one-liner
 
 ```sh wrap
-curl -fsSL https://raw.githubusercontent.com/i-jasmin/vela-dots/main/install.sh | bash
+curl -fsSL https://vela.ijasmin.it/install.sh | bash
 ```
+
+That is the repo's own `install.sh`, which this site serves as it is; the same
+file is at `https://raw.githubusercontent.com/i-jasmin/vela-dots/main/install.sh`.
 
 It asks for your password once, then:
 
@@ -73,7 +76,7 @@ Set these in front of `bash` in the one-liner:
 | `VELA_SKIP_PACKAGES=1` | only link; install nothing |
 
 ```sh wrap
-curl -fsSL https://raw.githubusercontent.com/i-jasmin/vela-dots/main/install.sh | VELA_DIR=~/src/vela-dots bash
+curl -fsSL https://vela.ijasmin.it/install.sh | VELA_DIR=~/src/vela-dots bash
 ```
 
 ## matugen

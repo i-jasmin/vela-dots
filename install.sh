@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 # Install vela on Fedora in one line:
 #
-#   curl -fsSL https://raw.githubusercontent.com/i-jasmin/vela-dots/main/install.sh | bash
+#   curl -fsSL https://vela.ijasmin.it/install.sh | bash
+#
+# The docs site serves this very file (.github/workflows/docs.yml copies it in
+# on every deploy); it is the same as the repo's, at
+# https://raw.githubusercontent.com/i-jasmin/vela-dots/main/install.sh.
 #
 # It clones the repo to ~/.local/share/vela-dots, installs the packages
 # (bootstrap.sh), links the configs into place -- moving anything already
