@@ -22,12 +22,18 @@ It asks for your password once, then:
 3. **Installs the packages** -- Hyprland, Quickshell, matugen and the rest -- after
    enabling the COPR repositories they come from. If one that the desktop
    cannot run without fails to install, it stops here and says which.
+   Fedora's own matugen is older than vela needs, so vela installs
+   [its own build](#matugen) in its place, and it turns Bluetooth on if it is off.
 4. **Links the configs** into place. Anything already at one of vela's paths is
    moved aside first, never deleted (see below).
 5. **Sets a first wallpaper**, so the colour palette exists before you log in.
    Three come with vela; they are copied to `~/Pictures/Wallpapers` only if that
    folder has no images of its own.
 6. **Runs [`vela doctor`](../../reference/cli/#vela-doctor)**, which lists anything missing.
+
+Everything it did, and anything that went wrong -- its own warnings and dnf's,
+red lines included -- is kept in `~/.local/state/vela/install.log`, for after
+the terminal has scrolled away.
 
 Then **log out and choose Hyprland** on the login screen -- on GDM, the gear
 button in the corner once you have picked your name.
@@ -46,7 +52,7 @@ vela owns these paths in your home folder:
 | `~/.config/hypr` | Hyprland, hypridle, hyprlock |
 | `~/.config/quickshell/vela` | the shell itself |
 | `~/.config/vela` | vela's settings and colour templates |
-| `~/.config/kitty`, `~/.config/fish`, `~/.config/fuzzel` | terminal, shell, fallback launcher |
+| `~/.config/kitty`, `~/.config/fish`, `~/.config/fuzzel` | terminal, shell (kitty opens fish), fallback launcher |
 | `~/.config/starship.toml` | the prompt |
 | `~/.local/bin/vela` | the `vela` command |
 | `~/.bashrc.d/vela.sh` | the terminal greeting, for bash |
@@ -70,6 +76,25 @@ Set these in front of `bash` in the one-liner:
 curl -fsSL https://raw.githubusercontent.com/i-jasmin/vela-dots/main/install.sh | VELA_DIR=~/src/vela-dots bash
 ```
 
+## matugen
+
+vela needs matugen 4 or newer, and Fedora's own is older (3.1 on Fedora 44).
+So vela builds matugen itself, from `packaging/fedora/matugen.spec`, for each
+Fedora release it supports, and the installer puts that in place of Fedora's
+-- only when Fedora's is older, so a newer one from Fedora is left alone.
+Running the installer again updates it when vela moves to a newer matugen.
+
+The packages are on the repo's
+[`packages` release](https://github.com/i-jasmin/vela-dots/releases/tag/packages);
+dnf says it skipped their signature check, since they are not signed. On a
+Fedora release vela has no build for yet, the installer says so and keeps
+Fedora's: palettes still work, from the wallpaper's dominant colour, and
+`vela doctor` says so. To install vela's build on its own:
+
+```sh
+~/.local/share/vela-dots/bootstrap.sh --matugen
+```
+
 ## NVIDIA
 
 If your machine has an NVIDIA card and no NVIDIA driver, the installer says so
@@ -87,4 +112,5 @@ vela wallpaper ~/Pictures/Wallpapers/some-image.jpg
 ```
 
 `./bootstrap.sh --packages` and `./bootstrap.sh --link` do one half each;
+`./bootstrap.sh --matugen` installs vela's matugen if yours is older;
 `./bootstrap.sh --targets` lists the paths above.

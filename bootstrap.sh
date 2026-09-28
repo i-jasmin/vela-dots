@@ -6,6 +6,7 @@
 #   ./bootstrap.sh --link     link only, no package installation
 #   ./bootstrap.sh --unlink   remove all links
 #   ./bootstrap.sh --targets  print the paths in $HOME that vela links
+#   ./bootstrap.sh --matugen  install vela's matugen, if what is there is older
 #
 # install.sh is the one-line way in: it clones the repo and runs this.
 #
@@ -17,9 +18,9 @@ set -euo pipefail
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PACKAGES=(vela quickshell bin hypr kitty fish fuzzel bash starship)
 
-# COPRs. Fedora ships neither quickshell nor matugen.
-#   sdegler/hyprland       hyprland, hyprsunset, matugen, cliphist,
-#                          hyprpolkitagent
+# COPRs, for what Fedora itself does not ship, or ships older than vela needs.
+#   errornointernet/quickshell  quickshell, the shell itself
+#   sdegler/hyprland       hyprland, hyprsunset, cliphist, hyprpolkitagent
 #   atim/starship          starship, the prompt config.fish sets up
 #   ririko66z/dots-hyprland  JetBrainsMono Nerd, Rubik, Material Symbols and
 #                          the Bibata cursors. end-4's COPR, used only for
@@ -39,8 +40,9 @@ DNF_PACKAGES=(
     gtk3                        # gtk-launch: super + B opens the default browser
     hyprland hyprlock hypridle hyprpicker hyprpolkitagent
     hyprsunset                  # evening warmth (services/NightLight.qml)
-    quickshell matugen
-    kitty fish fuzzel starship
+    quickshell
+    matugen                     # Fedora's; replaced by vela's own when older (install_matugen)
+    kitty fish fuzzel starship  # kitty opens fish (kitty.conf)
     fastfetch                   # the terminal greeting (`vela greet`)
     grim slurp wl-clipboard cliphist
     wtype                       # clipboard panel and launcher emoji: type into the focused window
@@ -50,6 +52,7 @@ DNF_PACKAGES=(
     tesseract tesseract-langpack-eng    # capture: OCR
     ImageMagick                 # wallpaper switcher thumbnails and sizes
     brightnessctl playerctl cava wireplumber
+    bluez                       # bluetoothd, which the Bluetooth popout talks to
     khal                        # the dashboard's day and Home's month
     vdirsyncer                  # fetches the calendars added in Settings, Calendars
     libsecret                   # secret-tool: their passwords and links, kept in the keyring
@@ -67,15 +70,23 @@ DNF_PACKAGES=(
 # COPR with no build for this Fedora release fails quietly under
 # --skip-unavailable, so these are checked by name afterwards.
 # Each is a command, and the package it comes from.
-ESSENTIAL=(Hyprland:hyprland qs:quickshell matugen:matugen hypridle:hypridle hyprlock:hyprlock kitty:kitty stow:stow)
+ESSENTIAL=(Hyprland:hyprland qs:quickshell matugen:matugen hypridle:hypridle hyprlock:hyprlock kitty:kitty fish:fish stow:stow)
 
 # The Lua config manager hyprland.lua is written for.
 HYPRLAND_MIN=0.56
 
+# Where .github/workflows/packages.yml publishes what vela builds itself.
+PACKAGES_URL="${VELA_PACKAGES_URL:-https://github.com/i-jasmin/vela-dots/releases/download/packages}"
+
 if [ -t 1 ]; then M=$'\033[1;35m' Y=$'\033[1;33m' R=$'\033[1;31m' N=$'\033[0m'; else M="" Y="" R="" N=""; fi
-log()  { printf '%s::%s %s\n' "$M" "$N" "$1"; }
-warn() { printf '%s!!%s %s\n' "$Y" "$N" "$1" >&2; }
-die()  { printf '%sxx%s %s\n' "$R" "$N" "$1" >&2; exit 1; }
+# Run by install.sh, the steps and warnings also go into its install.log.
+record() { if [ -n "${VELA_INSTALL_LOG:-}" ]; then printf '%s\n' "$1" >>"$VELA_INSTALL_LOG"; fi; }
+log()  { printf '%s::%s %s\n' "$M" "$N" "$1"; record ":: $1"; }
+warn() { printf '%s!!%s %s\n' "$Y" "$N" "$1" >&2; record "!! $1"; }
+die()  { printf '%sxx%s %s\n' "$R" "$N" "$1" >&2; record "xx $1"; exit 1; }
+
+# True when version $1 is $2 or newer.
+version_ge() { [ "$(printf '%s\n%s\n' "$2" "$1" | sort -V | head -1)" = "$2" ]; }
 
 # Directories vela links into but does not own: they exist on every account,
 # and other programs keep things in them.
@@ -98,6 +109,31 @@ targets() {
     done
 }
 
+# Fedora's own matugen is older than vela is made for -- 3.1 on Fedora 44,
+# and 4.0 is what added --source-color-index -- so vela builds its own from
+# packaging/fedora/matugen.spec and installs that in its place. Only when
+# what is there is older than the spec: a newer matugen from Fedora is left
+# alone, and running this again after the spec moves on is the update.
+#
+# Missing costs little: an older matugen still makes a palette, from the
+# wallpaper's dominant colour (vela retint), so a failed download warns and
+# carries on.
+install_matugen() {
+    local spec="$REPO/packaging/fedora/matugen.spec" want release have rpm
+    want="$(sed -n 's/^Version:[[:space:]]*//p' "$spec")"
+    release="$(sed -n 's/^Release:[[:space:]]*//p' "$spec")"
+    release="${release%%\%*}" # "1%{?dist}" is "1.fc44" once built
+    have="$(matugen --version 2>/dev/null | grep -oE '[0-9]+(\.[0-9]+)+' | head -1 || true)"
+    if [ -n "$have" ] && version_ge "$have" "$want"; then
+        return 0
+    fi
+    rpm="matugen-$want-$release.fc$(rpm -E %fedora).$(uname -m).rpm"
+    log "Installing matugen $want, vela's own build${have:+, over $have}"
+    if ! sudo dnf install -y "$PACKAGES_URL/$rpm"; then
+        warn "could not install $rpm: vela has no build of it for Fedora $(rpm -E %fedora) on $(uname -m) yet. Palettes still work, from the wallpaper's dominant colour; \`vela doctor\` says when to try again."
+    fi
+}
+
 install_packages() {
     command -v dnf >/dev/null || die "this script targets Fedora (no dnf found)"
 
@@ -111,13 +147,24 @@ install_packages() {
     # desktop cannot do without are checked by name straight after.
     log "Installing packages"
     sudo dnf install -y --skip-unavailable "${DNF_PACKAGES[@]}"
+    install_matugen
+
+    # The Bluetooth popout talks to bluetoothd. Fedora Workstation runs it;
+    # other editions can leave the service off. A machine with no adapter
+    # skips it on its own: the unit only starts when /sys/class/bluetooth is
+    # there.
+    if [ -d /run/systemd/system ] && systemctl cat bluetooth.service >/dev/null 2>&1 &&
+        ! systemctl is-enabled --quiet bluetooth.service 2>/dev/null; then
+        log "Turning on Bluetooth"
+        sudo systemctl enable --now bluetooth.service || warn "could not turn on the Bluetooth service; the Bluetooth popout will be empty"
+    fi
 
     local missing=() entry
     for entry in "${ESSENTIAL[@]}"; do
         command -v "${entry%%:*}" >/dev/null 2>&1 || missing+=("${entry#*:}")
     done
     if [ "${#missing[@]}" -gt 0 ]; then
-        die "these did not install: ${missing[*]}. The ones from a COPR (Hyprland's tools, quickshell, matugen) may have no build for Fedora $(rpm -E %fedora) yet -- see \`dnf copr list\` and the COPR pages, then run this again."
+        die "these did not install: ${missing[*]}. The ones from a COPR (Hyprland's tools, quickshell) may have no build for Fedora $(rpm -E %fedora) yet -- see \`dnf copr list\` and the COPR pages, then run this again."
     fi
 
     # hyprland.lua needs the Lua config manager. Fedora's own repositories can
@@ -125,7 +172,7 @@ install_packages() {
     # if that is still too old rather than leave a login that loads nothing.
     local version
     version="$(Hyprland --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -1 || true)"
-    if [ -n "$version" ] && [ "$(printf '%s\n%s\n' "$HYPRLAND_MIN" "$version" | sort -V | head -1)" != "$HYPRLAND_MIN" ]; then
+    if [ -n "$version" ] && ! version_ge "$version" "$HYPRLAND_MIN"; then
         warn "Hyprland $version is installed; vela's config needs $HYPRLAND_MIN or newer (the Lua config)."
     fi
 
@@ -148,7 +195,7 @@ install_packages() {
             fc-cache -f "$dir"
         else
             rm -f "$dir/MaterialSymbolsRounded.ttf"
-            printf '\033[1;33m!!\033[0m %s\n' "Could not download Material Symbols Rounded; the shell's icons will be missing" >&2
+            warn "Could not download Material Symbols Rounded; the shell's icons will be missing"
         fi
     fi
 }
@@ -203,6 +250,7 @@ case "${1:-}" in
     --link)    link ;;
     --unlink)  unlink_all ;;
     --targets) targets ;;
+    --matugen) install_matugen ;;
     "")       install_packages; link
               log "Done. Set a wallpaper to generate the palette:"
               printf '\n    vela wallpaper ~/Pictures/Wallpapers/your-wallpaper.png\n    vela shell start\n\n' ;;

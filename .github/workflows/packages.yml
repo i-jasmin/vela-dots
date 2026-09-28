@@ -1,0 +1,93 @@
+# Builds the packages vela installs itself on Fedora -- for now only matugen,
+# whose Fedora build is too old -- from the specs in packaging/fedora, once
+# per Fedora release, and puts them on the repo's `packages` release, where
+# bootstrap.sh downloads them from:
+#
+#   https://github.com/i-jasmin/vela-dots/releases/download/packages/matugen-4.2.0-1.fc44.x86_64.rpm
+#
+# Runs when a spec changes, or by hand (Actions > Fedora packages > Run
+# workflow); only in the public repo. A rebuild replaces the files of the same
+# name, and the older versions stay, so an older clone of vela still finds the
+# one it asks for.
+#
+# A new Fedora release: add it to `fedora:` below. Until then, bootstrap.sh
+# finds no build for it, says so, and leaves Fedora's own matugen.
+name: Fedora packages
+
+on:
+  push:
+    branches: [main]
+    paths: ["packaging/fedora/**", ".github/workflows/packages.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: packages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: github.repository == 'i-jasmin/vela-dots'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        fedora: ["43", "44"]
+    container:
+      image: fedora:${{ matrix.fedora }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: |
+          set -euo pipefail
+          dnf install -y rpm-build rpmdevtools
+          rpmdev-setuptree
+          for spec in packaging/fedora/*.spec; do
+            # What the spec's BuildRequires names, straight from the spec.
+            rpmspec -q --buildrequires "$spec" | xargs dnf install -y
+            spectool -g -R "$spec"
+            rpmbuild -ba "$spec"
+          done
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rpms-fc${{ matrix.fedora }}
+          path: |
+            ~/rpmbuild/RPMS/*/*.rpm
+            ~/rpmbuild/SRPMS/*.rpm
+          if-no-files-found: error
+
+  # One job publishes, once the builds are done: two builds creating the
+  # release at once would race. What built is published even if another
+  # build failed -- that Fedora release just goes without this time, which
+  # bootstrap.sh says and works around.
+  release:
+    needs: build
+    if: ${{ !cancelled() && github.repository == 'i-jasmin/vela-dots' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: rpms-*
+          path: rpms
+          merge-multiple: true
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -eu
+          compgen -G "rpms/*.rpm" >/dev/null || { echo "no build succeeded"; exit 1; }
+          ls -l rpms
+          if ! gh release view packages >/dev/null 2>&1; then
+            gh release create packages --target "$GITHUB_SHA" --latest=false \
+              --title "Fedora packages" \
+              --notes "Packages the vela installer puts on Fedora itself, built from packaging/fedora by .github/workflows/packages.yml. Not a vela release: the installer downloads from here, nothing here needs downloading by hand."
+          fi
+          gh release upload packages rpms/*.rpm --clobber

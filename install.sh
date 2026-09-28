@@ -7,6 +7,8 @@
 # (bootstrap.sh), links the configs into place -- moving anything already
 # there aside, never deleting it -- sets a first wallpaper so the palette
 # exists, and checks the result with `vela doctor`. Run it again to update.
+# ~/.local/state/vela/install.log keeps the steps and anything that went
+# wrong, dnf's warnings included, for after the terminal has scrolled away.
 #
 # Settings, all optional:
 #
@@ -22,15 +24,37 @@ set -euo pipefail
 REPO_URL="${VELA_REPO:-https://github.com/i-jasmin/vela-dots.git}"
 DEST="${VELA_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/vela-dots}"
 BRANCH="${VELA_BRANCH:-main}"
+STATE="${XDG_STATE_HOME:-$HOME/.local/state}/vela"
+LOG="$STATE/install.log"
 
 if [ -t 1 ]; then
     B=$'\033[1m' M=$'\033[1;35m' Y=$'\033[1;33m' R=$'\033[1;31m' G=$'\033[1;32m' N=$'\033[0m'
 else
     B="" M="" Y="" R="" G="" N=""
 fi
-log()  { printf '%s::%s %s\n' "$M" "$N" "$1"; }
-warn() { printf '%s!!%s %s\n' "$Y" "$N" "$1" >&2; }
-die()  { printf '%sxx%s %s\n' "$R" "$N" "$1" >&2; exit 1; }
+# Each step and warning also goes into install.log, once main() has started
+# it; bootstrap.sh does the same through VELA_INSTALL_LOG.
+record() { if [ -n "${VELA_INSTALL_LOG:-}" ]; then printf '%s\n' "$1" >>"$VELA_INSTALL_LOG"; fi; }
+log()  { printf '%s::%s %s\n' "$M" "$N" "$1"; record ":: $1"; }
+warn() { printf '%s!!%s %s\n' "$Y" "$N" "$1" >&2; record "!! $1"; }
+die()  { printf '%sxx%s %s\n' "$R" "$N" "$1" >&2; record "xx $1"; exit 1; }
+
+# dnf's part of the record, copied from its own log when the install ends,
+# however it ends: each dnf command run since $1, and its warnings, errors
+# and failed downloads -- the red lines among its progress bars, a mirror
+# that timed out before it moved on to the next. Copied rather than caught
+# as they happen, so dnf keeps the terminal and draws its progress as usual.
+# dnf writes its log in UTC, whatever the local time zone.
+finish_log() {
+    [ -n "${VELA_INSTALL_LOG:-}" ] || return 0
+    local files=() f lines
+    for f in /var/log/dnf5.log.1 /var/log/dnf5.log; do [ -r "$f" ] && files+=("$f"); done
+    [ "${#files[@]}" -gt 0 ] || return 0
+    lines="$(awk -v t="$1" 'substr($1, 1, 19) >= t && (/DNF5 launched with arguments/ || / (WARNING|ERROR|CRITICAL) / || /\[librepo\] Error/)' "${files[@]}" || true)"
+    if [ -n "$lines" ]; then
+        printf '\n-- from dnf'"'"'s own log, /var/log/dnf5.log (times in UTC) --\n%s\n' "$lines" >>"$VELA_INSTALL_LOG"
+    fi
+}
 
 # Everything runs from main(), called on the last line: piped from curl, bash
 # would otherwise start running the script before it had all arrived, and a
@@ -39,6 +63,14 @@ main() {
     # ---- is this a machine vela can go on ------------------------------------------
 
     [ "$(id -u)" -ne 0 ] || die "run this as your own user, not root: it asks for sudo when it needs it."
+
+    mkdir -p "$STATE"
+    export VELA_INSTALL_LOG="$LOG"
+    printf 'vela install, %s\n\n' "$(date)" >"$LOG"
+    local started
+    started="$(date -u +%Y-%m-%dT%H:%M:%S)"
+    # shellcheck disable=SC2064 # $started is fixed now, on purpose
+    trap "finish_log '$started'" EXIT
 
     [ -r /etc/os-release ] || die "no /etc/os-release; vela is for Fedora."
     # shellcheck disable=SC1091
@@ -102,8 +134,7 @@ main() {
     # The palette every config reads is generated from the wallpaper, and there is
     # none yet on a fresh account. The ones that come with vela go into the
     # wallpaper folder only if it has no images of its own.
-    state="${XDG_STATE_HOME:-$HOME/.local/state}/vela"
-    if [ ! -f "$state/colours.json" ]; then
+    if [ ! -f "$STATE/colours.json" ]; then
         walls="$HOME/Pictures/Wallpapers"
         mkdir -p "$walls"
         if ! find "$walls" -maxdepth 1 -type f \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' \) | grep -q .; then
@@ -144,6 +175,7 @@ main() {
     fi
     printf 'Inside, %ssuper + /%s (super + < on some layouts) shows every keybind.\n' "$B" "$N"
     printf 'Docs: https://i-jasmin.github.io/vela-dots\n'
+    printf 'A record of this install, with any warnings: %s\n' "${LOG/#$HOME/\~}"
 }
 
 main "$@"

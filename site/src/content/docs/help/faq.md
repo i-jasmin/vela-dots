@@ -27,6 +27,14 @@ exist before your first wallpaper, and every retint rewrites them. It is
 expected; `git update-index --skip-worktree <file>` hides one if it bothers
 you.
 
+## Why does kitty open fish? Can I have bash?
+
+kitty opens fish (`shell fish` in `~/.config/kitty/kitty.conf`); your login
+shell stays what it was -- bash on a stock Fedora -- so a console or SSH is
+still bash, with the same prompt and greeting. For bash in kitty too, comment
+that line out. For fish everywhere, make it your login shell:
+`chsh -s /usr/bin/fish`.
+
 ## How do I turn the terminal greeting off?
 
 `VELA_GREETING=off` in your environment; in fish, `set -Ux VELA_GREETING off`.

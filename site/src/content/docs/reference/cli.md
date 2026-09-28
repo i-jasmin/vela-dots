@@ -31,10 +31,11 @@ vela doctor
 ```
 
 Checks what vela needs and says what is missing: the Fedora release,
-Hyprland's version, the essential and the optional tools (each with what it is
-for), the icon font, whether every config is linked from the repo, the
-palette, and -- run from inside Hyprland -- whether the shell and hypridle are
-running. It exits with 1 when something essential is missing.
+Hyprland's version, the essential tools (with the versions of Quickshell and
+matugen, and a note when matugen is older than 4) and the optional ones (each
+with what it is for), the icon font, whether every config is linked from the
+repo, the palette, and -- run from inside Hyprland -- whether the shell and
+hypridle are running. It exits with 1 when something essential is missing.
 
 ## Calendars
 

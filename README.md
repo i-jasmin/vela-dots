@@ -23,6 +23,8 @@ packages/          one stow package per target, each mirroring $HOME
   kitty/ fish/ fuzzel/ starship/ bash/   terminal, shells, prompt, fallback runner
 install.sh         the one-line install: clone, then bootstrap.sh
 bootstrap.sh       packages + linking
+packaging/fedora/  the matugen 4 build vela installs, since Fedora's is 3.1
+                   (built by .github/workflows/packages.yml)
 wallpapers/        the three that come with it
 site/              the documentation site (Starlight), published to GitHub Pages
 docs/              verified Quickshell and Hyprland behaviour -- read these
@@ -51,9 +53,11 @@ curl -fsSL https://raw.githubusercontent.com/i-jasmin/vela-dots/main/install.sh 
 ```
 
 It clones the repo to `~/.local/share/vela-dots`, enables the COPRs and
-installs the packages, links the configs into place, sets a first wallpaper
+installs the packages (with vela's own build of matugen 4 in place of
+Fedora's older one), links the configs into place, sets a first wallpaper
 so the palette exists, and ends with `vela doctor`, which lists anything
-missing. Then log out and pick **Hyprland** on the login screen;
+missing; `~/.local/state/vela/install.log` keeps a record of the run, with
+dnf's warnings. Then log out and pick **Hyprland** on the login screen;
 `hyprland.lua` starts the shell, hypridle, the polkit agent and the clipboard
 watcher.
 
@@ -63,7 +67,10 @@ watcher.
 - **Updating** is the same line again, or `git pull` in
   `~/.local/share/vela-dots`.
 - **From a clone of your own:** `./bootstrap.sh` does the packages and the
-  links; `--packages` and `--link` do one each, `--unlink` removes every link.
+  links; `--packages` and `--link` do one each, `--unlink` removes every link,
+  `--matugen` installs vela's matugen if the one there is older.
+- **kitty opens fish**; the login shell stays bash, so a console or SSH is
+  still bash, with the same prompt and greeting.
 - **NVIDIA:** the installer says so if the card has no driver; the driver
   comes from RPM Fusion (`akmod-nvidia`).
 
@@ -119,7 +126,9 @@ that runs it, `vela retint` -- the wallpaper switcher, the settings window and
 the CLI all go through it. It passes `--source-color-index 0` when matugen has
 it -- without a terminal attached, matugen 4 refuses to choose a source colour
 and exits -- and when matugen cannot choose either way, it works out the
-image's dominant colour itself and generates the palette from that.
+image's dominant colour itself and generates the palette from that. The
+installer puts in vela's own matugen 4 (`packaging/fedora`), so the fallback
+is only for a Fedora release vela has no build for yet.
 
 | Target | Written to | Picks it up |
 |---|---|---|
@@ -154,9 +163,9 @@ only -- no logo, no picture -- and never on a Linux console. Its colours are
 kitty's palette slots (250-255 the accents, 249 the separator), not fixed
 colour codes, so a greeting already on screen recolours with a new wallpaper
 or a switch to light instead of keeping the old palette. It runs once per
-terminal window, from fish
-(`functions/fish_greeting.fish`) or bash (`~/.bashrc.d/vela.sh`), whichever
-starts; `VELA_GREETING=off` in the environment turns it off
+terminal window, from fish, which kitty opens
+(`functions/fish_greeting.fish`), or bash, on a console or over SSH
+(`~/.bashrc.d/vela.sh`); `VELA_GREETING=off` in the environment turns it off
 (`set -Ux VELA_GREETING off` in fish).
 
 The Hyprland, hyprlock, kitty and fuzzel files live in the repo (so the configs

@@ -14,6 +14,7 @@ packages/          one stow package per target, each mirroring $HOME
   kitty/ fish/ fuzzel/ starship/ bash/   terminal, shells, prompt, fallback launcher
 install.sh         the one-line install
 bootstrap.sh       packages and linking
+packaging/fedora/  the matugen build vela installs (Fedora's is too old)
 wallpapers/        the three that come with vela
 site/              this documentation
 docs/              notes on Quickshell and Hyprland behaviour

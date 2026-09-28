@@ -12,6 +12,13 @@ vela doctor
 It lists what is missing, not linked or not running, with the command that
 fixes most of them.
 
+## The install printed errors
+
+Red lines while the packages install are usually dnf trying another mirror
+after one failed, and the package installs anyway; `vela doctor` shows
+whether anything ended up missing. The installer keeps a record of the run,
+with dnf's warnings and errors, in `~/.local/state/vela/install.log`.
+
 ## The shell
 
 ```sh
@@ -63,6 +70,14 @@ console with **ctrl + alt + F3** and log in. Then, in order:
 3. **Neither works** -- end the session: `hyprctl dispatch exit`, or reboot.
 
 Switch back with **ctrl + alt + F1** (or F2).
+
+## "matugen is older than 4.0"
+
+`vela doctor` says this when the matugen installed is Fedora's rather than
+vela's own build. Palettes still work, from the wallpaper's dominant colour,
+but not quite the way vela is made for. Install vela's build with
+`~/.local/share/vela-dots/bootstrap.sh --matugen`; if that says there is no
+build for your Fedora release yet, see [matugen](../../start/install/#matugen).
 
 ## Colours did not change in an app
 

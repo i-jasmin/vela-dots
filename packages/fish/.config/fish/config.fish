@@ -1,9 +1,9 @@
 # vela -- fish
 #
-# Additive on purpose. The login shell is whatever /etc/passwd says (bash, on
-# a stock Fedora); nothing here changes that, and nothing here assumes a tool is
-# installed. Run `fish` to try it, `chsh -s (which fish)` if you decide to
-# keep it.
+# The shell kitty opens (kitty.conf). The login shell stays whatever
+# /etc/passwd says (bash, on a stock Fedora), set up alike by
+# ~/.bashrc.d/vela.sh; nothing here changes that, and nothing here assumes a
+# tool is installed. `chsh -s (which fish)` makes fish the login shell too.
 #
 # Fish sources this file for every shell, including non-interactive ones that
 # scripts and editors spawn, so everything that prints, prompts or costs time

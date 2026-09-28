@@ -433,16 +433,25 @@ cmd_doctor() {
         fail "Hyprland $version -- the config needs $DOCTOR_HYPRLAND_MIN or newer (the Lua config)"
     fi
 
-    # What the desktop cannot come up without.
-    local cmd pkg
-    for cmd in qs:quickshell matugen:matugen hypridle:hypridle hyprlock:hyprlock kitty:kitty stow:stow; do
+    # What the desktop cannot come up without -- fish too, since kitty opens
+    # it -- with the versions of quickshell and matugen, the two most likely
+    # to be behind.
+    local cmd pkg ver
+    for cmd in qs:quickshell matugen:matugen hypridle:hypridle hyprlock:hyprlock kitty:kitty fish:fish stow:stow; do
         pkg="${cmd#*:}"; cmd="${cmd%%:*}"
-        command -v "$cmd" >/dev/null 2>&1 && pass "$pkg" || fail "$pkg is not installed (sudo dnf install $pkg)"
+        if ! command -v "$cmd" >/dev/null 2>&1; then
+            fail "$pkg is not installed (sudo dnf install $pkg)"
+            continue
+        fi
+        ver=""
+        case "$cmd" in qs | matugen) ver="$("$cmd" --version 2>/dev/null | grep -oE '[0-9]+(\.[0-9]+)+' | head -1 || true)" ;; esac
+        pass "$pkg${ver:+ $ver}"
     done
-    # A matugen that cannot be told which colour to take still themes, from
-    # the wallpaper's dominant colour (see cmd_retint); say so, with its version.
+    # A matugen older than 4.0 cannot be told which colour to take. It still
+    # themes, from the wallpaper's dominant colour (see cmd_retint), and
+    # vela's own build (packaging/fedora) is the one that does it properly.
     if command -v matugen >/dev/null 2>&1 && ! matugen image --help 2>/dev/null | grep -q -- '--source-color-index'; then
-        note "$(matugen --version 2>/dev/null || echo matugen) cannot be told which colour to use; vela picks the wallpaper's dominant colour itself"
+        note "matugen is older than 4.0, so palettes come from the wallpaper's dominant colour. For vela's build: ${repo/#$HOME/\~}/bootstrap.sh --matugen"
     fi
 
     # What one feature each needs: missing costs that feature, nothing more.
@@ -453,7 +462,7 @@ cmd_doctor() {
         "grim:screenshots" "slurp:picking a region" "wl-copy:the clipboard" "cliphist:clipboard history" \
         "wf-recorder:screen recording" "swappy:annotating screenshots" "tesseract:text from the screen" \
         "magick:wallpaper thumbnails" "hyprsunset:evening warmth" "fastfetch:the terminal greeting" \
-        "wtype:typing emoji and clips" "fuzzel:the fallback launcher" "fish:the fish shell" "starship:the prompt"; do
+        "wtype:typing emoji and clips" "fuzzel:the fallback launcher" "starship:the prompt"; do
         command -v "${entry%%:*}" >/dev/null 2>&1 || missing+=("${entry%%:*} (${entry#*:})")
     done
     if [ "${#missing[@]}" -eq 0 ]; then
