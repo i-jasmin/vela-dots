@@ -10,7 +10,7 @@ and [end-4/dots-hyprland](https://github.com/end-4/dots-hyprland) as references.
 Targets **Hyprland 0.56** (Lua config manager), **Quickshell 0.3.1** and
 **matugen 4**.
 
-**Documentation: [i-jasmin.github.io/vela-dots](https://i-jasmin.github.io/vela-dots/)**
+**Documentation: [vela.ijasmin.it](https://vela.ijasmin.it/)**
 
 ## Layout
 
@@ -232,7 +232,7 @@ meeting link and **Snooze 5 min**; Settings, Calendars, *Reminders* changes
 the default.
 
 **The full guide, per-provider setup and troubleshooting:
-[the calendar guide](https://i-jasmin.github.io/vela-dots/features/calendar/).**
+[the calendar guide](https://vela.ijasmin.it/features/calendar/).**
 
 ## Notifications
 

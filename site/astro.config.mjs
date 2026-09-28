@@ -2,11 +2,12 @@
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 
-// Published by .github/workflows/docs.yml to GitHub Pages, under the repo's
-// name: https://i-jasmin.github.io/vela-dots/
+// Published by .github/workflows/docs.yml to GitHub Pages, on its own domain:
+// https://vela.ijasmin.it/ (set in the repo's Settings > Pages; a workflow
+// deploy needs no CNAME file). At the root of that domain, so no `base` --
+// the old https://i-jasmin.github.io/vela-dots/ links redirect there.
 export default defineConfig({
-	site: 'https://i-jasmin.github.io',
-	base: '/vela-dots',
+	site: 'https://vela.ijasmin.it',
 	integrations: [
 		starlight({
 			title: 'vela',

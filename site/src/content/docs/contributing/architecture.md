@@ -56,5 +56,5 @@ Built with [Starlight](https://starlight.astro.build) from `site/`:
 ```sh
 cd site
 npm install
-npm run dev        # http://localhost:4321/vela-dots/
+npm run dev        # http://localhost:4321/
 ```

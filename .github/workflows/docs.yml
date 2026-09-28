@@ -1,4 +1,4 @@
-# Builds site/ and publishes it to GitHub Pages: https://i-jasmin.github.io/vela-dots/
+# Builds site/ and publishes it to GitHub Pages: https://vela.ijasmin.it/
 #
 # Only in the public repo -- anywhere else (a fork, a private copy) the job is
 # skipped rather than failing for want of Pages. The repo's Settings > Pages

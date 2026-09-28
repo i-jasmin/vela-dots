@@ -174,7 +174,7 @@ main() {
         printf 'There is no login screen to pick a session from: start %sHyprland%s from a console with `Hyprland`.\n' "$B" "$N"
     fi
     printf 'Inside, %ssuper + /%s (super + < on some layouts) shows every keybind.\n' "$B" "$N"
-    printf 'Docs: https://i-jasmin.github.io/vela-dots\n'
+    printf 'Docs: https://vela.ijasmin.it\n'
     printf 'A record of this install, with any warnings: %s\n' "${LOG/#$HOME/\~}"
 }
 

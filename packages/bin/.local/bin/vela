@@ -518,7 +518,7 @@ cmd_doctor() {
     for dev in /sys/bus/pci/devices/*; do
         [ "$(cat "$dev/vendor" 2>/dev/null)" = 0x10de ] || continue
         case "$(cat "$dev/class" 2>/dev/null)" in
-            0x03*) modinfo nvidia >/dev/null 2>&1 || note "NVIDIA GPU without the NVIDIA driver: see https://i-jasmin.github.io/vela-dots/help/nvidia/"; break ;;
+            0x03*) modinfo nvidia >/dev/null 2>&1 || note "NVIDIA GPU without the NVIDIA driver: see https://vela.ijasmin.it/help/nvidia/"; break ;;
         esac
     done
 
