@@ -83,11 +83,14 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           set -eu
-          compgen -G "rpms/*.rpm" >/dev/null || { echo "no build succeeded"; exit 1; }
-          ls -l rpms
+          # Each artifact keeps the folders it was built in (RPMS/x86_64/,
+          # SRPMS/), so the packages are found wherever they are under rpms/.
+          mapfile -t files < <(find rpms -name '*.rpm' | sort)
+          [ "${#files[@]}" -gt 0 ] || { echo "no build succeeded"; exit 1; }
+          ls -l "${files[@]}"
           if ! gh release view packages >/dev/null 2>&1; then
             gh release create packages --target "$GITHUB_SHA" --latest=false \
               --title "Fedora packages" \
               --notes "Packages the vela installer puts on Fedora itself, built from packaging/fedora by .github/workflows/packages.yml. Not a vela release: the installer downloads from here, nothing here needs downloading by hand."
           fi
-          gh release upload packages rpms/*.rpm --clobber
+          gh release upload packages "${files[@]}" --clobber
