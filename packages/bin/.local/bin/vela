@@ -193,9 +193,39 @@ set_colour_scheme() {
 #
 # `--source-color-index 0` takes the most dominant colour. Without it matugen 4
 # asks which of several candidates to use, and with no terminal attached -- the
-# shell, a keybind -- it exits with an error instead.
+# shell, a keybind -- it exits with an error instead. The Fedora COPRs do not
+# all carry the same matugen: some have the option only under `image`, some
+# not at all, and one that lacks it refuses the whole command if given it. So
+# it is passed after `image`, and only to a matugen that lists it there; and if
+# matugen still cannot settle on a colour, the image's own dominant colour is
+# worked out here and the palette made from that (`matugen color`).
 # The scheme is shell.json's unless given. The shell gives it: it has just
 # written a new one there, and that write can land after this reads the file.
+matugen_source_args() {
+    if matugen image --help 2>/dev/null | grep -q -- '--source-color-index'; then
+        printf '%s\n' --source-color-index 0
+    fi
+}
+
+# The most common colour in the image, as #rrggbb, preferring one with some
+# colour in it over a grey: a stand-in for matugen's own choice.
+dominant_colour() {
+    local im
+    im=$(command -v magick || command -v convert) || return 1
+    "$im" "$1" -resize 96x96 -colors 8 -depth 8 -format '%c' histogram:info:- 2>/dev/null \
+        | awk 'function h(x,   i, n) { n = 0; x = tolower(x); for (i = 1; i <= length(x); i++) n = n * 16 + index("0123456789abcdef", substr(x, i, 1)) - 1; return n }
+        {
+            count = $1 + 0
+            if (match($0, /#[0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f]/) == 0) next
+            hex = substr($0, RSTART, 7)
+            r = h(substr(hex, 2, 2)); g = h(substr(hex, 4, 2)); b = h(substr(hex, 6, 2))
+            hi = r; if (g > hi) hi = g; if (b > hi) hi = b
+            lo = r; if (g < lo) lo = g; if (b < lo) lo = b
+            score = count * (hi - lo > 24 ? 4 : 1)
+            if (score > best) { best = score; pick = hex }
+        } END { if (pick) print pick; else exit 1 }'
+}
+
 cmd_retint() {
     local path="${1:-}" mode="${2:-}" scheme="${3:-}"
     [ -n "$path" ] || die "usage: vela retint <image> [light|dark] [scheme]"
@@ -211,7 +241,18 @@ cmd_retint() {
     local config="${XDG_CONFIG_HOME:-$HOME/.config}"
     mkdir -p "$STATE_DIR" "$config/gtk-3.0" "$config/gtk-4.0" "$config/fastfetch" "$config/cava"
     set_colour_scheme "$mode"
-    matugen --config "$MATUGEN_CONFIG" -q --source-color-index 0 -t "$scheme" -m "$mode" image "$path"
+    # matugen's own complaint is kept back unless the fallback fails too: a
+    # recovered retint should not look like an error.
+    local source_args colour err
+    mapfile -t source_args < <(matugen_source_args)
+    if ! err=$(matugen --config "$MATUGEN_CONFIG" -q -t "$scheme" -m "$mode" image "${source_args[@]}" "$path" 2>&1 </dev/null); then
+        if ! colour=$(dominant_colour "$path"); then
+            printf '%s\n' "$err" >&2
+            die "matugen could not make a palette from $path"
+        fi
+        printf 'vela: matugen could not pick a colour from the image; using its dominant colour, %s\n' "$colour" >&2
+        matugen --config "$MATUGEN_CONFIG" -q -t "$scheme" -m "$mode" color hex "$colour" </dev/null
+    fi
     notify_running_apps
 }
 
@@ -398,6 +439,11 @@ cmd_doctor() {
         pkg="${cmd#*:}"; cmd="${cmd%%:*}"
         command -v "$cmd" >/dev/null 2>&1 && pass "$pkg" || fail "$pkg is not installed (sudo dnf install $pkg)"
     done
+    # A matugen that cannot be told which colour to take still themes, from
+    # the wallpaper's dominant colour (see cmd_retint); say so, with its version.
+    if command -v matugen >/dev/null 2>&1 && ! matugen image --help 2>/dev/null | grep -q -- '--source-color-index'; then
+        note "$(matugen --version 2>/dev/null || echo matugen) cannot be told which colour to use; vela picks the wallpaper's dominant colour itself"
+    fi
 
     # What one feature each needs: missing costs that feature, nothing more.
     local missing=() entry

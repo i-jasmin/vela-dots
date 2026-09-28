@@ -2,9 +2,11 @@
 # collide with another rice's templates. This is the only matugen config vela
 # has: the shell's wallpaper switcher and the `vela` CLI both retint through
 # `vela retint`, which runs
-#   matugen --config ~/.config/vela/matugen.toml --source-color-index 0 image <path>
-# `--source-color-index 0` is not optional: without a terminal attached,
-# matugen 4 refuses to pick between several candidate source colours and exits.
+#   matugen --config ~/.config/vela/matugen.toml image --source-color-index 0 <path>
+# `--source-color-index 0` matters: without a terminal attached, matugen 4
+# refuses to pick between several candidate source colours and exits. A
+# matugen without the option gets none, and if it cannot choose either, vela
+# gives it the image's dominant colour instead (`matugen color hex`).
 
 [config]
 version_check = false

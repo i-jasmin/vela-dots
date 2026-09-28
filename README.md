@@ -116,8 +116,10 @@ transition) are only in the file; everything else has a control:
 
 There is one matugen config, `~/.config/vela/matugen.toml`, and one command
 that runs it, `vela retint` -- the wallpaper switcher, the settings window and
-the CLI all go through it. It always passes `--source-color-index 0`: without a
-terminal attached, matugen 4 refuses to choose a source colour and exits.
+the CLI all go through it. It passes `--source-color-index 0` when matugen has
+it -- without a terminal attached, matugen 4 refuses to choose a source colour
+and exits -- and when matugen cannot choose either way, it works out the
+image's dominant colour itself and generates the palette from that.
 
 | Target | Written to | Picks it up |
 |---|---|---|

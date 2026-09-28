@@ -39,6 +39,11 @@ Singleton {
     // matugen is a separate package from everything else here; without it the
     // switcher still browses and sets wallpapers, it just cannot re-theme.
     property bool themerAvailable: false
+    // Whether `matugen image` takes `--source-color-index`, which picks the
+    // dominant colour without asking. Newer releases need it with no terminal
+    // attached; older ones have no such option and refuse the command if
+    // given it. `vela retint` makes the same check.
+    property bool matugenPicksSource: false
     property bool scanning: false
     property string error: ""
 
@@ -230,7 +235,7 @@ Singleton {
             return;
         previewPath = path;
         previewing = true;
-        previewProc.command = ["matugen", "--config", matugenConfig, "--dry-run", "--json", "hex", "-q", "--source-color-index", "0", "-t", Config.appearance.scheme, "image", themingSource(path)];
+        previewProc.command = ["matugen", "--config", matugenConfig, "--dry-run", "--json", "hex", "-q", "-t", Config.appearance.scheme, "image"].concat(matugenPicksSource ? ["--source-color-index", "0"] : [], [themingSource(path)]);
         previewProc.running = true;
     }
 
@@ -596,7 +601,18 @@ rm -f "$keep"
 
         running: true
         command: ["sh", "-c", 'PATH="$HOME/.local/bin:$PATH"; command -v matugen >/dev/null && command -v vela >/dev/null']
-        onExited: code => root.themerAvailable = code === 0
+        onExited: code => {
+            root.themerAvailable = code === 0;
+            if (root.themerAvailable)
+                sourceProbe.running = true;
+        }
+    }
+
+    Process {
+        id: sourceProbe
+
+        command: ["sh", "-c", "matugen image --help 2>/dev/null | grep -q -- --source-color-index"]
+        onExited: code => root.matugenPicksSource = code === 0
     }
 
     Component.onCompleted: mkdir.running = true
