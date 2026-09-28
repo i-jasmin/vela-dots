@@ -118,9 +118,57 @@ Singleton {
         actionProc.exec(["sh", "-c", "printf '%s\\n' \"$1\" | cliphist delete", "vela-clip", entry.raw]);
     }
 
+    // Everything but the pinned entries: Clear all in the panel, and
+    // `qs -c vela ipc call clipboard wipe`. Pinned means kept, so those stay
+    // -- `cliphist wipe` would take them too, and adding them back would give
+    // them new ids and lose the pins. From the whole listing, not `entries`,
+    // which stops at `clipboard.keep`: what is past that is cleared as well.
+    // `cliphist delete` takes as many list lines on stdin as it is given.
     function wipe(): void {
-        root.entries = [];
-        actionProc.exec(["cliphist", "wipe"]);
+        const doomed = root.unpinnedLines();
+        if (doomed.length === 0)
+            return;
+        root.entries = root.entries.filter(e => e.pinned);
+        actionProc.exec(["sh", "-c", "printf '%s\\n' \"$@\" | cliphist delete", "vela-clip", ...doomed]);
+    }
+
+    // What `wipe` would clear, for the panel's "Clear 24 items?". Read through
+    // `entries`, which every refresh and every pin rebuilds: a pin changes
+    // `state.pins` in place, which no binding hears.
+    readonly property int clearable: {
+        root.entries;
+        return root.unpinnedLines().length;
+    }
+
+    function unpinnedLines(): var {
+        const pins = root.state.pins;
+        return root.listing.split("\n").filter(line => {
+            const tab = line.indexOf("\t");
+            return tab > 0 && !pins.includes(line.slice(0, tab));
+        });
+    }
+
+    // Open a link in the browser, or an image in the image viewer: whatever
+    // xdg-open picks for it. An image goes from its preview file, which the
+    // list has already decoded, or is decoded into that place first. A bare
+    // host ("wiki.hyprland.org/…") is given https:// to open at all.
+    //
+    // Detached rather than on `actionProc`: xdg-open can stay running as long
+    // as the browser it started, and every copy and paste queued behind it.
+    function open(entry: var): void {
+        if (!entry)
+            return;
+        if (entry.kind === "link") {
+            const url = /^[a-z][\w+.-]*:\/\//i.test(entry.text) ? entry.text : `https://${entry.text}`;
+            Quickshell.execDetached(["xdg-open", url]);
+        } else if (entry.kind === "image") {
+            const file = `${root.cacheDir}/${entry.id}.${entry.imageFormat || "png"}`;
+            Quickshell.execDetached(["sh", "-c", "mkdir -p \"${2%/*}\" && { [ -s \"$2\" ] || cliphist decode \"$1\" > \"$2\"; } && exec xdg-open \"$2\"", "vela-clip", `${entry.id}`, file]);
+        }
+    }
+
+    function opens(entry: var): bool {
+        return !!entry && (entry.kind === "link" || entry.kind === "image");
     }
 
     function togglePin(entry: var): void {

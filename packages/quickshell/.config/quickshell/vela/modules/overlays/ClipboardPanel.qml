@@ -104,6 +104,40 @@ PanelWindow {
         Clipboard.paste(entry);
     }
 
+    // Out of the way, so the browser or the image viewer is what is in front.
+    function open(entry: var): void {
+        if (!Clipboard.opens(entry))
+            return;
+        ShellState.close("clipboard");
+        Clipboard.open(entry);
+    }
+
+    // Clear all asks once: the first press arms it -- "Clear 24 items?" in
+    // red -- and a second within `clearConfirm` clears. Left alone, it goes
+    // back. Pinned entries are never cleared (Clipboard.wipe).
+    property bool clearArmed: false
+
+    function clearAll(): void {
+        if (Clipboard.clearable === 0)
+            return;
+        if (!root.clearArmed) {
+            root.clearArmed = true;
+            disarm.restart();
+            return;
+        }
+        root.clearArmed = false;
+        disarm.stop();
+        Clipboard.wipe();
+        root.selected = 0;
+    }
+
+    Timer {
+        id: disarm
+
+        interval: Appearance.overlays.clipboard.clearConfirm
+        onTriggered: root.clearArmed = false
+    }
+
     screen: {
         const screens = Quickshell.screens;
         if (screens.length === 0)
@@ -267,7 +301,12 @@ PanelWindow {
                                     root.paste(root.current);
                                     break;
                                 case Qt.Key_Delete:
-                                    Clipboard.remove(root.current);
+                                    // ctrl + shift + del: Clear all, which
+                                    // asks the same way the button does.
+                                    if ((event.modifiers & Qt.ControlModifier) && (event.modifiers & Qt.ShiftModifier))
+                                        root.clearAll();
+                                    else
+                                        Clipboard.remove(root.current);
                                     break;
                                 case Qt.Key_P:
                                     if (!(event.modifiers & Qt.ControlModifier))
@@ -491,6 +530,20 @@ PanelWindow {
                         Item {
                             Layout.fillWidth: true
                         }
+
+                        Pill {
+                            visible: Clipboard.clearable > 0
+                            text: !root.clearArmed ? qsTr("Clear all") : Clipboard.clearable === 1 ? qsTr("Clear 1 item?") : qsTr("Clear %1 items?").arg(Clipboard.clearable)
+                            icon: "delete_sweep"
+                            tone: root.clearArmed ? "danger" : "plain"
+                            pillHeight: Appearance.overlays.clipboard.clearHeight
+                            fontSize: Appearance.size.label
+                            iconSize: Appearance.size.iconXs
+
+                            Layout.alignment: Qt.AlignVCenter
+
+                            onClicked: root.clearAll()
+                        }
                     }
                 }
 
@@ -511,6 +564,7 @@ PanelWindow {
 
                     onPasted: root.paste(root.current)
                     onPinned: Clipboard.togglePin(root.current)
+                    onOpened: root.open(root.current)
                 }
             }
         }

@@ -18,15 +18,16 @@ import qs.components
 //
 // `bar.floating` is the design's `bar.float` renamed: QML reserves `float` as
 // a type name and a property cannot be called it.
-ColumnLayout {
+//
+// In a PaneScroll, like the other long pages: with the Style row and the dock
+// it is taller than the window.
+PaneScroll {
     id: root
 
     readonly property var edges: ["top", "left", "right", "bottom"]
     readonly property var edgeLabels: [qsTr("Top"), qsTr("Left"), qsTr("Right"), qsTr("Bottom")]
     readonly property var hideModes: ["never", "when-window-overlaps", "always"]
     readonly property var dockModes: ["always", "autohide", "overview-only"]
-
-    spacing: Appearance.settings.paneGap
 
     function setPosition(i: int): void {
         Config.bar.position = root.edges[i];
@@ -327,9 +328,5 @@ ColumnLayout {
                 Layout.alignment: Qt.AlignVCenter
             }
         }
-    }
-
-    Item {
-        Layout.fillHeight: true
     }
 }

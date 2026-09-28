@@ -28,7 +28,10 @@ import qs.components
 // value once, for the first frame, and re-asserts it from a `wanted` property
 // whenever the config moves. It is two lines per control and it is what makes
 // `shell.json` and this window the same thing rather than two copies of it.
-ColumnLayout {
+//
+// In a PaneScroll, like the other long pages: with the motion settings it is
+// taller than the window.
+PaneScroll {
     id: root
 
     readonly property var schemes: ["scheme-tonal-spot", "scheme-neutral", "scheme-expressive"]
@@ -57,8 +60,6 @@ ColumnLayout {
     }
 
     readonly property bool canRetheme: Wallpaper.themerAvailable && Wallpaper.current !== ""
-
-    spacing: Appearance.settings.paneGap
 
     // Re-run matugen against the current wallpaper with whatever scheme and
     // mode are now set. This is the screen's one affirmative action: the other
@@ -312,10 +313,6 @@ ColumnLayout {
                 text: qsTr("%1×").arg(Number(Config.appearance.animationSpeed.toFixed(2)))
             }
         }
-    }
-
-    Item {
-        Layout.fillHeight: true
     }
 
     // The wallpaper the palette came from, with the three accent roles it

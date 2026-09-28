@@ -5,7 +5,7 @@ import qs.services
 import qs.components
 
 // The right half of clipboard history: what the selected entry actually is,
-// where it came from, and the three things that can be done with it.
+// where it came from, and what can be done with it.
 //
 // PROVENANCE IS THE HONEST PART. cliphist stores an id and a preview line and
 // nothing else -- no application, no time -- so `Clipboard` keeps a sidecar and
@@ -22,6 +22,7 @@ Item {
 
     signal pasted
     signal pinned
+    signal opened
 
     ColumnLayout {
         anchors.fill: parent
@@ -180,17 +181,18 @@ Item {
                 onClicked: root.pinned()
             }
 
-            // DISABLED, and it is not decoration: opening a link or an image
-            // means starting `xdg-open`, and a module does not start processes.
-            // `Clipboard` has no `open()` yet. Drawn rather than dropped so the
-            // row keeps the shape the design gives it.
+            // A link in the browser, an image in the image viewer
+            // (Clipboard.open). Only for those: text and colours have nothing
+            // to open in, and Paste takes the room instead.
             Pill {
                 icon: "open_in_new"
-                enabled: false
+                visible: Clipboard.opens(root.entry)
                 pillHeight: Appearance.overlays.clipboard.actionHeight
                 iconSize: Appearance.size.iconRow
 
                 Layout.preferredWidth: Appearance.overlays.clipboard.actionIcon
+
+                onClicked: root.opened()
             }
         }
     }

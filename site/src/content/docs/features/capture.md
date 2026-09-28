@@ -27,4 +27,14 @@ what Enter does are in [settings](../../configure/settings/) (`capture`).
 colours as swatches, links as links. Type to filter; **Enter** pastes into the
 window you were in. **Pin** an entry to keep it at the top.
 
+| Key or button | Does |
+| --- | --- |
+| Enter | pastes the entry into the window you were in |
+| ctrl + P, or the pin | pins it, or unpins it |
+| Del | forgets it |
+| the open button | a link in your browser, an image in your image viewer |
+| **Clear all**, or ctrl + shift + Del | forgets everything except what is pinned -- press it twice: the first press asks "Clear 12 items?" |
+
+`qs -c vela ipc call clipboard wipe` clears the same way, pinned entries kept.
+
 It is also in the [launcher](../launcher/): type `;` and a word.

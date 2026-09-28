@@ -766,6 +766,10 @@ QtObject {
             readonly property int footerHeight: 42
             readonly property int footerPadding: 14
             readonly property int footerGap: 16
+            // Clear all, at the footer's far end, and how long its "Clear 24
+            // items?" waits for the second press.
+            readonly property int clearHeight: 26
+            readonly property int clearConfirm: 3000
 
             readonly property int previewGap: 14
             readonly property int metaGap: 7
