@@ -25,6 +25,37 @@ Panel {
 
     level: "bar"
     radius: root.bar.radius
+
+    // The margin as Bar.qml draws it, moving while the bar goes between
+    // floating and attached.
+    property real gap: root.bar.margin
+
+    // Attached, the bar is square where it meets its edge and rounded only on
+    // the two corners facing into the screen. Those two squaring off moves
+    // with the gap closing, rather than jumping.
+    property real edgeRadius: root.bar.flush ? 0 : root.bar.radius
+
+    Behavior on edgeRadius {
+        enabled: Config.loaded
+
+        Morph {}
+    }
+
+    readonly property string edge: root.bar.position
+    topLeftRadius: root.edge === "left" || root.edge === "top" ? root.edgeRadius : root.bar.radius
+    topRightRadius: root.edge === "right" || root.edge === "top" ? root.edgeRadius : root.bar.radius
+    bottomLeftRadius: root.edge === "left" || root.edge === "bottom" ? root.edgeRadius : root.bar.radius
+    bottomRightRadius: root.edge === "right" || root.edge === "bottom" ? root.edgeRadius : root.bar.radius
+
+    // Once there is no gap left, three of the bar's sides lie on the edges of
+    // the screen -- its own edge and the two it runs between -- and the
+    // hairline stays only on the one facing in.
+    readonly property bool meetsEdges: root.gap < 0.5
+    hairlineLeft: !root.meetsEdges || root.edge === "right"
+    hairlineRight: !root.meetsEdges || root.edge === "left"
+    hairlineTop: !root.meetsEdges || root.edge === "bottom"
+    hairlineBottom: !root.meetsEdges || root.edge === "top"
+
     // While a drawer hangs off this bar the two share one opaque surface, and
     // the bar goes over to it by `bar.solid` -- quickly as the drawer opens,
     // and eased back once it has gone. Quickly rather than at once: a

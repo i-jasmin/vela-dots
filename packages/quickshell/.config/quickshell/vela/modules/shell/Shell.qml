@@ -84,7 +84,7 @@ Variants {
                 bottom: state.position === "bottom"
             }
 
-            exclusiveZone: bar.autohides ? 0 : bar.span
+            exclusiveZone: bar.autohides ? 0 : bar.reserve
             implicitWidth: 1
             implicitHeight: 1
             mask: Region {}

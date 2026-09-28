@@ -10,7 +10,7 @@ is nothing to save.
 | --- | --- |
 | **General** | where you are (for the weather and sunset), units, evening warmth, your picture, the wallpaper / screenshot / recording folders, restoring your session at login, what changed after an update |
 | **Appearance** | the palette and its variant, light / dark / auto, corner radius, panel opacity, motion (full, reduced or off) and its speed |
-| **Bar** | which edge, autohide, the dock and its pinned apps and stacks |
+| **Bar** | which edge, floating or attached, autohide, the dock and its pinned apps and stacks |
 | **Notifications** | do not disturb, where cards go, how long they stay, how many stack, the focus digest |
 | **Calendars** | your accounts, each calendar's colour and whether it shows, reminders, how often they sync |
 | **Launcher** | what it searches, how many results, the web search engine |
@@ -31,6 +31,7 @@ knowing:
 | `appearance.scheme` | `"scheme-tonal-spot"` | matugen's variant -- how colourful the palette is |
 | `appearance.eveningWarmth.*` | on, from sunset, 90 min | the evening warmth; `screen: true` warms the screen too (hyprsunset) |
 | `bar.position` | `"top"` | `"top"`, `"bottom"`, `"left"`, `"right"` |
+| `bar.floating` | `true` | a gap round the bar; `false` attaches it to its edge |
 | `bar.autohide.mode` | `"never"` | when the bar hides |
 | `bar.workspaces.count` | `5` | workspaces always shown on the bar |
 | `bar.modules.left / centre / right` | | the items at each end, in order |

@@ -25,7 +25,10 @@ QtObject {
     // for every monitor's bar.
     readonly property bool collapsed: ShellState.barCollapsed
 
-    readonly property int margin: Config.bar.floating ? Config.bar.margin : 0
+    // Floating, the bar keeps `bar.margin` from the screen's edges; attached,
+    // it sits against its own edge along the whole of it (Settings, Bar).
+    readonly property bool flush: !Config.bar.floating
+    readonly property int margin: root.flush ? 0 : Config.bar.margin
     // From the config, not the token: `bar.thicknessVertical` and
     // `bar.thicknessHorizontal` are settings, and reading the token instead
     // meant a user who changed either moved every overlay's inset and left the

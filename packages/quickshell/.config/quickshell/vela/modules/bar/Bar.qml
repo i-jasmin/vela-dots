@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import qs.components
 import qs.config
 import qs.services
 import qs.tokens
@@ -37,7 +38,29 @@ Item {
 
     required property BarState bar
 
-    readonly property int span: root.bar.margin + root.bar.thickness
+    // What the bar keeps windows out of (Shell.qml): its depth and, floating,
+    // its margin. The margin it is heading for rather than `gap`, so a switch
+    // between floating and attached re-tiles the windows once, not every
+    // frame of the move.
+    readonly property int reserve: root.bar.margin + root.bar.thickness
+
+    // The margin as drawn: it closes and opens rather than jumping when the
+    // bar goes between floating and attached. Everything below that places
+    // the bar reads this, so the strip, the panel and its length all move
+    // together.
+    property real gap: root.bar.margin
+    readonly property bool gapMoving: Math.abs(root.gap - root.bar.margin) > 0.01
+
+    // Not until shell.json is in: before that the margin is the default one,
+    // and an attached bar would start out floating and close its gap as the
+    // shell came up.
+    Behavior on gap {
+        enabled: Config.loaded
+
+        Morph {}
+    }
+
+    readonly property real span: root.gap + root.bar.thickness
 
     // The live region while nothing hangs off the bar: see `hitbox`.
     readonly property alias hitbox: hitbox
@@ -125,14 +148,14 @@ Item {
 
             bar: root.bar
 
-            readonly property int restX: root.bar.vertical ? (root.bar.position === "left" ? root.bar.margin : 0) : root.bar.margin
-            readonly property int restY: root.bar.vertical ? root.bar.margin : (root.bar.position === "top" ? root.bar.margin : 0)
+            readonly property real restX: root.bar.vertical ? (root.bar.position === "left" ? root.gap : 0) : root.gap
+            readonly property real restY: root.bar.vertical ? root.gap : (root.bar.position === "top" ? root.gap : 0)
 
             // Hidden, the panel leaves through the edge it is anchored to --
             // all the way, `span`, which takes it just off the screen. Under
             // reduceMotion it does not travel at all and the fade carries the
             // whole transition.
-            readonly property int away: Appearance.reduceMotion ? 0 : root.span
+            readonly property real away: Appearance.reduceMotion ? 0 : root.span
 
             // Placed in the strip rather than in the window, so the strip
             // taking its place -- the window's size arriving, on the right or
@@ -140,8 +163,9 @@ Item {
             x: panel.restX + (root.shown || !root.bar.vertical ? 0 : root.bar.position === "left" ? -panel.away : panel.away)
             y: panel.restY + (root.shown || root.bar.vertical ? 0 : root.bar.position === "top" ? -panel.away : panel.away)
 
-            width: root.bar.vertical ? root.bar.thickness : strip.width - root.bar.margin * 2
-            height: root.bar.vertical ? strip.height - root.bar.margin * 2 : root.bar.thickness
+            width: root.bar.vertical ? root.bar.thickness : strip.width - root.gap * 2
+            height: root.bar.vertical ? strip.height - root.gap * 2 : root.bar.thickness
+            gap: root.gap
 
             // The monitor that does not hold focus drops to 62%, and its
             // accents desaturate inside BarState.accent().
@@ -153,8 +177,13 @@ Item {
             // Picked from `shown`, the bar often slid out on the curve for
             // coming back: these bindings and the ones they animate all
             // follow `shown`, in no fixed order.
+            //
+            // Off while the gap moves, which carries the panel itself: the
+            // slide chasing each step of it would trail behind.
             Behavior on x {
                 id: sliding
+
+                enabled: !root.gapMoving
 
                 NumberAnimation {
                     duration: Appearance.anim.normal
@@ -164,6 +193,8 @@ Item {
 
             Behavior on y {
                 id: rising
+
+                enabled: !root.gapMoving
 
                 NumberAnimation {
                     duration: Appearance.anim.normal

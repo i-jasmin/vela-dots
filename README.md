@@ -111,7 +111,7 @@ transition) are only in the file; everything else has a control:
 |---|---|
 | General | location for the weather and sunset (found from your connection, or a city you name), units, evening warmth (the colours, and with hyprsunset the screen as well, on the same curve), profile picture, the wallpaper / screenshot / recording folders, restore at login, what changed after an update |
 | Appearance | palette source and variant, light / dark / auto, corner radius, panel opacity, motion (full, reduced or off) and how fast it is -- windows included |
-| Bar | edge, autohide, the dock and its pinned apps and stacks |
+| Bar | edge, floating or attached (against the edge, rounded only on the side facing in), autohide, the dock and its pinned apps and stacks |
 | Notifications | do not disturb, where the cards go, how long they stay, how many stack, the focus digest |
 | Calendars | the accounts Home's month shows (Google, Outlook, iCloud, Nextcloud, any CalDAV server, any calendar link; as many as you like), each calendar's colour and whether it shows, reminders, how often they sync |
 | Launcher | what it searches, how many results, the shortcuts in its field, the web search engine |

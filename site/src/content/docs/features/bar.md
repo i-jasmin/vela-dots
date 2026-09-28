@@ -26,6 +26,11 @@ narrow rail and everything re-lays itself out for the tall shape -- the
 dashboard slides out sideways rather than dropping down. It can also hide
 until you reach the edge (autohide).
 
+Under the edges, **Style** chooses how it sits there: **floating**, a little
+clear of the edge with every corner rounded, or **attached**, against the
+edge the whole length of it -- square where it meets the edge, rounded only
+on the side facing in. The bar moves between the two as you switch.
+
 With more than one monitor, each has its own bar, and the one on the
 monitor you are not using dims a little.
 

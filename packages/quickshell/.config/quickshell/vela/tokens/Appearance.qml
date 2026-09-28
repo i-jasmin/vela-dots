@@ -1410,14 +1410,15 @@ QtObject {
         // 16x16, round -- the settings window's slider handle is the largest of
         // the three the design draws.
         readonly property real sliderHandle: 16
-        // On power / On battery above a laptop's idle timeouts: the dashboard's
-        // tab strip (116 x 34, 4 round it) a size down, to sit inside a card.
-        readonly property int powerTabWidth: 112
-        readonly property int powerTabHeight: 28
-        readonly property int powerTabInset: 3
-        readonly property int powerTabRailRadius: 17
-        readonly property real powerTabIcon: 15
-        readonly property real powerTabLabel: 12
+        // The dashboard's tab strip (116 x 34, 4 round it) a size down, to sit
+        // inside a card: On power / On battery above a laptop's idle timeouts,
+        // Floating / Attached under the bar's position.
+        readonly property int tabWidth: 112
+        readonly property int tabHeight: 28
+        readonly property int tabInset: 3
+        readonly property int tabRailRadius: 17
+        readonly property real tabIcon: 15
+        readonly property real tabLabel: 12
 
         // ---- the wallpaper preview block -----------------------------------
         readonly property int previewWidth: 110

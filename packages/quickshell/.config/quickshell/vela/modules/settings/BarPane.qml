@@ -95,6 +95,7 @@ ColumnLayout {
                     edge: diagram.modelData
                     label: root.edgeLabels[diagram.index]
                     selected: Config.bar.position === diagram.modelData
+                    flush: !Config.bar.floating
 
                     Layout.fillWidth: true
 
@@ -118,6 +119,54 @@ ColumnLayout {
             wrapMode: Text.WordWrap
 
             Layout.fillWidth: true
+        }
+
+        // Floating keeps the margin round the bar; attached puts it against
+        // its edge, square there and rounded on the side facing in. The bar
+        // moves between the two as this changes, like the diagrams above.
+        SettingRow {
+            title: qsTr("Style")
+            subtitle: Config.bar.floating ? qsTr("A gap all round, every corner rounded") : qsTr("Against the edge, rounded on the inside")
+            labelWidth: Appearance.settings.labelWidthNarrow
+
+            Item {
+                Layout.fillWidth: true
+            }
+
+            Segmented {
+                // Re-asserted, as on the dashboard: a click writes the rail's
+                // own index, which would undo a plain binding.
+                readonly property int wanted: Config.bar.floating ? 0 : 1
+
+                sliding: true
+                model: [
+                    {
+                        label: qsTr("Floating"),
+                        icon: "rounded_corner"
+                    },
+                    {
+                        label: qsTr("Attached"),
+                        // border_left, border_top, ...: the square's side the
+                        // bar is on.
+                        icon: "border_" + Config.bar.position
+                    }
+                ]
+                currentIndex: wanted
+                onWantedChanged: currentIndex = wanted
+                segmentWidth: Appearance.settings.tabWidth
+                segmentHeight: Appearance.settings.tabHeight
+                inset: Appearance.settings.tabInset
+                railRadius: Appearance.settings.tabRailRadius
+                fontSize: Appearance.settings.tabLabel
+                iconSize: Appearance.settings.tabIcon
+
+                onSelected: index => {
+                    Config.bar.floating = index === 0;
+                    Persist.commit();
+                }
+
+                Layout.alignment: Qt.AlignVCenter
+            }
         }
     }
 

@@ -466,15 +466,27 @@ Singleton {
         file.setText(`${JSON.stringify(root.restoreComments(doc, ""), null, 4)}\n`);
     }
 
+    // True once shell.json has been read, or found unreadable. Until then every
+    // setting is its default, and anything that animates from one setting to
+    // another -- the bar's gap closing when it is attached -- would play the
+    // change from the default to the file's value as the shell starts.
+    property bool loaded: false
+
     FileView {
         id: file
 
         path: root.path
         watchChanges: true
         onFileChanged: reload()
-        onLoaded: root.rememberComments()
+        onLoaded: {
+            root.rememberComments();
+            root.loaded = true;
+        }
         onSaved: root.scrub()
-        onLoadFailed: err => console.warn(`[vela] shell.json unreadable (${err}), using defaults: ${root.path}`)
+        onLoadFailed: err => {
+            console.warn(`[vela] shell.json unreadable (${err}), using defaults: ${root.path}`);
+            root.loaded = true;
+        }
 
         adapter: JsonAdapter {
             id: adapter

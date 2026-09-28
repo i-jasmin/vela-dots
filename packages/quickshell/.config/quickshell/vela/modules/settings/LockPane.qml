@@ -150,12 +150,12 @@ PaneScroll {
                 ]
                 currentIndex: wanted
                 onWantedChanged: currentIndex = wanted
-                segmentWidth: Appearance.settings.powerTabWidth
-                segmentHeight: Appearance.settings.powerTabHeight
-                inset: Appearance.settings.powerTabInset
-                railRadius: Appearance.settings.powerTabRailRadius
-                fontSize: Appearance.settings.powerTabLabel
-                iconSize: Appearance.settings.powerTabIcon
+                segmentWidth: Appearance.settings.tabWidth
+                segmentHeight: Appearance.settings.tabHeight
+                inset: Appearance.settings.tabInset
+                railRadius: Appearance.settings.tabRailRadius
+                fontSize: Appearance.settings.tabLabel
+                iconSize: Appearance.settings.tabIcon
 
                 onSelected: index => root.showIdle(index === 1 ? "battery" : "power")
 

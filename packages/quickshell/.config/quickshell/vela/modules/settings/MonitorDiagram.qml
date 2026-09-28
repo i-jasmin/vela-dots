@@ -19,6 +19,9 @@ Item {
     property string edge
     property string label
     property bool selected: false
+    // The bar drawn attached rather than floating (Style, under the
+    // diagrams): against the edge, the length of it.
+    property bool flush: false
 
     signal chosen
     signal move(int by)
@@ -69,15 +72,25 @@ Item {
                 }
             }
 
+            // Attached, it sits inside the drawing's own border, square to
+            // the edge it is on except where the drawing's corners curve, and
+            // rounded on the side facing in -- the bar in miniature.
             Rectangle {
-                readonly property int inset: Appearance.settings.monitorInset
+                id: miniBar
+
+                readonly property real inset: root.flush ? screenBox.border.width : Appearance.settings.monitorInset
                 readonly property int thickness: Appearance.settings.monitorBar
+                readonly property real edgeR: root.flush ? Math.max(0, Appearance.settings.monitorRadius - screenBox.border.width) : Appearance.settings.monitorBarRadius
+                readonly property real r: Appearance.settings.monitorBarRadius
 
                 x: root.edge === "right" ? screenBox.width - inset - thickness : inset
                 y: root.edge === "bottom" ? screenBox.height - inset - thickness : inset
                 width: root.horizontal ? screenBox.width - inset * 2 : thickness
                 height: root.horizontal ? thickness : screenBox.height - inset * 2
-                radius: Appearance.settings.monitorBarRadius
+                topLeftRadius: root.edge === "left" || root.edge === "top" ? miniBar.edgeR : miniBar.r
+                topRightRadius: root.edge === "right" || root.edge === "top" ? miniBar.edgeR : miniBar.r
+                bottomLeftRadius: root.edge === "left" || root.edge === "bottom" ? miniBar.edgeR : miniBar.r
+                bottomRightRadius: root.edge === "right" || root.edge === "bottom" ? miniBar.edgeR : miniBar.r
                 color: root.selected ? Colours.primary : Colours.outlineVariant
 
                 Behavior on color {

@@ -63,6 +63,20 @@ Item {
     property int padding: Appearance.space.panelPadding
     property int radius: root.level === "bar" ? Appearance.radius.barV : root.level === "popout" ? Appearance.radius.popout : root.level === "drawer" ? Appearance.radius.drawer : Appearance.radius.panel
 
+    // Each corner on its own, for a panel against the edge of the screen --
+    // the attached bar, square where it meets its edge -- and each side's
+    // hairline, which such a panel leaves off along the screen's own edges,
+    // where it would sit on the monitor's outermost pixels. The shadow keeps
+    // `radius`; the bar, the one panel that squares corners, casts none.
+    property real topLeftRadius: root.radius
+    property real topRightRadius: root.radius
+    property real bottomLeftRadius: root.radius
+    property real bottomRightRadius: root.radius
+    property bool hairlineLeft: true
+    property bool hairlineTop: true
+    property bool hairlineRight: true
+    property bool hairlineBottom: true
+
     // Added to the user's panel opacity rather than replacing it, so the
     // settings slider still moves every surface together: .82 bar, .92 popout,
     // .90 launcher, .93 drawer at the default.
@@ -143,6 +157,10 @@ Item {
                 width: surface.width
                 height: surface.height
                 radius: surface.radius
+                topLeftRadius: surface.topLeftRadius
+                topRightRadius: surface.topRightRadius
+                bottomLeftRadius: surface.bottomLeftRadius
+                bottomRightRadius: surface.bottomRightRadius
                 color: "white"
             }
         }
@@ -172,6 +190,10 @@ Item {
 
             anchors.fill: parent
             radius: root.radius
+            topLeftRadius: root.topLeftRadius
+            topRightRadius: root.topRightRadius
+            bottomLeftRadius: root.bottomLeftRadius
+            bottomRightRadius: root.bottomRightRadius
             color: root.colour
         }
 
@@ -182,12 +204,37 @@ Item {
         // wallpaper showed there untouched, as a light line between every
         // panel and its shadow. Over the fill, the ring is the fill with the
         // hairline on it.
-        Rectangle {
+        //
+        // A side without one is cut off rather than left undrawn, since a
+        // Rectangle's border is one ring: the ring is drawn whole and a
+        // hairline's width is clipped from that side, which keeps the corners
+        // where the ring turns into the sides that stay.
+        Item {
+            id: hairlineClip
+
+            readonly property real cut: Appearance.widget.hairline
+
             anchors.fill: parent
-            radius: root.radius
-            color: "transparent"
-            border.width: Appearance.widget.hairline
-            border.color: root.borderColour
+            anchors.leftMargin: root.hairlineLeft ? 0 : hairlineClip.cut
+            anchors.topMargin: root.hairlineTop ? 0 : hairlineClip.cut
+            anchors.rightMargin: root.hairlineRight ? 0 : hairlineClip.cut
+            anchors.bottomMargin: root.hairlineBottom ? 0 : hairlineClip.cut
+            clip: !(root.hairlineLeft && root.hairlineTop && root.hairlineRight && root.hairlineBottom)
+
+            Rectangle {
+                x: -hairlineClip.anchors.leftMargin
+                y: -hairlineClip.anchors.topMargin
+                width: root.width
+                height: root.height
+                radius: root.radius
+                topLeftRadius: root.topLeftRadius
+                topRightRadius: root.topRightRadius
+                bottomLeftRadius: root.bottomLeftRadius
+                bottomRightRadius: root.bottomRightRadius
+                color: "transparent"
+                border.width: Appearance.widget.hairline
+                border.color: root.borderColour
+            }
         }
 
         Item {
