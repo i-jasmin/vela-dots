@@ -323,11 +323,15 @@ Singleton {
     // binding; these strings are labels, not behaviour -- editing one renames a
     // caption, it does not rebind anything.
     //
-    // Three are drawn: `sessionSave` by the sessions surface, `wallpaper` and
-    // `wallpaperRevert` by the wallpaper switcher. The rest are read by
-    // nothing, because the surfaces that would print them draw intrinsic keys
-    // instead -- the launcher's esc and return, the overview's super and 1-9 --
-    // and the dashboard prints no keybind at all.
+    // Four are drawn: `sessionSave` by the sessions surface, `sessionRestore`
+    // by the "Session saved" notification, `wallpaper` and `wallpaperRevert`
+    // by the wallpaper switcher -- and only as a fallback: each prints the
+    // keys its bind is really on (BindEditor.label), so a change in
+    // Settings, Keybinds reaches them, and these are read only when Hyprland
+    // has written no list of its binds. The rest are read by nothing, because
+    // the surfaces that would print them draw intrinsic keys instead -- the
+    // launcher's esc and return, the overview's super and 1-9 -- and the
+    // dashboard prints no keybind at all.
     component Keybinds: JsonObject {
         property string launcher: "super + space"
         property string dashboard: "super + D"

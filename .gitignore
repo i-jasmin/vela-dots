@@ -4,3 +4,7 @@
 
 # Per-machine Hyprland overrides (monitors, keyboard): never shared.
 packages/hypr/.config/hypr/conf/local.lua
+
+# Keybinds changed in Settings, Keybinds (conf/keybinds.lua reads it). Yours,
+# and kept out of the repo so an update never resets or conflicts with it.
+packages/vela/.config/vela/keybinds.json

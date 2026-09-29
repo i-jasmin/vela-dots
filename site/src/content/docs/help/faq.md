@@ -17,8 +17,11 @@ No. Anything already at one of vela's paths is moved to
 
 ## Can I keep my own keybinds, monitors or keyboard layout?
 
-Yes -- put them in `~/.config/hypr/conf/local.lua`. It is loaded last and never
-committed. See [Hyprland and this machine](../../configure/hyprland/).
+Yes. Keybinds: change them in **Settings → Keybinds**, which keeps them in
+`~/.config/vela/keybinds.json`, a file no update touches -- see
+[Keybinds](../../configure/keybinds/). Monitors and the keyboard layout go in
+`~/.config/hypr/conf/local.lua`, which is loaded last and never committed. See
+[Hyprland and this machine](../../configure/hyprland/).
 
 ## Why does git show changed files after I pick a wallpaper?
 

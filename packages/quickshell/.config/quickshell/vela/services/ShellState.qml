@@ -89,6 +89,11 @@ Singleton {
             console.warn(`[vela] ${surface} is switched off in shell.json`);
             return;
         }
+        // Recording a keybind in Settings: Hyprland's binds are off for it,
+        // but the tap of super is read from the raw keys and still asks for
+        // the overview -- which would close Settings mid-recording.
+        if (BindEditor.capturing !== "")
+            return;
         closeAll();
         root.place(surface, screen);
         root[surface] = true;
@@ -412,6 +417,12 @@ Singleton {
 
         function closeAll(): void {
             root.closeAll();
+        }
+
+        // Settings on a page by name, "" for the last one shown:
+        //     qs -c vela ipc call shell settings keybinds
+        function settings(page: string): void {
+            root.openSettings(page);
         }
 
         // qs -c vela ipc call shell altTab 1   (or -1 for shift + alt + tab)

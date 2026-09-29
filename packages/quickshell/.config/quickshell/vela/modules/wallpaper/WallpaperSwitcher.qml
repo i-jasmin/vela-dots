@@ -381,7 +381,8 @@ PanelWindow {
                     }
 
                     Keycap {
-                        key: Config.keybinds.wallpaper
+                        visible: key !== ""
+                        key: BindEditor.label("shell.wallpaper", Config.keybinds.wallpaper)
 
                         Layout.alignment: Qt.AlignVCenter
                     }
@@ -440,6 +441,12 @@ PanelWindow {
                             }
 
                             RowLayout {
+                                id: revertHint
+
+                                // Not there at all while the bind is off.
+                                readonly property string keys: BindEditor.label("shell.wallpaper-revert", Config.keybinds.wallpaperRevert)
+
+                                visible: revertHint.keys !== ""
                                 spacing: Appearance.space.sm
 
                                 Layout.fillWidth: true
@@ -459,7 +466,7 @@ PanelWindow {
 
                                 Text {
                                     // A keybind is a literal.
-                                    text: Config.keybinds.wallpaperRevert
+                                    text: revertHint.keys
                                     font.family: Appearance.font.mono
                                     font.pixelSize: Appearance.size.caption
                                     color: Colours.outline

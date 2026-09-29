@@ -11,6 +11,7 @@ qs -c vela ipc show                               # everything, live
 qs -c vela ipc call shell toggle launcher         # dashboard, launcher, overview, clipboard,
                                                   # capture, calendar, power, wallpaper,
                                                   # settings, keybinds, ...
+qs -c vela ipc call shell settings keybinds      # settings on a page: general, bar, ...
 qs -c vela ipc call shell altTab 1
 qs -c vela ipc call bar popout network            # bluetooth, output, network, power,
                                                   # workspaces, notifications, privacy

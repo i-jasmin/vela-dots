@@ -873,8 +873,10 @@ done`
         // Saves and says so: from a keybind there is no panel to show it.
         function save(): void {
             root.save(name => {
-                if (name)
-                    root.announce(qsTr("Session saved"), qsTr("%1 — %2 opens the sessions panel").arg(name).arg(Config.keybinds.sessionRestore));
+                if (!name)
+                    return;
+                const keys = BindEditor.label("sessions.restore", Config.keybinds.sessionRestore);
+                root.announce(qsTr("Session saved"), keys ? qsTr("%1 — %2 opens the sessions panel").arg(name).arg(keys) : name);
             });
         }
 

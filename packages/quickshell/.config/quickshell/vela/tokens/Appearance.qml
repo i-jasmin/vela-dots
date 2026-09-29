@@ -1368,6 +1368,26 @@ QtObject {
         readonly property int navTitlePadH: 12
         readonly property int navTitleTop: 8
         readonly property int navTitleBottom: 14
+        // The window's close button, at the end of that line: a round 28,
+        // a size under the pane's own actions.
+        readonly property int closeSize: 28
+        readonly property real closeIcon: 18
+
+        // Settings, Keybinds. A bind's keys are a button that records new
+        // ones: keycaps inside an outline, wide enough for "super + ctrl +
+        // shift + 1–9" and for the prompt that replaces them while it listens.
+        readonly property int bindKeysHeight: 30
+        readonly property int bindKeysWidth: 196
+        readonly property int bindKeysPad: 6
+        readonly property int bindKeyGap: 4
+        readonly property int bindKeysRadius: Math.round(9 * root.radiusScale)
+        // The round icon buttons after it: back to the default, off, delete.
+        readonly property int bindActionSize: 28
+        readonly property real bindActionIcon: 17
+        readonly property int bindRowGap: 10
+        // Your own binds: the name and the command, side by side.
+        readonly property int bindNameWidth: 150
+        readonly property int bindFilterWidth: 240
 
         // ---- content pane --------------------------------------------------
         readonly property int panePadV: 26

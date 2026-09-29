@@ -119,7 +119,7 @@ transition) are only in the file; everything else has a control:
 | Calendars | the accounts Home's month shows (Google, Outlook, iCloud, Nextcloud, any CalDAV server, any calendar link; as many as you like), each calendar's colour and whether it shows, reminders, how often they sync |
 | Launcher | what it searches, how many results, the shortcuts in its field, the web search engine |
 | Lock screen | when the screen dims, locks, goes dark and suspends (hypridle's timeouts, written into `hypridle.conf` and hypridle restarted) -- on a laptop, one set on power and one on battery, picked with the tabs over the sliders; the stats, media and audio ring it shows, the fingerprint reader |
-| Keybinds | where the binds live (`binds.lua`, not shell.json) and a button that opens it |
+| Keybinds | every bind on its keys: record new ones, turn one off, back to the default, binds of your own that run a command; clashes shown in red; kept in `~/.config/vela/keybinds.json`, apart from the defaults in `binds.lua` |
 | Modules | which items each end of the bar carries, in what order (including the privacy capsule) |
 
 ### Theming
@@ -270,7 +270,14 @@ relaunched; one without is skipped and named in `vela shell log`.
 
 ## Keybinds
 
-`packages/hypr/.config/hypr/conf/binds.lua`. **super + <** opens the cheatsheet,
+Change them in **Settings → Keybinds**: click a bind's keys and press new ones,
+turn one off, or add your own (a name, a command, the keys). Two binds on the
+same keys are shown in red and Apply waits until they differ. Your changes are
+kept in `~/.config/vela/keybinds.json`, which is not in the repo, so an update
+never resets them; `conf/keybinds.lua` applies them on top of the defaults.
+
+The defaults are `packages/hypr/.config/hypr/conf/binds.lua`, each under a
+stable id (`K.bind("shell.launcher", ...)`). **super + <** opens the cheatsheet,
 which is built from `hyprctl binds` each time it opens, so it always shows
 what is live. A bind's `description` places it: `"Group: Action"` is a row in
 that group, `"Group › Action"` a quieter secondary row, and a bind without one
@@ -308,6 +315,7 @@ qs -c vela ipc show                               # everything below, live
 qs -c vela ipc call shell toggle launcher         # dashboard, launcher, overview, clipboard,
                                                   # capture, calendar, power, wallpaper, settings,
                                                   # keybinds, ...
+qs -c vela ipc call shell settings keybinds      # settings on a page: general, bar, ...
 qs -c vela ipc call shell altTab 1
 qs -c vela ipc call bar popout network            # bluetooth, output, network, power, workspaces,
                                                   # notifications, privacy

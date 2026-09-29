@@ -37,6 +37,7 @@ Singleton {
             "Workspaces": "grid_view",
             "Apps": "apps",
             "Media & system": "tune",
+            "Custom": "bolt",
             "Unsorted": "help"
         })
 

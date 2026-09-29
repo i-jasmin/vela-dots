@@ -52,15 +52,15 @@ PaneScroll {
     PaneHeader {
         title: qsTr("Bar")
 
-        Pill {
-            text: qsTr("Reset")
-            tone: "subtle"
-            pillHeight: Appearance.settings.actionHeight
-            fontSize: Appearance.settings.actionSize
-            onClicked: root.reset()
+        ResetPill {
+            id: resetting
+
+            question: qsTr("Put the bar and dock back to their defaults?")
+            onConfirmed: root.reset()
         }
 
         Pill {
+            visible: !resetting.asking
             text: qsTr("Apply")
             tone: "filled"
             pillHeight: Appearance.settings.actionHeight

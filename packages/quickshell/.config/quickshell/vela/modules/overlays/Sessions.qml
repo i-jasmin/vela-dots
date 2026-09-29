@@ -157,7 +157,8 @@ PanelWindow {
 
                     // A keybind is a literal.
                     Text {
-                        text: Config.keybinds.sessionSave
+                        visible: text !== ""
+                        text: BindEditor.label("sessions.save", Config.keybinds.sessionSave)
                         font.family: Appearance.font.mono
                         font.pixelSize: Appearance.size.caption
                         color: Colours.outline

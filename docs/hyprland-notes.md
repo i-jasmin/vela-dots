@@ -54,6 +54,29 @@ and `WLR_NO_HARDWARE_CURSORS` (wlroots-era; the modern equivalent
 `cursor:no_hardware_cursors` defaults to auto). The driver's own setup is not
 recorded in the config; the docs link the guides.
 
+## Keybinds changed in Settings
+
+`binds.lua` is the defaults; what the user changes is in
+`~/.config/vela/keybinds.json`, outside the repo, and `conf/keybinds.lua`
+applies it as `binds.lua` runs. Every default is declared through
+`K.bind(id, ...)` or `K.family(id, ...)`, and the id is the key in that file,
+so an id is never renamed once shipped. Each load writes the manifest --
+every bind's id, default and current keys -- to
+`$XDG_RUNTIME_DIR/vela-keybinds.json`, which is where Settings gets the
+defaults from; `hyprctl binds` only knows what is bound now. A combination
+Hyprland refuses (`hl.bind` raising) costs that one bind, which goes back to
+its default and is listed in the manifest's `problems`, never the rest of
+`binds.lua`: `hyprland.lua` requires autostart and the colours after it.
+
+Recording a combination needs Hyprland's binds out of the way, or pressing
+super + D to record it would open the dashboard. So the shell enters the
+`vela_capture` submap, where nothing is bound and every key goes to the
+focused surface (the settings window, exclusive while it listens), and
+resets it afterwards. Esc is the submap's one bind, to get out if the shell
+is not there to reset it; the shell takes the submap ending as a cancel. The
+tap of super is read from raw keys, not a bind, so it still fires in the
+submap -- ShellState refuses to open a surface while a recording is on.
+
 ## IPC exit codes
 
 `qs -c vela ipc call ...` exits **255** when no instance is running. That is what

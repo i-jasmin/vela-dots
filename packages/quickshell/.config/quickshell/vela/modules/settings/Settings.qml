@@ -19,11 +19,23 @@ import qs.components
 // is open moves the controls, because there is only ever one answer to what a
 // setting is.
 //
-// THE WINDOW IS FULL SCREEN AND THE PANEL IS INSET INTO IT, for the two reasons
-// that governed the dashboard and the launcher: a layer-shell surface clips at
-// its own edges, so the `0 30px 80px` shadow needs transparent gutter to fall
-// into, and a 1020px window cannot hear a click beside itself. Nothing is drawn
-// in the margin.
+// THE WINDOW IS FULL SCREEN AND THE PANEL IS INSET INTO IT: a layer-shell
+// surface clips at its own edges, so the `0 30px 80px` shadow needs
+// transparent gutter to fall into, and the panel is centred on the space the
+// bar leaves. Nothing is drawn in the margin.
+//
+// AND IT IS NOT MODAL. Only the panel takes input (`mask`); everywhere else the
+// pointer goes to whatever is underneath. It used to take the whole screen,
+// with a click beside the panel closing it and the keyboard held exclusively,
+// which put everything else out of reach for as long as it was open: an
+// autohiding bar could not be revealed (the cursor never reached its strip at
+// the edge), the bar and the dock could not be clicked, and a file it opened --
+// the calendar's, an editor on a config -- could not be typed into until it
+// closed. Now it is put away with esc, the close button or super + I, and the
+// keyboard is on demand: it has it when it opens, and gives it up to a window
+// that is clicked or, with focus following the mouse, pointed at. It takes it
+// back exclusively only while a keybind is being recorded (BindEditor.capturing),
+// where every key has to reach it.
 PanelWindow {
     id: root
 
@@ -138,9 +150,21 @@ PanelWindow {
 
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.namespace: "vela-settings"
-    // Exclusive, because the window is opened from a keybind and esc has to
-    // work without the user clicking it first.
-    WlrLayershell.keyboardFocus: root.shown ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+    // On demand: the compositor hands it the keyboard as it opens, so esc
+    // works without a click first, but a window can take it back. Exclusive
+    // only while a keybind is being recorded.
+    WlrLayershell.keyboardFocus: !root.shown ? WlrKeyboardFocus.None : BindEditor.capturing !== "" ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.OnDemand
+
+    // Only the panel answers the pointer: see the header.
+    mask: Region {
+        item: win
+    }
+
+    // Recording a keybind ends with the window, however it was put away.
+    onVisibleChanged: {
+        if (!root.visible)
+            BindEditor.cancelCapture();
+    }
 
     // Opened on a page by name (the cheatsheet's "Edit in settings"), or on
     // whichever page was showing last.
@@ -165,18 +189,6 @@ PanelWindow {
         Keys.onEscapePressed: event => {
             ShellState.close("settings");
             event.accepted = true;
-        }
-
-        // Click-away. Declared before the window so its own controls see a
-        // press first.
-        MouseArea {
-            anchors.fill: parent
-
-            onClicked: event => {
-                const p = mapToItem(win, event.x, event.y);
-                if (p.x < 0 || p.y < 0 || p.x > win.width || p.y > win.height)
-                    ShellState.close("settings");
-            }
         }
 
         Panel {
@@ -251,17 +263,35 @@ PanelWindow {
                     anchors.rightMargin: Appearance.settings.navPadH
                     spacing: Appearance.settings.navGap
 
-                    Text {
-                        text: qsTr("Shell settings")
-                        font.family: Appearance.font.ui
-                        font.pixelSize: Appearance.size.subheading
-                        color: Colours.on.surface
+                    RowLayout {
+                        spacing: Appearance.space.sm
 
                         Layout.fillWidth: true
                         Layout.leftMargin: Appearance.settings.navTitlePadH
-                        Layout.rightMargin: Appearance.settings.navTitlePadH
                         Layout.topMargin: Appearance.settings.navTitleTop
                         Layout.bottomMargin: Appearance.settings.navTitleBottom
+
+                        Text {
+                            text: qsTr("Shell settings")
+                            font.family: Appearance.font.ui
+                            font.pixelSize: Appearance.size.subheading
+                            color: Colours.on.surface
+
+                            Layout.fillWidth: true
+                        }
+
+                        // A click beside the window no longer closes it (see
+                        // the header), so it says how it does.
+                        Pill {
+                            icon: "close"
+                            tone: "plain"
+                            pillHeight: Appearance.settings.closeSize
+                            iconSize: Appearance.settings.closeIcon
+
+                            Layout.preferredWidth: Appearance.settings.closeSize
+
+                            onClicked: ShellState.close("settings")
+                        }
                     }
 
                     Repeater {

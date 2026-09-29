@@ -39,15 +39,50 @@ searchable, built from what Hyprland actually has bound at that moment.
 | super + R | resize mode (arrows or hjkl; escape to leave) |
 | super + S / super + shift + X | the scratchpad / send a window to it |
 
-## Adding or changing one
+## Changing one
 
-The binds live in `~/.config/hypr/conf/binds.lua` (**Settings → Keybinds**
-opens it). Save, and Hyprland reloads. Give every bind a description -- it is
-what places it in the list above:
+**Settings → Keybinds** lists every bind on the keys it is on now. Click a
+bind's keys and press the new ones; **esc** cancels. For a row like super +
+1..9, hold the new modifiers and press any of its keys: the keys stay, the
+modifiers change.
 
-```lua
-hl.bind("SUPER + M", hl.dsp.exec_cmd("gnome-calculator"), { description = "Apps: Calculator" })
+- **Two binds on the same keys** are both shown in red, with what else is on
+  them, and **Apply** waits until they differ. (That is also how to swap two:
+  give one the other's keys, then give the other new ones.)
+- **Nothing changes until Apply**, which saves your changes and reloads
+  Hyprland. **Discard** drops them.
+- **↺** puts one bind back on its default; **⊘** turns it off. **Reset** puts
+  every bind back, and asks first. Your own binds stay.
+- Alt + tab and the mouse binds are fixed, marked with a lock: letting go of
+  alt is what switches windows, and a mouse button cannot be recorded.
+
+A key on its own, with nothing held, is only allowed for keys nobody types
+(F1–F24, the media keys, Print): super + C, not C.
+
+## Your own
+
+At the bottom of the page, **Add a keybind**: a name, a command, and the keys.
+The command is anything you would type in a terminal -- `code`, `firefox
+--new-window`, a script of yours. The name is how the cheatsheet (super + <)
+lists it, under *Custom*.
+
+## Where they are kept
+
+Your changes go to `~/.config/vela/keybinds.json`, not into vela's files, so
+an update of the dots never puts your keys back or collides with them. The
+defaults are in `~/.config/hypr/conf/binds.lua`; a bind you have not changed
+follows it, so an update that moves a default moves it for you too.
+
+The file is plain JSON, and fine to edit by hand; `hyprctl reload` applies it:
+
+```json
+{
+  "changed": { "shell.launcher": "SUPER + A", "windows.pin": false },
+  "custom": [ { "name": "VS Code", "keys": "SUPER + C", "command": "code" } ]
+}
 ```
 
-`"Group: Action"` is a row in that group; `"Group › Action"` a quieter
-secondary one. A bind without a description is listed under *Unsorted*.
+`changed` is a bind's id and its new keys, or `false` for off. The ids are in
+`binds.lua`, the first word of each `K.bind(...)`. If the file cannot be read,
+or Hyprland refuses a combination in it, that bind stays on its default and
+the Keybinds page says why.

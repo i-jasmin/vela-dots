@@ -4,7 +4,12 @@ description: The settings window, and shell.json -- the file behind it.
 ---
 
 **super + I** opens the settings window. Every change applies at once; there
-is nothing to save.
+is nothing to save. (Keybinds are the exception: they wait for **Apply**.)
+
+It is a window like any other, not a modal: the bar, the dock and your other
+windows still work while it is open, so an autohiding bar can be tried out
+with the window up. Close it with **esc**, the **×** at the top of its menu, or
+super + I again. A page's **Reset** asks before it puts anything back.
 
 | Page | Covers |
 | --- | --- |
@@ -15,7 +20,7 @@ is nothing to save.
 | **Calendars** | your accounts, each calendar's colour and whether it shows, reminders, how often they sync |
 | **Launcher** | what it searches, how many results, the web search engine |
 | **Lock screen** | when the screen dims, locks, goes dark and suspends (on a laptop, on power and on battery), what the lock screen shows, the fingerprint reader |
-| **Keybinds** | where the binds live, and a button that opens the file |
+| **Keybinds** | every keybind: change its keys, turn it off, add your own -- see [Keybinds](../keybinds/#changing-one) |
 | **Modules** | which items each end of the bar carries, and in what order |
 
 ## shell.json
@@ -53,6 +58,7 @@ knowing:
 The file itself carries a comment on most keys.
 
 :::note
-The keybinds are not in `shell.json`. They are Hyprland's, in
-`~/.config/hypr/conf/binds.lua` -- see [Keybinds](../keybinds/).
+The keybinds are not in `shell.json`. The defaults are Hyprland's, in
+`~/.config/hypr/conf/binds.lua`, and your changes to them are in
+`~/.config/vela/keybinds.json` -- see [Keybinds](../keybinds/#where-they-are-kept).
 :::

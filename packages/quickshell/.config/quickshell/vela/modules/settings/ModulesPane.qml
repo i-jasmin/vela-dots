@@ -144,15 +144,15 @@ PaneScroll {
     PaneHeader {
         title: qsTr("Modules")
 
-        Pill {
-            text: qsTr("Reset")
-            tone: "subtle"
-            pillHeight: Appearance.settings.actionHeight
-            fontSize: Appearance.settings.actionSize
-            onClicked: root.reset()
+        ResetPill {
+            id: resetting
+
+            question: qsTr("Put the bar's modules back where they started?")
+            onConfirmed: root.reset()
         }
 
         Pill {
+            visible: !resetting.asking
             text: qsTr("Apply")
             tone: "filled"
             pillHeight: Appearance.settings.actionHeight
