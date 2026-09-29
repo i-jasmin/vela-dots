@@ -154,8 +154,10 @@ main() {
     echo
     "$VELA" doctor || true
 
-    # A graphics card the open driver cannot run: point at the driver rather than
-    # install one blind -- it needs RPM Fusion, and Secure Boot has its own step.
+    # An NVIDIA card without NVIDIA's driver: say so and point at the docs page,
+    # which links the guides. vela installs no driver and prints no steps for
+    # one -- they depend on the card, the Fedora release and Secure Boot, and
+    # belong to the people who package it.
     nvidia=0
     for dev in /sys/bus/pci/devices/*; do
         [ "$(cat "$dev/vendor" 2>/dev/null)" = 0x10de ] || continue
@@ -163,11 +165,8 @@ main() {
     done
     if [ "$nvidia" = 1 ] && ! modinfo nvidia >/dev/null 2>&1; then
         echo
-        warn "This machine has an NVIDIA GPU and no NVIDIA driver. Hyprland runs best with it:"
-        printf '     sudo dnf install https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %%fedora).noarch.rpm \\\n'
-        printf '                      https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %%fedora).noarch.rpm\n'
-        printf '     sudo dnf install akmod-nvidia\n'
-        printf '     (with Secure Boot on, see https://rpmfusion.org/Howto/Secure%%20Boot first)\n'
+        warn "This machine has an NVIDIA GPU and no NVIDIA driver. Hyprland runs best with it."
+        printf '     vela does not install it; the guides are linked at https://vela.ijasmin.it/help/nvidia/\n'
     fi
 
     echo

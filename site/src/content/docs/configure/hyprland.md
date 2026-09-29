@@ -31,7 +31,8 @@ loaded last, so it wins, and it is never committed. Create it yourself:
 -- A different keyboard layout, or two to switch between with Alt + Shift:
 hl.config({ input = { kb_layout = "it,us", kb_options = "grp:alt_shift_toggle" } })
 
--- A laptop panel at 1.25x, and a monitor to its right:
+-- A laptop's own screen (eDP-1) at 1.25x, and a monitor to its right. On a
+-- PC, both are monitors: DP-1, HDMI-A-1, ...
 hl.monitor({ output = "eDP-1", mode = "preferred", position = "0x0", scale = 1.25 })
 hl.monitor({ output = "HDMI-A-1", mode = "preferred", position = "auto-right", scale = 1 })
 ```

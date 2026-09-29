@@ -4,17 +4,48 @@
 -- leaks into a TTY or another session.
 
 -- ---------------------------------------------------------------- graphics --
--- Notes from a muxless Intel + NVIDIA laptop (Alder Lake-P Iris Xe at 00:02.0,
--- GeForce RTX 3050 Mobile at 01:00.0), for anyone on similar hardware. Worth
--- knowing before touching anything below, read on it with `ls /sys/class/drm`:
+-- Nothing is set here for any graphics card: Hyprland chooses the card it
+-- draws on by itself, which is right on most machines. The NVIDIA driver, and
+-- anything it needs outside Hyprland (kernel options, module settings), is not
+-- this file's business: https://vela.ijasmin.it/help/nvidia/ links the guides.
+--
+-- NVIDIA ONLY -- every monitor plugged into an NVIDIA card, as on most PCs
+-- with one. These are the lines the Hyprland wiki's NVIDIA page gives
+-- (https://wiki.hypr.land/Nvidia/); read its notes on each, then uncomment:
+-- hl.env("LIBVA_DRIVER_NAME", "nvidia")
+-- hl.env("__GLX_VENDOR_LIBRARY_NAME", "nvidia")
+
+-- BUILT-IN GRAPHICS AND NVIDIA -- Intel or AMD graphics in the processor and
+-- an NVIDIA card beside them: most laptops with NVIDIA, and PCs with monitors
+-- on both the motherboard and the card. Leave the two lines above commented.
+-- Hyprland usually draws on the built-in graphics here, and the NVIDIA card
+-- can sleep until something asks for it; both lines send work to it instead:
+--
+--   LIBVA_DRIVER_NAME=nvidia            moves video decoding to NVIDIA. Unset,
+--                                       libva picks the driver for the card
+--                                       that draws.
+--   __GLX_VENDOR_LIBRARY_NAME=nvidia    forces GLX/XWayland apps onto NVIDIA,
+--                                       waking it for everything and breaking
+--                                       screen sharing. It belongs on the
+--                                       *single app* you want there -- see
+--                                       the `nv` function in config.fish.
+--
+-- If an external monitor is laggy or blank, or the wrong card draws, see
+-- https://wiki.hypr.land/Configuring/Advanced-and-Cool/Multi-GPU/. Aquamarine's
+-- escape hatch for it stops forcing linear modifiers on buffers passed between
+-- the cards:
+-- hl.env("AQ_FORCE_LINEAR_BLIT", "0")
+--
+-- Notes from one such laptop (Intel Alder Lake-P Iris Xe at 00:02.0, GeForce
+-- RTX 3050 Mobile at 01:00.0), read with `ls /sys/class/drm`:
 --
 --     card1 (i915)       eDP-1, DP-1 .. DP-4     <- the internal panel
 --     card0 (nvidia-drm) HDMI-A-1                <- the HDMI port only
 --
--- So the laptop display is physically wired to the iGPU and cannot be driven
--- by the dGPU at all, while an HDMI monitor can only be driven by the dGPU.
--- Both cards therefore have to stay available; this is not a "disable the
--- NVIDIA card" setup.
+-- So the laptop display is physically wired to the Intel graphics and cannot
+-- be driven by the NVIDIA card at all, while an HDMI monitor can only be
+-- driven by the NVIDIA card. Both have to stay available; this is not a
+-- "disable the NVIDIA card" setup.
 --
 -- AQ_DRM_DEVICES is intentionally NOT set. Aquamarine already elects the
 -- Intel card as the primary renderer on its own -- from the live log:
@@ -24,13 +55,13 @@
 --     drm: Starting backend for /dev/dri/card0, with driver nvidia-drm
 --          with primary /dev/dri/card1
 --
--- which is exactly the wanted arrangement: compositing on the iGPU (cheap, no
--- NVIDIA quirks) with the dGPU kept as a secondary device so HDMI and PRIME
--- offload still work. Setting the variable would only pin an ordering we
--- already get, at the cost of hardcoding card numbers -- and card numbering is
--- assigned at boot and does swap. /dev/dri/by-path/ names are stable but
--- unusable here: they contain colons (pci-0000:00:02.0-card) and colon is the
--- list separator for this variable.
+-- which is exactly the wanted arrangement: compositing on the Intel graphics
+-- (cheap, no NVIDIA quirks) with the NVIDIA card kept as a secondary device so
+-- HDMI and PRIME offload still work. Setting the variable would only pin an
+-- ordering we already get, at the cost of hardcoding card numbers -- and card
+-- numbering is assigned at boot and does swap. /dev/dri/by-path/ names are
+-- stable but unusable here: they contain colons (pci-0000:00:02.0-card) and
+-- colon is the list separator for this variable.
 --
 -- If the ordering ever comes out wrong, make a stable symlink first:
 --
@@ -39,45 +70,23 @@
 --       | sudo tee /etc/udev/rules.d/99-intel-igpu.rules
 --     sudo udevadm control --reload && sudo udevadm trigger
 --
--- and then uncomment, iGPU first, dGPU second so HDMI keeps working:
+-- and then uncomment, Intel first, NVIDIA second so HDMI keeps working:
 -- hl.env("AQ_DRM_DEVICES", "/dev/dri/intel-igpu:/dev/dri/nvidia-dgpu")
 
--- Deliberately absent, and why -- these are the variables every NVIDIA guide
--- tells you to set, and every one of them is wrong for a hybrid laptop that
--- composites on Intel:
+-- Left out, though older guides give them:
 --
 --   GBM_BACKEND=nvidia-drm              sends every GBM client to NVIDIA's GBM
---                                       implementation, including the ones
---                                       rendering on the Intel card. Mesa
---                                       clients break; the whole session can
---                                       fail to start.
---   __GLX_VENDOR_LIBRARY_NAME=nvidia    forces GLX/XWayland apps onto NVIDIA,
---                                       waking the dGPU for everything and
---                                       breaking screen sharing. It belongs on
---                                       the *single app* you want offloaded --
---                                       see the `nv` function in config.fish.
---   LIBVA_DRIVER_NAME=nvidia            there is no NVIDIA VA-API driver
---                                       installed (no nvidia_drv_video.so),
---                                       and video decode should happen on the
---                                       iGPU anyway. Unset lets libva pick
---                                       iHD from the Intel render node.
---   NVD_BACKEND=direct                  only meaningful with that same absent
---                                       nvidia-vaapi-driver.
+--                                       implementation. With built-in graphics
+--                                       as well, that includes the ones drawing
+--                                       on them: Mesa clients break, and the
+--                                       whole session can fail to start.
+--   NVD_BACKEND=direct                  only means something to NVIDIA's own
+--                                       VA-API driver.
 --   WLR_NO_HARDWARE_CURSORS=1           wlroots-era, Hyprland has used
 --                                       Aquamarine since 0.40. The equivalent
 --                                       is `cursor:no_hardware_cursors`, whose
 --                                       default (auto) already does the right
---                                       thing here.
---
--- The kernel-side prerequisites were set on that laptop outside Hyprland, and
--- are not its business; noted here so they are not mistaken for missing config:
---   /proc/cmdline        nvidia-drm.modeset=1 nvidia_drm.fbdev=1
---   /etc/modprobe.d/     NVreg_PreserveVideoMemoryAllocations=1 (suspend),
---                        NVreg_DynamicPowerManagement=0x02 (dGPU may sleep)
-
--- If an HDMI monitor on the dGPU ends up laggy or blank, this is the
--- documented escape hatch: stop forcing linear modifiers on cross-GPU buffers.
--- hl.env("AQ_FORCE_LINEAR_BLIT", "0")
+--                                       thing.
 
 -- ------------------------------------------------------------------ toolkits
 -- Qt: Wayland first, X11 only as a fallback for apps with no Wayland plugin.

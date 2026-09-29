@@ -73,8 +73,9 @@ watcher.
   `--matugen` installs vela's matugen if the one there is older.
 - **kitty opens fish**; the login shell stays bash, so a console or SSH is
   still bash, with the same prompt and greeting.
-- **NVIDIA:** the installer says so if the card has no driver; the driver
-  comes from RPM Fusion (`akmod-nvidia`).
+- **NVIDIA:** the installer says so if the card has no driver. vela does not
+  install it; the [NVIDIA page](https://vela.ijasmin.it/help/nvidia/) links the
+  guides.
 
 **Keyboard and monitors:** the keyboard layout is the one Fedora was set up
 with (`localectl status` shows it; `localectl set-x11-keymap it` changes it).
@@ -222,9 +223,9 @@ together, added in Settings, Calendars:
 - **iCloud, Nextcloud and any CalDAV server**: every calendar on the account,
   and events can be added, changed and deleted from the month.
 
-Changes are written on the laptop first and uploaded by the next sync that
-gets through, so a server at home catches up when you are back; a sync also
-runs whenever the network comes back. Passwords and links are kept encrypted
+Changes are written on your computer first and uploaded by the next sync
+that gets through, so a server at home catches up when you are back; a sync
+also runs whenever the network comes back. Passwords and links are kept encrypted
 in the keyring, never in a file. Each calendar can be coloured or switched
 off.
 

@@ -89,14 +89,16 @@ if status is-interactive
     end
 end
 
-# Run a single command on the NVIDIA dGPU instead of the Intel iGPU.
+# Run a single command on the NVIDIA dGPU instead of the built-in (Intel or
+# AMD) graphics.
 #
 #   nv glxinfo -B
 #   nv blender
 #
 # This is the per-app alternative to setting __GLX_VENDOR_LIBRARY_NAME
-# globally, which on a hybrid laptop wakes the discrete card for everything
-# and breaks screen sharing (see ~/.config/hypr/conf/env.lua).
+# globally, which on a laptop or PC with built-in graphics as well wakes the
+# NVIDIA card for everything and breaks screen sharing (see
+# ~/.config/hypr/conf/env.lua).
 function nv --description 'Run a command on the NVIDIA GPU (PRIME offload)'
     if not test -e /sys/module/nvidia/version
         echo "nv: no NVIDIA driver loaded" >&2

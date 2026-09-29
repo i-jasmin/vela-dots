@@ -5,11 +5,12 @@
 -- belongs in conf/local.lua, which is loaded last and not committed, so the
 -- same config fits every machine. Names come from `hyprctl monitors all`.
 --
--- A laptop panel at 1.25x:
+-- One screen at 1.25x -- eDP-1 is a laptop's own; a PC's monitors are DP-1,
+-- HDMI-A-1, ...:
 --
 -- hl.monitor({ output = "eDP-1", mode = "preferred", position = "0x0", scale = 1.25 })
 
--- Adding an external display:
+-- Adding another display:
 --
 --   * `hyprctl monitors all` while it is plugged in gives its name (DP-1,
 --     HDMI-A-1, ...).
@@ -19,7 +20,7 @@
 --
 -- hl.monitor({ output = "HDMI-A-1", mode = "preferred", position = "auto-right", scale = 1 })
 --
--- Mirror the laptop panel onto it instead:
+-- Mirror the first screen onto it instead:
 -- hl.monitor({ output = "HDMI-A-1", mode = "preferred", position = "auto", scale = 1, mirror = "eDP-1" })
 --
 -- Laptop lid closed, external attached -- disable the internal panel:

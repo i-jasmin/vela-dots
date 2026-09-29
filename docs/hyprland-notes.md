@@ -28,7 +28,7 @@ things every older config and guide still uses are now hard errors:
   `layoutmsg, togglesplit`), and hyprlock's `general:grace` (now `--grace` on
   the command line).
 
-## Hybrid graphics (an Intel + NVIDIA laptop)
+## Built-in graphics and NVIDIA (notes from an Intel + NVIDIA laptop)
 
 From `/sys/class/drm`: **card1 = i915 drives eDP-1 and DP-1..4; card0 =
 nvidia-drm drives HDMI-A-1 only.** The internal panel physically cannot be driven
@@ -42,14 +42,17 @@ an ordering we already get, while hardcoding card numbers that are assigned at
 boot. `/dev/dri/by-path/` names are stable but unusable here: they contain
 colons, which is the list separator.
 
-Also deliberately unset, each for a reason recorded in `conf/env.lua`:
-`GBM_BACKEND=nvidia-drm` (sends Mesa/Intel clients into NVIDIA's GBM),
-`__GLX_VENDOR_LIBRARY_NAME=nvidia` (wakes the dGPU for everything and breaks
-screen sharing -- PRIME offload is offered per-app instead),
-`LIBVA_DRIVER_NAME=nvidia` and `NVD_BACKEND` (no `nvidia_drv_video.so` is
-installed; leaving them unset lets libva pick iHD), and
-`WLR_NO_HARDWARE_CURSORS` (wlroots-era; the modern equivalent
-`cursor:no_hardware_cursors` defaults to auto).
+`conf/env.lua` carries the Hyprland wiki's two NVIDIA-only lines,
+`LIBVA_DRIVER_NAME=nvidia` and `__GLX_VENDOR_LIBRARY_NAME=nvidia`, commented
+out: for a machine whose monitors are all on an NVIDIA card. With built-in
+graphics as well they stay off -- the first moves video decoding off the card
+that draws, the second wakes the dGPU for everything and breaks screen sharing
+(PRIME offload is offered per-app instead, `nv` in config.fish). Also left out,
+each for a reason recorded there: `GBM_BACKEND=nvidia-drm` (sends Mesa/Intel
+clients into NVIDIA's GBM), `NVD_BACKEND` (only for NVIDIA's VA-API driver),
+and `WLR_NO_HARDWARE_CURSORS` (wlroots-era; the modern equivalent
+`cursor:no_hardware_cursors` defaults to auto). The driver's own setup is not
+recorded in the config; the docs link the guides.
 
 ## IPC exit codes
 

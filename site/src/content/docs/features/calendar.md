@@ -187,8 +187,8 @@ one.
    you), your **username** and the **app password**, **Add**.
 
 **A Nextcloud at home** that is only reachable on your own network works
-well: events you add while out are kept on the laptop and uploaded when you
-are back (see [working offline](#syncing-and-working-offline)).
+well: events you add while out are kept on your computer and uploaded when
+you are back (see [working offline](#syncing-and-working-offline)).
 
 - If it is served over plain **http** on your network, type the address with
   `http://` in front; anything without a scheme is taken as `https://`.
@@ -358,7 +358,7 @@ Worth knowing:
   `~/.local/state/vela/reminders.json`), so restarting the shell or logging
   in again does not send them twice, and a snooze survives a restart.
 - **Missed ones still come, while they are useful.** One that fell due while
-  the laptop was asleep comes when it wakes, and one that fell due while the
+  the computer was asleep comes when it wakes, and one that fell due while the
   shell was not running (up to an hour back) comes when it starts — but only
   if the event has not ended yet.
 - **Do not disturb and Focus** hold reminders like any other notification:
@@ -392,7 +392,7 @@ offered for new events.
 
 ### Offline first
 
-Everything you do is written on the laptop first. When the server cannot be
+Everything you do is written on your computer first. When the server cannot be
 reached — the Nextcloud is at home and you are not, the Wi-Fi dropped, the
 server is down — nothing is lost:
 
@@ -405,7 +405,7 @@ server is down — nothing is lost:
 
 ### If the same event changed in two places
 
-If an event is changed on the laptop and on another device before they sync,
+If an event is changed on this computer and on another device before they sync,
 the **server's version wins** when they meet. Changes to different events
 never conflict.
 
@@ -556,12 +556,12 @@ accounts:
 | "vdirsyncer is not installed" (on the Sync row or an account) | nothing can fetch the accounts | `sudo dnf install vdirsyncer`, then **Sync now** |
 | "The keyring is not available" | gnome-keyring is not running, or secret-tool is missing | log out and in (autostart starts gnome-keyring); `sudo dnf install libsecret gnome-keyring`; then **Check again** |
 | A keyring password prompt at the first sync | the login screen did not unlock the keyring | type your login password; GDM unlocks it on its own |
-| "Can't reach *host*" | the server is out of reach from where you are | nothing — it syncs when it can be reached; changes wait on the laptop |
+| "Can't reach *host*" | the server is out of reach from where you are | nothing — it syncs when it can be reached; changes wait on your computer |
 | "Could not sync: … 401 …" or "Unauthorized" | wrong username or password | remove the account and add it again with an **app password** (iCloud, Nextcloud, Fastmail need one) |
 | "Could not sync: … certificate …" / SSL | a self-signed or expired certificate | see [Nextcloud](#nextcloud): trust your CA, or use `http://` on your own network |
 | "Could not sync: … 404 …" on a link | the link was reset or unpublished | make a new link and add it again (then remove the old account) |
 | An account's calendar is missing from the month | it is switched off, or its first sync has not finished | Settings, Calendars: check its switch; **Sync now** |
-| Events show at the wrong time | the laptop's time zone is wrong | `timedatectl` and `sudo timedatectl set-timezone Europe/Rome` (for example) |
+| Events show at the wrong time | the computer's time zone is wrong | `timedatectl` and `sudo timedatectl set-timezone Europe/Rome` (for example) |
 | Two calendars called "Family" and "Family1" | two accounts both have a calendar named Family | harmless; rename one on the server if it bothers you |
 | An event has a lock or arrows and will not open | read-only calendar, or a repeating event | change it where it comes from (see [what cannot be changed](#what-cannot-be-changed-here)) |
 | "python3-icalendar is not installed" when saving | the event writer is missing | `sudo dnf install python3-icalendar` |
@@ -604,7 +604,7 @@ Settings, Calendars ──(details via the environment)──▶ vela calendar
   failure is named against its account, and writes the khal calendar blocks
   for them. Discovery (asking a CalDAV server which calendars it has) runs
   when an account is added, and again whenever the server has a calendar the
-  laptop does not. Each sync also asks the server which calendars take events
+  computer does not. Each sync also asks the server which calendars take events
   (each one's `current-user-privilege-set`); the read-only ones are left out
   of the account's `writable` list in `state.json`, and events made in vela
   that ended up in one are moved to a calendar that takes them.

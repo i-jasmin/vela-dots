@@ -101,7 +101,8 @@ Fedora's: palettes still work, from the wallpaper's dominant colour, and
 ## NVIDIA
 
 If your machine has an NVIDIA card and no NVIDIA driver, the installer says so
-at the end. The driver comes from RPM Fusion; see [NVIDIA](../../help/nvidia/).
+at the end. vela does not install the driver; [NVIDIA](../../help/nvidia/)
+links the guides for it.
 
 ## By hand
 
