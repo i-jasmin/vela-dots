@@ -21,8 +21,12 @@ QtObject {
 
     // ---- mode -------------------------------------------------------------
     property bool light: false
-    // 0 = neutral daylight, 1 = fully warmed (see the Sun service). Not a theme.
+    // How far toward amber, 0 = neutral daylight: the Sun service's evening
+    // curve times `eveningWarmth.strength`. Not a theme.
     property real warmth: 0
+    // Whether `warmth` and, in auto mode, `light` are the ones to open at: the
+    // Sun service knows once it has a sunset. See `settled`.
+    property bool sunKnown: false
 
     // The image the current palette was generated from, empty until the first
     // retint.
@@ -102,13 +106,31 @@ QtObject {
 
     Component.onCompleted: {
         root.applyScheme(schemeFile.text());
-        // From here on a change of palette is eased; the one read at startup
-        // is not, or every shell start would open on a colour sweep from the
-        // defaults above to the wallpaper's.
-        Qt.callLater(() => root.settled = true);
+        root.settle();
     }
 
+    // From the moment this is true a change of palette is eased; what the
+    // shell opens at is not, or every start would open on a colour sweep --
+    // from the defaults above to the wallpaper's, or, at night, from the
+    // wallpaper's to its warmed self a second in, once the Sun service had
+    // read where the sunset is. So it waits for that too (`sunKnown`), and
+    // for the turn after it, when the warmth it brought has been applied.
+    // `settleGuard` stops a machine with no location keeping the palette
+    // uneased for good.
     property bool settled: false
+
+    function settle(): void {
+        if (root.sunKnown)
+            Qt.callLater(() => root.settled = true);
+    }
+
+    onSunKnownChanged: root.settle()
+
+    readonly property Timer settleGuard: Timer {
+        running: true
+        interval: 3000
+        onTriggered: root.settled = true
+    }
 
     // True while the palette is crossing over to another. Colour Behaviors
     // elsewhere stand aside for it (`enabled: !Colours.crossing`): each would

@@ -222,6 +222,41 @@ PaneScroll {
             }
         }
 
+        // How far the shell's colours go, not the screen's (that is the
+        // kelvin, below): at a third the wallpaper's colour is still plainly
+        // there at night, warmed; at 100% every palette turns the same amber.
+        SettingRow {
+            enabled: Config.appearance.eveningWarmth.enabled
+            opacity: enabled ? 1 : Appearance.dashboard.disabledOpacity
+            title: qsTr("How warm")
+            subtitle: qsTr("Lower keeps more of the wallpaper's colour")
+            labelWidth: Appearance.settings.labelWidthNarrow
+
+            Slider {
+                readonly property real wanted: Config.appearance.eveningWarmth.strength
+
+                value: wanted
+                handleWidth: Appearance.settings.sliderHandle
+                handleHeight: Appearance.settings.sliderHandle
+                stepSize: Appearance.settings.warmthStep
+                onWantedChanged: value = wanted
+                onMoved: v => {
+                    const step = Appearance.settings.warmthStep;
+                    Config.appearance.eveningWarmth.strength = Math.round(v / step) * step;
+                    Persist.commit();
+                }
+
+                Layout.fillWidth: true
+                Layout.alignment: Qt.AlignVCenter
+            }
+
+            SettingValue {
+                text: qsTr("%1 %").arg(Math.round(Config.appearance.eveningWarmth.strength * 100))
+
+                Layout.preferredWidth: Appearance.settings.valueWidthNarrow
+            }
+        }
+
         // The palette warms by moving its hues; this warms the pixels, every
         // window included, through hyprsunset.
         SettingRow {

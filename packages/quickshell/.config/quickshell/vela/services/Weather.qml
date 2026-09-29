@@ -594,30 +594,21 @@ Singleton {
     // Loaded once at startup and never reloaded: after that the in-memory
     // values are always at least as fresh as the file, and this singleton is
     // the only thing that writes it.
+    //
+    // Read before the first frame (`blockLoading`), because the sunset comes
+    // from here, and the palette's evening warmth from the sunset: read a
+    // moment later, a shell started at night opened in the day's colours and
+    // warmed a second in.
     FileView {
         id: cache
 
         path: root.cachePath
+        blockLoading: true
         // A first run has no cache, and that is not an error worth logging.
         printErrors: false
         atomicWrites: true
 
-        onLoaded: {
-            // A response that has since arrived over the network wins; this
-            // only ever fills an empty screen.
-            if (root.lastUpdated > 0)
-                return;
-            try {
-                const wrapper = JSON.parse(text());
-                if (root.applyWttr(wrapper.data, wrapper.fetchedAt ?? 0))
-                    root.wttrDoc = wrapper.data;
-                if (wrapper.meteo && root.applyMeteo(wrapper.meteo))
-                    root.meteoDoc = wrapper.meteo;
-            } catch (e) {
-                // A truncated cache is disposable; the fetch already in flight
-                // will replace it.
-            }
-        }
+        onLoaded: root.readCache(text())
 
         onSaveFailed: {
             // Almost always a missing ~/.local/state/vela on a fresh install.
@@ -633,5 +624,28 @@ Singleton {
         // the file. Retrying the write immediately would race the mkdir.
     }
 
-    Component.onCompleted: mkdir.running = true
+    function readCache(text: string): void {
+        // A response that has since arrived over the network wins; this only
+        // ever fills an empty screen. Read once, however it gets here.
+        if (root.lastUpdated > 0 || root.cacheRead || !text)
+            return;
+        root.cacheRead = true;
+        try {
+            const wrapper = JSON.parse(text);
+            if (root.applyWttr(wrapper.data, wrapper.fetchedAt ?? 0))
+                root.wttrDoc = wrapper.data;
+            if (wrapper.meteo && root.applyMeteo(wrapper.meteo))
+                root.meteoDoc = wrapper.meteo;
+        } catch (e) {
+            // A truncated cache is disposable; the fetch already in flight
+            // will replace it.
+        }
+    }
+
+    property bool cacheRead: false
+
+    Component.onCompleted: {
+        root.readCache(cache.text());
+        mkdir.running = true;
+    }
 }

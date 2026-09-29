@@ -230,10 +230,22 @@ Singleton {
 
     // This is the whole point of the service: Colours.warm() is already wired
     // through every accessor, and nothing else writes the value it reads.
+    // The curve says when; `strength` says how far. `warmth` itself stays the
+    // curve, which is what the screen's warmth (NightLight) follows.
     Binding {
         target: Colours
         property: "warmth"
-        value: root.warmth
+        value: root.warmth * Math.max(0, Math.min(1, Config.appearance.eveningWarmth.strength))
+    }
+
+    // Whether the palette's opening warmth -- and, in auto mode, light or
+    // dark -- is settled, which needs the sunset. Colours eases nothing until
+    // it is, so a shell started at night opens warm instead of fading to it
+    // a second in, once the location is read.
+    Binding {
+        target: Colours
+        property: "sunKnown"
+        value: root.available || (!Config.appearance.eveningWarmth.enabled && Config.appearance.mode !== "auto")
     }
 
     // Mode "auto" has no other driver in the shell, and daylight is the only

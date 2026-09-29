@@ -34,7 +34,7 @@ knowing:
 | --- | --- | --- |
 | `appearance.mode` | `"auto"` | `"light"`, `"dark"`, or `"auto"` (dark after sunset) |
 | `appearance.scheme` | `"scheme-tonal-spot"` | matugen's variant -- how colourful the palette is |
-| `appearance.eveningWarmth.*` | on, from sunset, 90 min | the evening warmth; `screen: true` warms the screen too (hyprsunset) |
+| `appearance.eveningWarmth.*` | on, from sunset, 90 min, `strength` 0.35 | the evening warmth; `strength` is how far the shell's colours go toward amber (0–1); `screen: true` warms the screen too (hyprsunset) |
 | `bar.position` | `"top"` | `"top"`, `"bottom"`, `"left"`, `"right"` |
 | `bar.floating` | `true` | a gap round the bar; `false` attaches it to its edge |
 | `bar.autohide.mode` | `"never"` | when the bar hides |

@@ -1543,6 +1543,8 @@ QtObject {
         readonly property int rampMin: 15
         readonly property int rampMax: 180
         readonly property int rampStep: 15
+        // Evening warmth's "How warm", as a fraction.
+        readonly property real warmthStep: 0.05
         readonly property int kelvinMin: 2700
         readonly property int kelvinMax: 5500
         readonly property int kelvinStep: 100

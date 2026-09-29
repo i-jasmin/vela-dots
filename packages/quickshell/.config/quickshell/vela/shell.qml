@@ -4,6 +4,7 @@
 import QtQuick
 import Quickshell
 import qs.config
+import qs.services
 import qs.tokens
 import qs.modules.background
 import qs.modules.dock
@@ -69,6 +70,12 @@ ShellRoot {
         value: Config.appearance.mode === "light"
         when: Config.appearance.mode !== "auto"
     }
+
+    // The Sun service drives the palette's evening warmth, and auto light and
+    // dark, through bindings of its own. Asked for here, it starts with the
+    // shell rather than whenever something first wants a sunset time, so the
+    // palette can open at the right warmth (Colours.sunKnown).
+    readonly property bool sunStarted: Sun.available
 
     // The wallpaper goes first: it is the only thing on the background layer,
     // and everything else is drawn over it.

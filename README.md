@@ -112,7 +112,7 @@ transition) are only in the file; everything else has a control:
 
 | Page | Covers |
 |---|---|
-| General | location for the weather and sunset (found from your connection, or a city you name), units, evening warmth (the colours, and with hyprsunset the screen as well, on the same curve), profile picture, the wallpaper / screenshot / recording folders, restore at login, what changed after an update |
+| General | location for the weather and sunset (found from your connection, or a city you name), units, evening warmth (the colours, by how much -- a third by default, so the wallpaper's colour stays -- and with hyprsunset the screen as well, on the same curve), profile picture, the wallpaper / screenshot / recording folders, restore at login, what changed after an update |
 | Appearance | palette source and variant, light / dark / auto, corner radius, panel opacity, motion (full, reduced or off) and how fast it is -- windows included |
 | Bar | edge, floating or attached (against the edge, rounded only on the side facing in), autohide, the dock and its pinned apps and stacks |
 | Notifications | do not disturb, where the cards go, how long they stay, how many stack, the focus digest |

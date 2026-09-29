@@ -49,10 +49,15 @@ animations follow the same setting.
 
 ## Evening warmth
 
-After sunset the palette warms gradually, over an hour and a half. With
-hyprsunset installed it can warm the screen itself as well, on the same curve
-(Settings → General). The location for sunset is found from your connection,
-or you can name a city.
+After sunset the palette warms gradually, over an hour and a half, and cools
+again by sunrise. It warms the wallpaper's colours rather than replacing them:
+**How warm** (Settings → General) sets how far they go toward amber, a third
+by default. At 100% every wallpaper turns the same amber at night; at 0% the
+shell keeps its daytime colours.
+
+With hyprsunset installed it can warm the screen itself as well, on the same
+curve. The location for sunset is found from your connection, or you can name
+a city.
 
 ## The terminal greeting
 

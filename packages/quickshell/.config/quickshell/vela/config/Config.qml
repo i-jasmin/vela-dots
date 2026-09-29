@@ -37,6 +37,12 @@ Singleton {
         property int fromKelvin: 6500
         property int toKelvin: 3400
         property int rampMinutes: 90
+        // How far the shell's colours go toward amber at full warmth, 0-1.
+        // A third leaves the wallpaper's own colour plainly there, warmed;
+        // at 1 every palette became the same amber and the wallpaper was
+        // gone from the shell for the night. The screen (`screen`) follows
+        // the kelvin values instead, not this.
+        property real strength: 0.35
         // "sunset" | "civil-dusk" -- where the ramp begins. `services/Sun.qml`
         // moves only the ramp; the sunset the weather card prints stays the
         // true one. Anything unrecognised means sunset.
