@@ -6,18 +6,19 @@ import qs.components
 import qs.services
 import qs.tokens
 
-// Claude Code and Codex, while a session is doing something: each tool's logo
-// with how much of its 5-hour window is used. The logo in the accent, gently
-// breathing, while it works; in a container while it waits on you (a
-// permission to give); with a tick for a moment once it is done -- and
-// nothing at all the rest of the time. Only with the tool connected in
-// Settings, AI tools, since the tools' hooks are what say so
-// (`services/AiUsage.qml`). The number turns red at 90%.
+// Claude Code and Codex, while they are open: each tool's logo with how much
+// of its 5-hour window is used. The logo in the accent, gently breathing,
+// while it works; in a container while it waits on you (a permission to
+// give); with a tick for a moment once it is done; quiet in between -- and
+// gone once the tool is closed. That it is open comes from its process; what
+// it is doing needs the tool connected in Settings, AI tools, since the
+// tools' hooks are what say so (`services/AiUsage.qml`). The number turns red
+// at 90%.
 //
-// It does not fold with the status run: it has nothing to show unless a
-// session is doing something, and switched on from Settings it stands before
-// the fold arrow (`BarContent.unfolded`). A vertical bar stacks the logo over
-// the number, the way CPU and memory stand there.
+// It does not fold with the status run: switched on from Settings it stands
+// before the fold arrow (`BarContent.unfolded`), so folding the bar never
+// hides an open session. A vertical bar stacks the logo over the number, the
+// way CPU and memory stand there.
 //
 // A click goes to the terminal of the session that most wants you; a
 // right-click opens the System tab, where the plan's numbers are.

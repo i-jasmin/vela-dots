@@ -18,9 +18,10 @@ import qs.config
 // has passed reads empty without waiting for the tool.
 //
 // What a session is doing -- working, needs you, done -- comes from the tools'
-// hooks, written to a file in the runtime dir that is watched here; the poll
-// is what catches everything else, and it runs faster while anything is live
-// or the System tab is open.
+// hooks, written to a file in the runtime dir that is watched here. That a
+// session is open at all comes from its process, hooks or not: Codex fires
+// none until the first prompt. The poll is what catches everything else, and
+// it runs faster while anything is live or the System tab is open.
 //
 // Claude Code's status line reports a 5-hour window and a weekly one, with
 // the model and its effort. The rest of what /usage shows -- a model's own
@@ -39,6 +40,8 @@ Singleton {
     // The System tab holds this while it is shown.
     property int holds: 0
     readonly property bool fast: root.holds > 0 || root.sessionsLive.some(s => s.state === "working" || s.state === "need")
+    // "Done" fades by the clock, so the clock ticks by the second meanwhile.
+    readonly property bool ticking: root.fast || root.sessionsLive.some(s => s.state === "done")
 
     // How long "done" stays on the pill after a reply.
     readonly property int doneSeconds: 6
@@ -88,18 +91,29 @@ Singleton {
             idle: 3
         })
 
-    // The bar's pill: each tool whose session is doing something worth a
-    // glance -- working, waiting on you, just done -- and nothing otherwise.
+    // The bar's pill: each tool while it is open, with what its session is
+    // doing, and nothing once it is closed.
     readonly property var pill: ["claude", "codex"].map(id => ({
                 id: id,
                 name: id === "claude" ? qsTr("Claude") : qsTr("Codex"),
                 session: root.sessionOf(id)
-            })).filter(i => i.session && ["need", "working", "done"].includes(i.session.state))
+            })).filter(i => i.session)
 
+    // The session that most wants you: from the hooks, or else an open one
+    // they have said nothing about yet -- not connected, or Codex before its
+    // first prompt -- found by its process and simply open.
     function sessionOf(tool: string): var {
         const mine = root.sessionsLive.filter(s => s.tool === tool);
         mine.sort((a, b) => (root.rank[a.state] ?? 9) - (root.rank[b.state] ?? 9) || (b.since ?? 0) - (a.since ?? 0));
-        return mine[0] ?? null;
+        if (mine.length > 0)
+            return mine[0];
+        const open = root.status?.open?.[tool] ?? [];
+        return open.length > 0 ? Object.assign({
+            key: `${tool}:${open[0].pid}`,
+            tool: tool,
+            state: "idle",
+            since: 0
+        }, open[0]) : null;
     }
 
     // The window the session runs in: the first process above it that is a
@@ -417,12 +431,17 @@ Singleton {
         }
     }
 
-    // Slowly while neither tool is there: only to notice one arriving.
+    // The pill is on the bar somewhere.
+    readonly property bool pillPlaced: [...Config.bar.modules.left, ...Config.bar.modules.centre, ...Config.bar.modules.right].includes("ai")
+
+    // Every few seconds while a tool is there and the pill is on the bar, so
+    // it comes and goes with the tool; slowly while neither tool is, only to
+    // notice one arriving.
     Timer {
         running: true
         repeat: true
         triggeredOnStart: true
-        interval: root.fast ? 4000 : root.tools.length > 0 ? 30000 : 120000
+        interval: root.fast ? 4000 : root.tools.length === 0 ? 120000 : root.pillPlaced ? 10000 : 30000
         onTriggered: root.refresh()
     }
 
@@ -431,7 +450,7 @@ Singleton {
     Timer {
         running: true
         repeat: true
-        interval: root.fast ? 1000 : 20000
+        interval: root.ticking ? 1000 : 20000
         onTriggered: root.now = Date.now() / 1000
     }
 

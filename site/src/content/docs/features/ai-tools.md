@@ -88,19 +88,24 @@ arrow that folds the bar's status items away, so folding the bar never hides
 a session that is working or waiting on you. You can also add **Claude Code
 & Codex** in Settings → Modules and put it anywhere.
 
-It appears only while something is happening: each tool's logo with how much
-of its 5-hour window is used, like *8%*.
+It is there while Claude Code or Codex is open: each tool's logo with how
+much of its 5-hour window is used, like *8%*.
 
+- **Open:** the logo in a quiet colour.
 - **Working:** the logo in your accent colour, gently breathing.
 - **Needs you:** the logo and number in a highlighted capsule.
-- **Done:** a tick beside the logo for a few seconds.
+- **Done:** a tick beside the logo for a few seconds, then back to open.
 
 The number turns red at 90%. On a vertical bar the logo sits over the number,
 the way CPU and memory do.
 
-The rest of the time it is gone. Click it to go to the terminal of the session
-that most wants you. Right-click it for the System tab. The pill needs the
-tool to be connected, because the hooks are what say what a session is doing.
+Once the tool is closed, the pill is gone. Click it to go to the terminal of
+the session that most wants you. Right-click it for the System tab.
+
+vela sees that a tool is open from its process, so that part needs nothing.
+*Working*, *Needs you* and *Done* come from the tool's hooks, so they need the
+tool to be connected. Codex fires no hook until your first prompt: until then
+it shows as open.
 
 ## The logos
 

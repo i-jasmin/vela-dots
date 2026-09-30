@@ -29,8 +29,6 @@ PaneScroll {
         runner.running = true;
     }
 
-    readonly property bool pillPlaced: [...Config.bar.modules.left, ...Config.bar.modules.centre, ...Config.bar.modules.right].includes("ai")
-
     // On: first in the right-hand run, which puts it before the arrow that
     // folds the run away (`BarContent.unfolded`), so folding the bar never
     // hides a session that is working or waiting. Off: out of every run.
@@ -225,10 +223,10 @@ PaneScroll {
 
         SettingRow {
             title: qsTr("Pill in the bar")
-            subtitle: qsTr("While a session works, waits on you or has just finished. Move it in Modules.")
+            subtitle: qsTr("While Claude Code or Codex is open: its 5-hour window, and whether it is working or waiting on you. Move it in Modules.")
 
             Toggle {
-                readonly property bool wanted: root.pillPlaced
+                readonly property bool wanted: AiUsage.pillPlaced
 
                 checked: wanted
                 onWantedChanged: checked = wanted
