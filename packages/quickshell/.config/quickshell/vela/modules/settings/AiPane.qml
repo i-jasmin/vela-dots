@@ -31,17 +31,14 @@ PaneScroll {
 
     readonly property bool pillPlaced: [...Config.bar.modules.left, ...Config.bar.modules.centre, ...Config.bar.modules.right].includes("ai")
 
-    // On: into the right-hand run, just before the privacy dots (the other
-    // thing there that comes and goes), or first. Off: out of every run.
+    // On: first in the right-hand run, which puts it before the arrow that
+    // folds the run away (`BarContent.unfolded`), so folding the bar never
+    // hides a session that is working or waiting. Off: out of every run.
     function setPill(on: bool): void {
         for (const end of ["left", "centre", "right"])
             Config.bar.modules[end] = [...Config.bar.modules[end]].filter(m => m !== "ai");
-        if (on) {
-            const right = [...Config.bar.modules.right];
-            const at = right.indexOf("privacy");
-            right.splice(at < 0 ? 0 : at, 0, "ai");
-            Config.bar.modules.right = right;
-        }
+        if (on)
+            Config.bar.modules.right = ["ai", ...Config.bar.modules.right];
         Persist.commit();
     }
 

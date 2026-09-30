@@ -18,7 +18,8 @@ From one end to the other, as it ships:
 
 **Settings → Modules** chooses which items each end carries, and in what
 order. One item is not on the bar until you add it: the
-[Claude Code and Codex](../ai-tools/#the-pill-on-the-bar) pill.
+[Claude Code and Codex](../ai-tools/#the-pill-on-the-bar) pill, which goes
+before the fold arrow and stays while the bar is folded.
 
 ## Where it goes
 

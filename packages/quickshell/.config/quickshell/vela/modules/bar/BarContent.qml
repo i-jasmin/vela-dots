@@ -76,6 +76,9 @@ Panel {
     // clock. Nowhere else, and never on a horizontal bar.
     readonly property list<string> verticalRules: ["tray", "clock"]
 
+    // Modules that go before the fold arrow when they lead the run.
+    readonly property list<string> unfolded: ["ai"]
+
     readonly property var leadingModules: Config.bar.modules.left
     readonly property var centreModules: root.bar.vertical ? [] : Config.bar.modules.centre
 
@@ -83,9 +86,14 @@ Panel {
         const right = [...Config.bar.modules.right];
         // The arrow that folds the run away leads it, unless shell.json has
         // put it somewhere else: everything after it up to the clock is what
-        // it hides.
-        if (!right.includes("expander"))
-            right.unshift("expander");
+        // it hides. What stands before it stays -- the Claude Code and Codex
+        // pill, so a running session cannot be folded out of sight.
+        if (!right.includes("expander")) {
+            let at = 0;
+            while (at < right.length && root.unfolded.includes(right[at]))
+                at++;
+            right.splice(at, 0, "expander");
+        }
         // The bell was the tray's last glyph and is its own module now (it
         // folds by its own rule), so it goes where it always was: after the
         // tray, or before the last item if there is no tray.

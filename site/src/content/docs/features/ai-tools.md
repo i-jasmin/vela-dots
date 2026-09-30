@@ -83,8 +83,10 @@ turn it off with **Everything /usage shows** in Settings → AI tools.
 
 ## The pill on the bar
 
-Switch on **Pill in the bar** in Settings → AI tools. You can also add
-**Claude Code & Codex** in Settings → Modules and put it anywhere.
+Switch on **Pill in the bar** in Settings → AI tools. It goes before the
+arrow that folds the bar's status items away, so folding the bar never hides
+a session that is working or waiting on you. You can also add **Claude Code
+& Codex** in Settings → Modules and put it anywhere.
 
 It appears only while something is happening:
 

@@ -12,6 +12,10 @@ import qs.tokens
 // rest of the time. Only with the tool connected in Settings, AI tools, since
 // the tools' hooks are what say so (`services/AiUsage.qml`).
 //
+// It does not fold with the status run: it has nothing to show unless a
+// session is doing something, and switched on from Settings it stands before
+// the fold arrow (`BarContent.unfolded`).
+//
 // A click goes to the terminal of the session that most wants you; a
 // right-click opens the System tab, where the plan's numbers are.
 Item {
