@@ -99,8 +99,9 @@ much of its 5-hour window is used, like *8%*.
 The number turns red at 90%. On a vertical bar the logo sits over the number,
 the way CPU and memory do.
 
-Once the tool is closed, the pill is gone. Click it to go to the terminal of
-the session that most wants you. Right-click it for the System tab.
+Once the tool is closed, the pill is gone. Click it for the dashboard's System
+tab, where the cards are, the way CPU and memory open it; click again to close
+it. Right-click it to go to the terminal of the session that most wants you.
 
 vela sees that a tool is open from its process, so that part needs nothing.
 *Working*, *Needs you* and *Done* come from the tool's hooks, so they need the

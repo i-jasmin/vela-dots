@@ -20,8 +20,9 @@ import qs.tokens
 // hides an open session. A vertical bar stacks the logo over the number, the
 // way CPU and memory stand there.
 //
-// A click goes to the terminal of the session that most wants you; a
-// right-click opens the System tab, where the plan's numbers are.
+// A click opens the dashboard on the System tab, where the plan's numbers
+// are, as CPU and memory do; a right-click goes to the terminal of the
+// session that most wants you.
 Item {
     id: root
 
@@ -89,8 +90,8 @@ Item {
         padTrail: root.items[root.items.length - 1]?.session.state === "need" ? 3 : Appearance.bar.chipPadTrail
         interactive: true
 
-        onClicked: root.go()
-        onSecondaryClicked: root.bar.dashboardOn("system")
+        onClicked: root.bar.dashboardOn("system")
+        onSecondaryClicked: root.go()
 
         Repeater {
             model: root.items
@@ -206,6 +207,6 @@ Item {
         anchors.fill: parent
         cursorShape: Qt.PointingHandCursor
         acceptedButtons: Qt.LeftButton | Qt.RightButton
-        onClicked: event => event.button === Qt.RightButton ? root.bar.dashboardOn("system") : root.go()
+        onClicked: event => event.button === Qt.RightButton ? root.go() : root.bar.dashboardOn("system")
     }
 }
