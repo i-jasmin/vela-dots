@@ -219,11 +219,17 @@ link() {
     # kitty.conf from before, the hyprland.conf Hyprland writes on its first
     # start -- is moved aside first, whole, into one dated folder. A link that
     # already points into this repo is vela's own and stays.
-    local rel target backup=""
+    #
+    # readlink -f resolves every symlink on the way, so the repo's own path is
+    # resolved the same way before the two are compared. Otherwise a home or
+    # repo reached through a symlink (/home -> /var/home, say) makes vela's
+    # links look like someone else's, and every run would move them aside.
+    local rel target backup="" real
+    real="$(readlink -f "$REPO")"
     while IFS= read -r rel; do
         target="$HOME/$rel"
         [ -e "$target" ] || [ -L "$target" ] || continue
-        if [ -L "$target" ] && [[ "$(readlink -f "$target")" == "$REPO"/* ]]; then
+        if [ -L "$target" ] && [[ "$(readlink -f "$target")" == "$real"/* ]]; then
             continue
         fi
         if [ -z "$backup" ]; then
