@@ -54,6 +54,7 @@ guide](../../features/calendar/#the-command-line) covers the rest.
 ```sh
 vela ai status                  # plan usage and what each session is doing (JSON)
 vela ai claude-usage            # ask Claude Code for what /usage shows
+vela ai icons [--force]         # fetch the Claude Code and Codex logos
 vela ai connect claude|codex    # add vela's status line and hooks to that tool (backup first)
 vela ai disconnect claude|codex # take them out again
 ```

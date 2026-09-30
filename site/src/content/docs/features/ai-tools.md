@@ -88,15 +88,34 @@ arrow that folds the bar's status items away, so folding the bar never hides
 a session that is working or waiting on you. You can also add **Claude Code
 & Codex** in Settings → Modules and put it anywhere.
 
-It appears only while something is happening:
+It appears only while something is happening: each tool's logo with how much
+of its 5-hour window is used, like *8%*.
 
-- a spinner while a session works;
-- a raised hand, highlighted, while it waits on you;
-- a tick for a few seconds once it is done.
+- **Working:** the logo in your accent colour, gently breathing.
+- **Needs you:** the logo and number in a highlighted capsule.
+- **Done:** a tick beside the logo for a few seconds.
+
+The number turns red at 90%. On a vertical bar the logo sits over the number,
+the way CPU and memory do.
 
 The rest of the time it is gone. Click it to go to the terminal of the session
 that most wants you. Right-click it for the System tab. The pill needs the
 tool to be connected, because the hooks are what say what a session is doing.
+
+## The logos
+
+The cards and the pill show Claude Code's and Codex's own logos, drawn in your
+palette's colours. They are Anthropic's and OpenAI's marks, so they are not
+kept in vela's repository: the installer downloads them from
+[theSVG](https://thesvg.org), pinned to one version and checked, into
+`~/.local/share/vela/icons/`. If the install was offline, or you install one of
+the tools later, the shell fetches the missing logo the first time it sees
+the tool. Until then, and with **Their logos** off in Settings → AI tools,
+there is a plain badge instead.
+
+```sh
+vela ai icons                   # fetch them now (--force to fetch again)
+```
 
 ## What vela does not do
 
@@ -117,5 +136,6 @@ tool to be connected, because the hooks are what say what a session is doing.
 | --- | --- |
 | `~/.local/state/vela/ai/claude.json` | Claude Code's last numbers from its status line, with the model and effort |
 | `~/.local/state/vela/ai/claude-usage.json` | the last `/usage` answer: every window, and the plan |
+| `~/.local/share/vela/icons/` | the two logos, as path data |
 | `$XDG_RUNTIME_DIR/vela-ai-live.json` | what each session is doing (gone after a reboot) |
-| `shell.json` → `ai` | `claude` and `codex` show or hide a card; `claudeUsage` asks Claude Code for `/usage`; `notifyNearLimit` is the 90% notification |
+| `shell.json` → `ai` | `claude` and `codex` show or hide a card; `claudeUsage` asks Claude Code for `/usage`; `logos` shows the tools' logos; `notifyNearLimit` is the 90% notification |

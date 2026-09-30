@@ -177,11 +177,12 @@ Item {
                     color: Colours.surfaceContainerHigh
                     opacity: card.closed ? Appearance.dashboard.aiDim : 1
 
-                    Icon {
+                    // The tool's logo, or the terminal glyph without one.
+                    ToolIcon {
                         anchors.centerIn: parent
-                        text: "terminal"
-                        size: Appearance.size.iconSm
-                        color: Colours.on.surfaceVariant
+                        tool: card.tool.id
+                        size: Appearance.size.iconSm + 2
+                        colour: Colours.on.surfaceVariant
                     }
                 }
 

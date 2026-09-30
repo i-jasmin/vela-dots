@@ -257,6 +257,38 @@ Singleton {
 
     readonly property var tools: [root.claude, root.codex].filter(t => t.shown)
 
+    // The 5-hour window each tool counts down, for the bar's pill.
+    function sessionOf5h(tool: string): var {
+        const t = tool === "claude" ? root.claude : root.codex;
+        return t.windows.find(w => w.label === qsTr("5-hour")) ?? null;
+    }
+
+    // ---- logos ---------------------------------------------------------------
+
+    // { claude: { viewBox, paths, evenodd }, codex: ... } -- path data the
+    // icons draw in the palette's colours (`components/ToolIcon.qml`), or
+    // nothing while logos are off or not fetched yet.
+    readonly property var icons: Config.ai.logos ? (root.status?.icons ?? {}) : ({})
+
+    // Fetched once per run for a tool that is there without its logo: after
+    // an install that was offline, or a tool installed after vela.
+    property bool iconsAsked: false
+    onToolsChanged: {
+        if (!Config.ai.logos || root.iconsAsked || iconFetcher.running || !root.loaded)
+            return;
+        if (root.tools.some(t => !root.status?.icons?.[t.id])) {
+            root.iconsAsked = true;
+            iconFetcher.running = true;
+        }
+    }
+
+    Process {
+        id: iconFetcher
+
+        command: ["sh", "-c", 'PATH="$HOME/.local/bin:$PATH"; exec vela ai icons']
+        onExited: root.refresh()
+    }
+
     // "2 h 10 min" beside the reset glyph; a reset a day or more away by its
     // day and time, "Mon 09:00".
     function resetText(resetsAt: int): string {
@@ -428,5 +460,6 @@ Singleton {
     Component.onDestruction: {
         poll.running = false;
         asker.running = false;
+        iconFetcher.running = false;
     }
 }

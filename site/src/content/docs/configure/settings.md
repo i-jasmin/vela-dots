@@ -57,6 +57,7 @@ knowing:
 | `updates.checkCommand` | `dnf5 check-update --refresh` | how updates are counted |
 | `ai.claude`, `ai.codex` | `true`, `true` | a card in the System tab for each, while that tool is there |
 | `ai.claudeUsage` | `true` | ask Claude Code for what `/usage` shows (Fable's week, the plan) |
+| `ai.logos` | `true` | the tools' own logos on their cards and the bar's pill |
 | `ai.notifyNearLimit` | `true` | one notification as a plan window passes 90% |
 
 The file itself carries a comment on most keys.

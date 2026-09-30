@@ -319,6 +319,10 @@ Singleton {
         // them -- by running it for a moment every few minutes while it is
         // in use. Experimental in Claude Code.
         property bool claudeUsage: true
+        // The tools' own logos in the cards and the bar's pill -- fetched from
+        // theSVG by the installer, or by the shell the first time a tool is
+        // there (`vela ai icons`); off, a neutral badge.
+        property bool logos: true
         // One notification as a window goes past 90%.
         property bool notifyNearLimit: true
     }

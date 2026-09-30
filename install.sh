@@ -149,6 +149,14 @@ main() {
         "$VELA" wallpaper "$first" >/dev/null 2>&1 || warn "could not generate the palette yet; after logging in, run: vela wallpaper \"$first\""
     fi
 
+    # ---- the AI tools' logos ----------------------------------------------------------
+    #
+    # Claude Code's and Codex's, for their cards in the dashboard and the bar's
+    # pill. Fetched from theSVG rather than kept in this repo -- they are
+    # Anthropic's and OpenAI's marks -- and fetched again by the shell later if
+    # this is offline; until then it draws a neutral badge.
+    "$VELA" ai icons >/dev/null 2>&1 || warn "could not download the Claude Code and Codex logos yet; the shell fetches them later"
+
     # ---- how it went -----------------------------------------------------------------
 
     echo

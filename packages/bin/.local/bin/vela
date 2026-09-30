@@ -48,6 +48,8 @@ usage: vela <command> [args]
                                       the shell reads)
   ai claude-usage                     Ask Claude Code for what /usage shows
                                       (every window, Fable's week included)
+  ai icons [--force]                  Fetch the Claude Code and Codex logos
+                                      the cards and the bar pill draw
   ai connect|disconnect claude|codex  Add or remove vela's status line and
                                       hooks in that tool's settings (a backup
                                       is saved first)
@@ -1380,6 +1382,15 @@ CODEX_HOOKS = os.path.join(CODEX_DIR, "hooks.json")
 CLAUDE_USAGE = os.path.join(STATE, "claude.json")
 # The full /usage numbers, asked of Claude Code itself (`claude-usage`).
 CLAUDE_PLAN = os.path.join(STATE, "claude-usage.json")
+# The tools' logos, as path data the shell draws in the palette's colours.
+ICONS = os.path.join(os.environ.get("XDG_DATA_HOME") or os.path.join(HOME, ".local/share"), "vela/icons")
+# Not kept in this repo: they are Anthropic's and OpenAI's marks. theSVG's
+# single-colour versions, pinned to one commit and checked.
+ICON_BASE = "https://raw.githubusercontent.com/glincker/thesvg/d8747c36ca3ca41b53a9478012e6b89bb9f406d0/public/icons"
+ICON_SOURCES = {
+    "claude": (f"{ICON_BASE}/claude-code/mono.svg", "dc0c501131ef33da534fac1090a85901b9f5d67e97bfa1ac8a067423c04f5c6c"),
+    "codex": (f"{ICON_BASE}/codex/default.svg", "627cd8b8108038310b98b0bd35f244ee7422b7c0a08355f6beeead1ad0cd457e"),
+}
 # The status line the user had before vela's, run after vela's.
 CLAUDE_PREVIOUS = os.path.join(STATE, "claude-statusline.json")
 MARK_STATUS = "ai statusline"
@@ -1610,6 +1621,75 @@ def claude_usage():
         "plan": answer.get("subscription_type") or "",
         "windows": windows,
     })
+
+
+# ---- the tools' icons -------------------------------------------------------------
+def spaced_path(d):
+    """SVG path data with every number set apart. Minified paths pack an
+    arc's two flags into the next number ("a6 6 0 013.04-.41" is flags 0 and
+    1, then 3.04), which Qt's path parser reads as one number and draws a
+    tangle; here each flag is read as the single digit it is."""
+    import re
+    number = re.compile(r"[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?")
+    counts = {"m": 2, "l": 2, "h": 1, "v": 1, "c": 6, "s": 4, "q": 4, "t": 2, "a": 7, "z": 0}
+    out, i, cmd, args = [], 0, None, []
+    while i < len(d):
+        ch = d[i]
+        if ch.isspace() or ch == ",":
+            i += 1
+            continue
+        if ch.isalpha():
+            cmd, args = ch, []
+            out.append(ch)
+            i += 1
+            continue
+        if cmd is None:
+            raise ValueError("path data starts with a number")
+        n = counts[cmd.lower()]
+        if cmd.lower() == "a" and len(args) % 7 in (3, 4):
+            if ch not in "01":
+                raise ValueError("bad arc flag")
+            args.append(ch)
+            out.append(ch)
+            i += 1
+            continue
+        m = number.match(d, i)
+        if not m or n == 0:
+            raise ValueError(f"unexpected {ch!r} in path data")
+        args.append(m.group())
+        out.append(m.group())
+        i = m.end()
+    return " ".join(out)
+
+
+def icons(force):
+    """Fetch the Claude Code and Codex logos and keep them as path data
+    ({viewBox, paths, evenodd}), which the shell fills with whatever colour
+    the palette gives it. Offline, or on anything unexpected, the shell keeps
+    its neutral badge and tries again later."""
+    import hashlib, re, urllib.request
+    os.makedirs(ICONS, exist_ok=True)
+    failed = []
+    for tool, (url, digest) in ICON_SOURCES.items():
+        target = os.path.join(ICONS, f"{tool}.json")
+        if os.path.exists(target) and not force:
+            continue
+        try:
+            with urllib.request.urlopen(url, timeout=20) as r:
+                data = r.read(256 * 1024)
+            if hashlib.sha256(data).hexdigest() != digest:
+                raise ValueError("checksum does not match")
+            svg = data.decode()
+            box = [float(v) for v in re.search(r'viewBox="([^"]+)"', svg).group(1).replace(",", " ").split()]
+            paths = re.findall(r'<path[^>]*?\sd="([^"]+)"', svg, flags=re.S)
+            if len(box) != 4 or not paths:
+                raise ValueError("no path data")
+            write_json(target, {"viewBox": box, "paths": [spaced_path(p) for p in paths],
+                                "evenodd": "evenodd" in svg, "source": url})
+        except Exception as e:
+            failed.append(f"{tool} ({e})")
+    if failed:
+        die("could not fetch " + ", ".join(failed))
 
 
 # ---- hooks --------------------------------------------------------------------
@@ -1902,6 +1982,7 @@ def status():
         "connected": connected(),
         "claude": read_json(CLAUDE_USAGE),
         "claudePlan": read_json(CLAUDE_PLAN),
+        "icons": {t: read_json(os.path.join(ICONS, f"{t}.json")) for t in ICON_SOURCES},
         "codex": codex_usage(),
         "sessions": snapshot,
     }
@@ -1918,13 +1999,15 @@ elif cmd == "status":
     status()
 elif cmd == "claude-usage":
     claude_usage()
+elif cmd == "icons":
+    icons("--force" in args[1:])
 elif cmd in ("connect", "disconnect") and len(args) == 2 and args[1] in ("claude", "codex"):
     {"connect": {"claude": connect_claude, "codex": connect_codex}, "disconnect": {"claude": disconnect_claude, "codex": disconnect_codex}}[cmd][args[1]]()
     print(f"{args[1]}: {cmd}ed")
     if cmd == "connect" and args[1] == "codex":
         print("codex: open Codex and trust vela's hooks when it asks (or in /hooks) for the live status")
 else:
-    die("usage: vela ai [status|claude-usage|connect claude|codex|disconnect claude|codex|statusline|hook claude|codex]")
+    die("usage: vela ai [status|claude-usage|icons [--force]|connect claude|codex|disconnect claude|codex|statusline|hook claude|codex]")
 PY
 
 case "${1:-}" in

@@ -6,15 +6,18 @@ import qs.components
 import qs.services
 import qs.tokens
 
-// Claude Code and Codex, while a session is doing something: a spinner while
-// it works, a raised hand in a container while it waits on you (a permission
-// to give), a tick for a moment once it is done -- and nothing at all the
-// rest of the time. Only with the tool connected in Settings, AI tools, since
-// the tools' hooks are what say so (`services/AiUsage.qml`).
+// Claude Code and Codex, while a session is doing something: each tool's logo
+// with how much of its 5-hour window is used. The logo in the accent, gently
+// breathing, while it works; in a container while it waits on you (a
+// permission to give); with a tick for a moment once it is done -- and
+// nothing at all the rest of the time. Only with the tool connected in
+// Settings, AI tools, since the tools' hooks are what say so
+// (`services/AiUsage.qml`). The number turns red at 90%.
 //
 // It does not fold with the status run: it has nothing to show unless a
 // session is doing something, and switched on from Settings it stands before
-// the fold arrow (`BarContent.unfolded`).
+// the fold arrow (`BarContent.unfolded`). A vertical bar stacks the logo over
+// the number, the way CPU and memory stand there.
 //
 // A click goes to the terminal of the session that most wants you; a
 // right-click opens the System tab, where the plan's numbers are.
@@ -25,45 +28,53 @@ Item {
 
     readonly property var items: AiUsage.pill
     readonly property bool present: root.items.length > 0
-    // One tool says what it is doing in words; two say only who.
-    readonly property bool wordy: root.items.length === 1
 
     implicitWidth: root.bar.vertical ? column.implicitWidth : chip.implicitWidth
     implicitHeight: root.bar.vertical ? column.implicitHeight : chip.implicitHeight
-
-    function glyph(state: string): string {
-        return state === "need" ? "front_hand" : state === "done" ? "check_circle" : "progress_activity";
-    }
-
-    function words(item: var): string {
-        const state = item.session.state;
-        if (!root.wordy)
-            return item.name;
-        return state === "need" ? qsTr("%1 needs you").arg(item.name) : state === "done" ? qsTr("%1 done").arg(item.name) : item.name;
-    }
 
     function go(): void {
         AiUsage.focus(root.items[0]?.session ?? null);
     }
 
-    component Glyph: Icon {
-        id: glyph
+    function used(item: var): var {
+        return AiUsage.sessionOf5h(item.id);
+    }
+
+    function percent(item: var): string {
+        const w = root.used(item);
+        return w ? `${Math.round(w.used)}%` : "";
+    }
+
+    function hot(item: var): bool {
+        const w = root.used(item);
+        return !!w && w.used >= AiUsage.nearLimit;
+    }
+
+    // The logo, breathing while its session works.
+    component Logo: ToolIcon {
+        id: logo
 
         property string state
 
-        text: root.glyph(glyph.state)
-        fill: glyph.state === "need" ? 1 : 0
         size: Appearance.size.iconSm
-        color: glyph.state === "need" ? Colours.on.primaryContainer : Colours.primary
+        colour: logo.state === "need" ? Colours.on.primaryContainer : logo.state === "working" ? Colours.primary : Colours.on.surfaceVariant
 
-        // The spinner turns while it works.
-        RotationAnimation on rotation {
-            running: glyph.state === "working" && !Appearance.reduceMotion
-            from: 0
-            to: 360
-            duration: 1400
+        SequentialAnimation on opacity {
+            running: logo.state === "working" && !Appearance.reduceMotion
             loops: Animation.Infinite
-            onStopped: glyph.rotation = 0
+            onStopped: logo.opacity = 1
+
+            NumberAnimation {
+                to: 0.45
+                duration: 800
+                easing.type: Easing.InOutSine
+            }
+
+            NumberAnimation {
+                to: 1
+                duration: 800
+                easing.type: Easing.InOutSine
+            }
         }
     }
 
@@ -89,7 +100,8 @@ Item {
                 required property var modelData
                 required property int index
 
-                readonly property bool need: item.modelData.session.state === "need"
+                readonly property string state: item.modelData.session.state
+                readonly property bool need: item.state === "need"
 
                 spacing: Appearance.bar.chipGap
                 Layout.alignment: Qt.AlignVCenter
@@ -113,15 +125,24 @@ Item {
                         anchors.centerIn: parent
                         spacing: 5
 
-                        Glyph {
-                            state: item.modelData.session.state
+                        Logo {
+                            tool: item.modelData.id
+                            state: item.state
+                        }
+
+                        Icon {
+                            visible: item.state === "done"
+                            text: "check"
+                            size: Appearance.size.iconXs
+                            color: Colours.primary
                         }
 
                         Text {
-                            text: root.words(item.modelData)
-                            font.family: Appearance.font.ui
-                            font.pixelSize: Appearance.size.label
-                            color: item.need ? Colours.on.primaryContainer : Colours.on.surfaceVariant
+                            visible: text !== ""
+                            text: root.percent(item.modelData)
+                            font.family: Appearance.font.mono
+                            font.pixelSize: Appearance.size.label - 0.5
+                            color: root.hot(item.modelData) ? Colours.error : item.need ? Colours.on.primaryContainer : Colours.on.surfaceVariant
                         }
                     }
                 }
@@ -129,7 +150,7 @@ Item {
         }
     }
 
-    // A vertical bar: the glyphs alone, one over the other.
+    // A vertical bar: the logo over the number, one tool over the other.
     ColumnLayout {
         id: column
 
@@ -145,16 +166,35 @@ Item {
 
                 required property var modelData
 
-                readonly property bool need: tile.modelData.session.state === "need"
+                readonly property string state: tile.modelData.session.state
+                readonly property bool need: tile.state === "need"
 
                 implicitWidth: Appearance.bar.iconButton
-                implicitHeight: Appearance.bar.iconButton
+                implicitHeight: stack.implicitHeight + 12
                 radius: Appearance.bar.tileRadius(Appearance.bar.iconButton)
                 color: tile.need ? Colours.primaryContainer : "transparent"
 
-                Glyph {
+                ColumnLayout {
+                    id: stack
+
                     anchors.centerIn: parent
-                    state: tile.modelData.session.state
+                    spacing: 2
+
+                    Logo {
+                        tool: tile.modelData.id
+                        state: tile.state
+                        size: Appearance.size.iconSm + 2
+                        Layout.alignment: Qt.AlignHCenter
+                    }
+
+                    Text {
+                        visible: text !== ""
+                        text: tile.state === "done" ? "✓" : root.percent(tile.modelData)
+                        font.family: Appearance.font.mono
+                        font.pixelSize: Appearance.size.label - 1.5
+                        color: root.hot(tile.modelData) ? Colours.error : tile.need ? Colours.on.primaryContainer : Colours.on.surfaceVariant
+                        Layout.alignment: Qt.AlignHCenter
+                    }
                 }
             }
         }

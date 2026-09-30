@@ -190,6 +190,23 @@ PaneScroll {
         gap: Appearance.settings.cardGapTight
 
         SettingRow {
+            title: qsTr("Their logos")
+            subtitle: qsTr("On the cards and the bar's pill, in your colours. The logos are Anthropic's and OpenAI's, fetched from theSVG; off, a plain badge.")
+
+            Toggle {
+                readonly property bool wanted: Config.ai.logos
+
+                checked: wanted
+                onWantedChanged: checked = wanted
+                onToggled: on => {
+                    Config.ai.logos = on;
+                    Persist.commit();
+                }
+                Layout.alignment: Qt.AlignVCenter
+            }
+        }
+
+        SettingRow {
             title: qsTr("Tell me at 90%")
             subtitle: qsTr("One notification as a window is almost used up")
 

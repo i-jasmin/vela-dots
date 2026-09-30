@@ -196,7 +196,10 @@ one, the week, and a model's own week (Fable's), as `/usage` shows them.
 Claude Code's come from its status line once connected and from asking
 Claude Code for `/usage`; Codex's from its own session files, with nothing
 to set up. vela never reads a login or talks to a server itself. An optional
-bar pill says when a session is working, waiting on you or done.
+bar pill shows each tool's logo and its 5-hour window while a session is
+working, waiting on you or done. The logos are Anthropic's and OpenAI's, so
+they are not in this repository: the installer fetches them from theSVG
+(`vela ai icons`).
 
 The focus timer outlives the drawer. "Hold notifications" keeps non-urgent
 toasts for one digest when the session ends, and "Countdown in the bar"
