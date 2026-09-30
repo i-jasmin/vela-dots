@@ -8,14 +8,14 @@ import qs.services
 import qs.components
 
 // Claude Code and Codex under the rest of the System tab: one card per tool
-// that is there, side by side off a horizontal bar (a lone one takes the whole
-// row), stacked off a vertical one. Each has the plan, what the session is
-// doing, the model and its effort, and a small ring per plan window with how
-// long until it resets -- Claude Code's session, week and a model's own week
-// (Fable's) among them. Three windows to a half card put their labels under
-// the rings, so they still fit on one row. The numbers are the tool's own and
-// as fresh as its last reply; once it is closed the card dims and says since
-// when (`services/AiUsage.qml`).
+// while it is open, side by side off a horizontal bar (a lone one takes the
+// whole row), stacked off a vertical one, and none once both are closed. Each
+// has the plan, what the session is doing, the model and its effort, and a
+// small ring per plan window with how long until it resets -- Claude Code's
+// session, week and a model's own week (Fable's) among them. Three windows to
+// a half card put their labels under the rings, so they still fit on one row.
+// The numbers are the tool's own and as fresh as its last reply
+// (`services/AiUsage.qml`).
 //
 // A card is clicked to go to the terminal its session runs in.
 Item {
@@ -23,7 +23,7 @@ Item {
 
     required property bool side
 
-    readonly property var tools: AiUsage.tools
+    readonly property var tools: AiUsage.cards
     readonly property bool pair: !root.side && root.tools.length > 1
     readonly property real cardWidth: root.pair ? (root.width - Appearance.dashboard.gap) / 2 : root.width
 
@@ -130,13 +130,10 @@ Item {
         readonly property var session: card.tool.session
         readonly property string doing: card.session?.state ?? ""
         readonly property string where: AiUsage.shortPath(card.session?.cwd ?? "")
-        readonly property bool closed: !card.tool.running && !card.session
         readonly property string window: AiUsage.windowOf(card.session)
 
-        // Under the name: what the session is doing, or since when the
-        // numbers are.
+        // Under the name: what the session is doing, and where.
         readonly property string statusText: {
-            const at = AiUsage.asOf(card.tool.updated);
             const place = card.where ? ` · ${card.where}` : "";
             switch (card.doing) {
             case "working":
@@ -145,12 +142,8 @@ Item {
                 return qsTr("Done") + place;
             case "need":
                 return card.where;
-            case "idle":
-                return qsTr("Open") + place;
             }
-            if (card.tool.running)
-                return at ? qsTr("Open · as of %1").arg(at) : qsTr("Open");
-            return at ? qsTr("Closed · as of %1").arg(at) : qsTr("Closed");
+            return qsTr("Open") + place;
         }
 
         radius: Appearance.dashboard.cardRadius
@@ -175,7 +168,6 @@ Item {
                     implicitHeight: Appearance.dashboard.aiBadge
                     radius: Appearance.dashboard.aiBadgeRadius
                     color: Colours.surfaceContainerHigh
-                    opacity: card.closed ? Appearance.dashboard.aiDim : 1
 
                     // The tool's logo, or the terminal glyph without one.
                     ToolIcon {
@@ -202,7 +194,6 @@ Item {
                             font.family: Appearance.font.ui
                             font.pixelSize: Appearance.dashboard.aiName
                             color: Colours.on.surface
-                            opacity: card.closed ? Appearance.dashboard.aiDim : 1
                         }
 
                         // The plan, quietly: Max, Business.
@@ -212,7 +203,6 @@ Item {
                             font.family: Appearance.font.ui
                             font.pixelSize: Appearance.dashboard.eventLabel + 0.5
                             color: Colours.outline
-                            opacity: card.closed ? Appearance.dashboard.aiDim : 1
                         }
 
                         Item {
@@ -312,7 +302,6 @@ Item {
                 columns: Appearance.dashboard.aiColumns(card.width, root.stacked)
                 rowSpacing: Appearance.dashboard.aiRowGap
                 columnSpacing: Appearance.dashboard.aiColumnGap
-                opacity: card.closed ? Appearance.dashboard.aiDim : 1
                 Layout.fillWidth: true
 
                 Repeater {

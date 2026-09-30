@@ -187,7 +187,7 @@ shape rather than squashed. Four tabs, one job each:
 |---|---|---|
 | Home | clock, weather with the next five hours, the day's events, and a month that folds out under them | `Time`, `Weather`, `Calendar` (khal) |
 | Media | the playing track, a spinning cover in a radial visualiser, controls | `Players` (MPRIS, cava or the PipeWire peak meter) |
-| System | live CPU, memory and GPU rings, the CPU's last 60 s, busiest processes, and a card for Claude Code and Codex when you use them | `SysInfo`, `AiUsage` |
+| System | live CPU, memory and GPU rings, the CPU's last 60 s, busiest processes, and a card for Claude Code and Codex while they are open | `SysInfo`, `AiUsage` |
 | Focus | the session timer, its lengths, hold notifications, countdown in the bar | `Focus` |
 
 The Claude Code and Codex cards show the plan, the model and its effort, what

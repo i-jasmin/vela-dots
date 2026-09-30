@@ -3,18 +3,18 @@ title: Claude Code and Codex
 description: How much of your plan is used, and what each session is doing -- in the System tab and on the bar.
 ---
 
-If you use Claude Code or Codex, the dashboard's **System** tab gets a card
-for each one under the rest. If you use both you see both, side by side. If
-you use one, you see that one across the whole row. If you use neither, there
-is no card and the tab looks as it always did.
+While Claude Code or Codex is open, the dashboard's **System** tab gets a card
+for it under the rest. With both open you see both, side by side. With one
+open, you see that one across the whole row. Once you close them, the cards
+go and the tab looks as it always did.
 
 ## What a card shows
 
 - **Your plan** (Max, Business and so on) beside the name.
 - **The model and its effort** in the corner: *Fable 5.1 · high*,
   *gpt-5.5-codex · medium*.
-- **What the session is doing:** *Working*, **Needs you** (it is asking for a
-  permission), *Done*, *Open*, or *Closed · as of 14:32*.
+- **What the session is doing,** and in which folder: *Working*, **Needs
+  you** (it is asking for a permission), *Done*, or *Open*.
 - **A ring per plan window,** each with how long until it resets: the 5-hour
   window and the week, and for Claude Code also a model's own weekly limit
   (*Fable week*), the same rows `/usage` shows. A ring turns red at 90%. At
@@ -29,8 +29,8 @@ gets a reply**. While you work, they are always current.
 
 - **Between replies,** vela counts the resets down itself. When a reset time
   passes, that ring drops to 0% without waiting for the tool.
-- **When a tool is closed,** its card dims and keeps the last numbers,
-  marked *as of* the time they came in.
+- **When a tool is closed,** its card goes. vela keeps the last numbers,
+  and the card comes back with them the next time you open the tool.
 - **Usage somewhere else** -- the Claude or ChatGPT website, another
   computer -- counts if your plan shares its limits. vela sees it at the
   tool's next reply.

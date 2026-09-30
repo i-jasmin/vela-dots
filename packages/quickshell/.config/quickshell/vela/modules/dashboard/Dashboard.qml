@@ -94,12 +94,12 @@ Item {
         return Math.max(root.homeHeight, Math.min(wanted, along - Appearance.dashboard.stripHeight));
     }
 
-    // System with the AI tools' cards under it: taller by them, worked out
-    // with the cards' own formula (`AiCards.qml`) since they size nothing
-    // until they exist. Side by side off a horizontal bar, stacked off a
-    // vertical one.
+    // System with the AI tools' cards under it, one per tool that is open:
+    // taller by them, worked out with the cards' own formula (`AiCards.qml`)
+    // since they size nothing until they exist. Side by side off a horizontal
+    // bar, stacked off a vertical one.
     readonly property int aiHeight: {
-        const tools = AiUsage.tools;
+        const tools = AiUsage.cards;
         if (tools.length === 0)
             return 0;
         const d = Appearance.dashboard;

@@ -134,7 +134,7 @@ PaneScroll {
 
         SettingRow {
             title: qsTr("Card in the System tab")
-            subtitle: qsTr("Your plan's windows, each with its reset")
+            subtitle: qsTr("While it is open: your plan's windows, each with its reset")
 
             Toggle {
                 readonly property bool wanted: Config.ai.claude
@@ -157,7 +157,7 @@ PaneScroll {
 
         SettingRow {
             title: qsTr("Card in the System tab")
-            subtitle: qsTr("Read from Codex's own session files in ~/.codex/sessions. Nothing to set up.")
+            subtitle: qsTr("While it is open. Read from Codex's own session files in ~/.codex/sessions; nothing to set up.")
 
             Toggle {
                 readonly property bool wanted: Config.ai.codex

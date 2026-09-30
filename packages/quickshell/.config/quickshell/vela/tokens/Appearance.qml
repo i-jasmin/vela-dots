@@ -513,7 +513,6 @@ QtObject {
         readonly property int aiBadge: 30
         readonly property int aiBadgeRadius: Math.round(9 * root.radiusScale)
         readonly property real aiName: 14
-        readonly property real aiDim: 0.55
         function aiColumns(cardWidth: real, stacked: bool): int {
             const inner = cardWidth - 2 * root.dashboard.cardPadH;
             const meter = stacked ? root.dashboard.aiStackWidth : root.dashboard.aiMeter;

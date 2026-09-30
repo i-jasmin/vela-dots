@@ -13,9 +13,9 @@ import qs.config
 // already hand out: Claude Code's status line input, saved by `vela ai
 // statusline` once connected, and Codex's own session files. vela never reads
 // a login or asks a server anything, so the numbers are exactly as fresh as
-// the tool's last reply: live while you work, "as of" once it is closed. The
-// reset countdowns are counted here, between replies, and a window whose reset
-// has passed reads empty without waiting for the tool.
+// the tool's last reply. The reset countdowns are counted here, between
+// replies, and a window whose reset has passed reads empty without waiting for
+// the tool.
 //
 // What a session is doing -- working, needs you, done -- comes from the tools'
 // hooks, written to a file in the runtime dir that is watched here. That a
@@ -270,6 +270,9 @@ Singleton {
     }
 
     readonly property var tools: [root.claude, root.codex].filter(t => t.shown)
+    // The System tab's cards: each tool while it is open, as on the bar's
+    // pill. Closed, its numbers wait here for the next time.
+    readonly property var cards: root.tools.filter(t => t.running || !!t.session)
 
     // The 5-hour window each tool counts down, for the bar's pill.
     function sessionOf5h(tool: string): var {
@@ -324,14 +327,6 @@ Singleton {
         if (!resetsAt)
             return "";
         return resetsAt - root.now < 86400 ? qsTr("Resets in %1.").arg(root.resetText(resetsAt)) : qsTr("Resets %1.").arg(root.resetText(resetsAt));
-    }
-
-    function asOf(updated: int): string {
-        if (!updated)
-            return "";
-        const d = new Date(updated * 1000);
-        const today = new Date(root.now * 1000);
-        return d.toDateString() === today.toDateString() ? Qt.formatTime(d, "hh:mm") : Qt.formatDateTime(d, "ddd hh:mm");
     }
 
     function shortPath(path: string): string {
