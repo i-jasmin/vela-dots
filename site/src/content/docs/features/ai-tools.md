@@ -104,6 +104,8 @@ tab, where the cards are, the way CPU and memory open it; click again to close
 it. Right-click it to go to the terminal of the session that most wants you.
 
 vela sees that a tool is open from its process, so that part needs nothing.
+Codex's background server, which it starts and leaves running after you
+quit, does not count as open.
 *Working*, *Needs you* and *Done* come from the tool's hooks, so they need the
 tool to be connected. Codex fires no hook until your first prompt: until then
 it shows as open.

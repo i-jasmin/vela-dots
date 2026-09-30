@@ -1410,6 +1410,10 @@ STATES = {
 }
 CLAUDE_EVENTS = ["SessionStart", "UserPromptSubmit", "PermissionRequest", "PostToolUse", "Stop", "StopFailure", "SessionEnd"]
 CODEX_EVENTS = ["SessionStart", "UserPromptSubmit", "PermissionRequest", "PostToolUse", "Stop", "SessionEnd"]
+# Codex's background servers, which are not a session: the app-server daemon
+# the TUI starts and leaves running (and its updater, `app-server daemon`),
+# the app-server an editor runs, the MCP and exec servers.
+SERVERS = {"app-server", "mcp-server", "exec-server", "stdio-to-uds", "responses-api-proxy"}
 
 
 def die(msg):
@@ -1522,6 +1526,48 @@ def is_tool(pid, tool):
     return comm == "node" and ("claude-code" if tool == "claude" else "@openai/codex") in cmdline_of(pid)
 
 
+def args_of(pid):
+    try:
+        with open(f"/proc/{pid}/cmdline", "rb") as f:
+            return f.read().decode(errors="replace").split("\0")
+    except OSError:
+        return []
+
+
+def is_server(pid):
+    return not SERVERS.isdisjoint(args_of(pid)[1:])
+
+
+def workdir(pid, tool):
+    """The folder a session works in: where it was started, or for Codex the
+    one -C or --cd names."""
+    try:
+        here = os.readlink(f"/proc/{pid}/cwd")
+    except OSError:
+        return ""
+    args = args_of(pid) if tool == "codex" else []
+    for i, arg in enumerate(args):
+        if arg in ("-C", "--cd") and i + 1 < len(args):
+            return os.path.normpath(os.path.join(here, args[i + 1]))
+        if arg.startswith("--cd="):
+            return os.path.normpath(os.path.join(here, arg[5:]))
+    return here
+
+
+def session_pid(tool, chain, cwd):
+    """The session a hook comes from: the tool above it. Codex's TUI runs its
+    sessions in the app-server daemon it starts, and the hooks with them, but
+    the daemon outlives the TUI and fires no SessionEnd when you quit, and
+    what is above it is only whichever TUI happened to start it. So a hook
+    under the daemon belongs to the Codex open in the session's folder."""
+    first = next((p for p in chain if is_tool(p, tool)), 0)
+    if not first or not is_server(first):
+        return first or (chain[0] if chain else 0)
+    real = os.path.realpath(cwd) if cwd else ""
+    same = [s for s in processes()[tool] if real and os.path.realpath(s["cwd"]) == real]
+    return max(same, key=lambda s: started(s["pid"]))["pid"] if same else 0
+
+
 def ancestry(pid):
     chain = []
     while pid > 1 and len(chain) < 24:
@@ -1531,7 +1577,12 @@ def ancestry(pid):
 
 
 def alive(pid):
-    return pid > 0 and os.path.exists(f"/proc/{pid}")
+    """Running, and not a zombie: one that has exited but not been reaped."""
+    try:
+        with open(f"/proc/{pid}/stat") as f:
+            return pid > 0 and f.read().rsplit(")", 1)[1].split()[0] != "Z"
+    except (OSError, IndexError):
+        return False
 
 
 # ---- Claude Code's status line ----------------------------------------------
@@ -1712,11 +1763,11 @@ def hook(tool):
     if state is None or not sid:
         return
     chain = ancestry(os.getppid())
-    tool_pid = next((p for p in chain if is_tool(p, tool)), 0)
+    spawner = next((p for p in chain if is_tool(p, tool)), 0)
     # The tools run these hooks side by side, so one can land after the one
-    # that came next. The time the tool started this hook's process says
-    # which came first.
-    below = chain.index(tool_pid) - 1 if tool_pid else -1
+    # that came next. The time the tool (or Codex's daemon) started this
+    # hook's process says which came first.
+    below = chain.index(spawner) - 1 if spawner else -1
     order = started(chain[below]) if below >= 0 else 0
     key = f"{tool}:{sid}"
     with live_file() as live:
@@ -1735,11 +1786,11 @@ def hook(tool):
         if current.get("state") == state and state == "working":
             return
         pid, above = current.get("pid") or 0, current.get("chain") or []
-        if not pid:
-            pid = tool_pid or (chain[0] if chain else 0)
+        if not pid or is_server(pid):
+            pid = session_pid(tool, chain, data.get("cwd") or "")
             # Everything above the tool: the terminal it runs in is one of
             # these, which is how the pill finds the window to focus.
-            above = chain[chain.index(pid) + 1:] if pid in chain else []
+            above = ancestry(parent_of(pid)) if pid else []
         sessions[key] = {
             "tool": tool,
             "state": state,
@@ -1977,18 +2028,14 @@ def processes():
         except OSError:
             continue
         for tool, sessions in found.items():
-            if not is_tool(pid, tool):
+            if not is_tool(pid, tool) or not alive(pid):
                 continue
             parent = parent_of(pid)
-            # The tool's own helpers, and the Claude Code `claude-usage` runs
-            # for a moment, are not sessions.
-            if is_tool(parent, tool) or cmdline_of(parent).endswith("claude-usage "):
+            # The tool's own helpers, its background servers, and the Claude
+            # Code `claude-usage` runs for a moment are not sessions.
+            if is_tool(parent, tool) or is_server(pid) or cmdline_of(parent).endswith("claude-usage "):
                 continue
-            try:
-                cwd = os.readlink(f"/proc/{pid}/cwd")
-            except OSError:
-                cwd = ""
-            sessions.append({"pid": pid, "chain": ancestry(parent), "cwd": cwd})
+            sessions.append({"pid": pid, "chain": ancestry(parent), "cwd": workdir(pid, tool)})
     return found
 
 
@@ -2005,7 +2052,9 @@ def connected():
 def status():
     with live_file() as live:
         sessions = live["sessions"]
-        for key in [k for k, s in sessions.items() if not alive(int(s.get("pid") or 0))]:
+        # Gone with its process. One on a Codex server is from before vela
+        # told the daemon from the session, and would never go.
+        for key in [k for k, s in sessions.items() if not alive(int(s.get("pid") or 0)) or is_server(int(s.get("pid") or 0))]:
             del sessions[key]
         snapshot = dict(sessions)
     open_now = processes()
