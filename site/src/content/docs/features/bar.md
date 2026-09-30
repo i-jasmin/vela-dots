@@ -17,7 +17,8 @@ From one end to the other, as it ships:
 | End | media, CPU and memory, the privacy capsule, the tray, battery, power |
 
 **Settings → Modules** chooses which items each end carries, and in what
-order.
+order. One item is not on the bar until you add it: the
+[Claude Code and Codex](../ai-tools/#the-pill-on-the-bar) pill.
 
 ## Where it goes
 

@@ -92,6 +92,11 @@ PanelWindow {
             icon: "extension"
         },
         {
+            key: "ai",
+            label: qsTr("AI tools"),
+            icon: "terminal"
+        },
+        {
             key: "about",
             label: qsTr("About"),
             icon: "info"
@@ -362,6 +367,8 @@ PanelWindow {
                         return keybinds;
                     case "modules":
                         return modules;
+                    case "ai":
+                        return ai;
                     default:
                         return about;
                     }
@@ -386,6 +393,12 @@ PanelWindow {
         id: keybinds
 
         KeybindsPane {}
+    }
+
+    Component {
+        id: ai
+
+        AiPane {}
     }
 
     Component {

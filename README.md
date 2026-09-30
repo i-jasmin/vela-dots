@@ -121,6 +121,7 @@ transition) are only in the file; everything else has a control:
 | Lock screen | when the screen dims, locks, goes dark and suspends (hypridle's timeouts, written into `hypridle.conf` and hypridle restarted) -- on a laptop, one set on power and one on battery, picked with the tabs over the sliders; the stats, media and audio ring it shows, the fingerprint reader |
 | Keybinds | every bind on its keys: record new ones, turn one off, back to the default, binds of your own that run a command; clashes shown in red; kept in `~/.config/vela/keybinds.json`, apart from the defaults in `binds.lua` |
 | Modules | which items each end of the bar carries, in what order (including the privacy capsule) |
+| AI tools | Claude Code and Codex: connect each (vela's status line and hooks in that tool's own settings, backed up first), their cards in the System tab, a notification at 90%, the pill on the bar |
 
 ### Theming
 
@@ -186,8 +187,16 @@ shape rather than squashed. Four tabs, one job each:
 |---|---|---|
 | Home | clock, weather with the next five hours, the day's events, and a month that folds out under them | `Time`, `Weather`, `Calendar` (khal) |
 | Media | the playing track, a spinning cover in a radial visualiser, controls | `Players` (MPRIS, cava or the PipeWire peak meter) |
-| System | live CPU, memory and GPU rings, the CPU's last 60 s, busiest processes | `SysInfo` |
+| System | live CPU, memory and GPU rings, the CPU's last 60 s, busiest processes, and a card for Claude Code and Codex when you use them | `SysInfo`, `AiUsage` |
 | Focus | the session timer, its lengths, hold notifications, countdown in the bar | `Focus` |
+
+The Claude Code and Codex cards show the plan, the model and its effort, what
+each session is doing, and a ring per plan window with its reset: the 5-hour
+one, the week, and a model's own week (Fable's), as `/usage` shows them.
+Claude Code's come from its status line once connected and from asking
+Claude Code for `/usage`; Codex's from its own session files, with nothing
+to set up. vela never reads a login or talks to a server itself. An optional
+bar pill says when a session is working, waiting on you or done.
 
 The focus timer outlives the drawer. "Hold notifications" keeps non-urgent
 toasts for one digest when the session ends, and "Countdown in the bar"
@@ -358,9 +367,10 @@ history, capture (screenshot / annotate / record / GIF / OCR), notifications
 with a history centre and do-not-disturb, evening warmth that follows your
 sunset (the palette, and the screen through hyprsunset if you ask), OSD,
 wallpaper switcher with live retint, a calendar from any number of accounts,
-power menu, lock screen (PAM, password), keybinds cheatsheet, and settings for
+power menu, lock screen (PAM, password), keybinds cheatsheet, Claude Code and
+Codex usage in the dashboard (and a pill on the bar), and settings for
 general, appearance, bar, notifications, calendars, launcher, lock screen,
-keybinds and modules.
+keybinds, modules and AI tools.
 
 Not built yet, or only partly:
 

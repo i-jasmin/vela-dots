@@ -40,6 +40,7 @@ export default defineConfig({
 						{ label: 'Lock screen and idle', slug: 'features/lock' },
 						{ label: 'Capture and clipboard', slug: 'features/capture' },
 						{ label: 'The dock', slug: 'features/dock' },
+						{ label: 'Claude Code and Codex', slug: 'features/ai-tools' },
 					],
 				},
 				{

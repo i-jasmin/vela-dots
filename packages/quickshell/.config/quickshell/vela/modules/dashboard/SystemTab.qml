@@ -20,12 +20,21 @@ Item {
     required property bool side
     required property bool live
 
+    // The AI tools' numbers are looked at more often while they are shown,
+    // as the machine's are.
     readonly property bool holding: root.live
-    onHoldingChanged: root.holding ? SysInfo.holdFast() : SysInfo.releaseFast()
-    Component.onCompleted: if (root.holding)
-        SysInfo.holdFast()
-    Component.onDestruction: if (root.holding)
-        SysInfo.releaseFast()
+    onHoldingChanged: {
+        root.holding ? SysInfo.holdFast() : SysInfo.releaseFast();
+        root.holding ? AiUsage.hold() : AiUsage.release();
+    }
+    Component.onCompleted: if (root.holding) {
+        SysInfo.holdFast();
+        AiUsage.hold();
+    }
+    Component.onDestruction: if (root.holding) {
+        SysInfo.releaseFast();
+        AiUsage.release();
+    }
 
     function gb(bytes: real): string {
         return (bytes / 1073741824).toFixed(1);
@@ -337,6 +346,11 @@ Item {
                 }
             }
 
+            AiCards {
+                side: false
+                Layout.fillWidth: true
+            }
+
             Item {
                 Layout.fillHeight: true
             }
@@ -412,6 +426,11 @@ Item {
             }
 
             Busiest {
+                Layout.fillWidth: true
+            }
+
+            AiCards {
+                side: true
                 Layout.fillWidth: true
             }
 

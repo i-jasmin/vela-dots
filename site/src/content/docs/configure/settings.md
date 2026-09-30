@@ -22,6 +22,7 @@ super + I again. A page's **Reset** asks before it puts anything back.
 | **Lock screen** | when the screen dims, locks, goes dark and suspends (on a laptop, on power and on battery), what the lock screen shows, the fingerprint reader |
 | **Keybinds** | every keybind: change its keys, turn it off, add your own -- see [Keybinds](../keybinds/#changing-one) |
 | **Modules** | which items each end of the bar carries, and in what order |
+| **AI tools** | connecting Claude Code and Codex, their cards in the System tab, the 90% notification, the pill on the bar -- see [Claude Code and Codex](../../features/ai-tools/) |
 
 ## shell.json
 
@@ -54,6 +55,9 @@ knowing:
 | `sessions.restoreOnLogin` | `true` | bring the last layout back at login |
 | `dashboard.focusTimer.*` | 25 min, 4 sessions | the focus timer, and its two switches |
 | `updates.checkCommand` | `dnf5 check-update --refresh` | how updates are counted |
+| `ai.claude`, `ai.codex` | `true`, `true` | a card in the System tab for each, while that tool is there |
+| `ai.claudeUsage` | `true` | ask Claude Code for what `/usage` shows (Fable's week, the plan) |
+| `ai.notifyNearLimit` | `true` | one notification as a plan window passes 90% |
 
 The file itself carries a comment on most keys.
 

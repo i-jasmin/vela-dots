@@ -29,6 +29,7 @@ Singleton {
     readonly property WeatherCfg weather: adapter.weather
     readonly property UpdatesCfg updates: adapter.updates
     readonly property Keybinds keybinds: adapter.keybinds
+    readonly property AiCfg ai: adapter.ai
 
     readonly property string path: `${Quickshell.env("HOME")}/.config/vela/shell.json`
 
@@ -305,6 +306,23 @@ Singleton {
         property string units: "metric"
     }
 
+    // Claude Code and Codex in the System tab (`services/AiUsage.qml`). Each
+    // card shows only while its tool is installed or has left numbers
+    // behind; these hide one that is. Connecting a tool is not a setting
+    // here: it is that tool's own settings file, which `vela ai connect`
+    // edits and Settings, AI tools calls.
+    component AiCfg: JsonObject {
+        property bool claude: true
+        property bool codex: true
+        // Ask Claude Code itself for what /usage shows -- the windows its
+        // status line leaves out, a model's own weekly limit (Fable's) among
+        // them -- by running it for a moment every few minutes while it is
+        // in use. Experimental in Claude Code.
+        property bool claudeUsage: true
+        // One notification as a window goes past 90%.
+        property bool notifyNearLimit: true
+    }
+
     component UpdatesCfg: JsonObject {
         // Fedora, not Arch: the design's `checkupdates` and `paru -Qua` are
         // pacman tooling and do not exist on Fedora.
@@ -516,6 +534,7 @@ Singleton {
             property WeatherCfg weather: WeatherCfg {}
             property UpdatesCfg updates: UpdatesCfg {}
             property Keybinds keybinds: Keybinds {}
+            property AiCfg ai: AiCfg {}
         }
     }
 }

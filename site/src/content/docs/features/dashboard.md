@@ -14,7 +14,7 @@ Four tabs, one job each. **Tab** or the number keys move between them.
 | --- | --- |
 | **Home** | the clock, the weather with the next five hours, the day's events, and a month that folds out under them |
 | **Media** | what is playing, a spinning cover inside a visualiser that moves with the sound, and the controls |
-| **System** | live CPU, memory and GPU rings, the CPU's last minute, and the busiest processes |
+| **System** | live CPU, memory and GPU rings, the CPU's last minute, the busiest processes, and a card for [Claude Code and Codex](../ai-tools/) if you use them |
 | **Focus** | a focus timer, its lengths, and two switches |
 
 ## The month

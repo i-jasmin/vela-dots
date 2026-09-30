@@ -70,6 +70,10 @@ PaneScroll {
                 label: qsTr("Mic, camera & screen in use"),
                 icon: "privacy_tip"
             },
+            ai: {
+                label: qsTr("Claude Code & Codex"),
+                icon: "terminal"
+            },
             battery: {
                 label: qsTr("Battery"),
                 icon: "battery_full"

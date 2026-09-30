@@ -43,6 +43,16 @@ usage: vela <command> [args]
                                       hypridle's listeners check)
   idle dim|undim                      Dim the backlight for idle, and put it
                                       back
+  ai status                           Claude Code and Codex: plan usage and
+                                      what each session is doing (JSON, what
+                                      the shell reads)
+  ai claude-usage                     Ask Claude Code for what /usage shows
+                                      (every window, Fable's week included)
+  ai connect|disconnect claude|codex  Add or remove vela's status line and
+                                      hooks in that tool's settings (a backup
+                                      is saved first)
+  ai statusline | ai hook <tool>      What Claude Code and Codex run once
+                                      connected
 USAGE
 }
 
@@ -1323,6 +1333,600 @@ else:
 PY
 }
 
+# AI tools: how much of a Claude Code or Codex plan is used, and what each
+# session is doing, for the System tab's cards and the bar's pill. vela never
+# reads a login or asks a server anything; it reads what the tools already hand
+# out:
+#
+#   Claude Code  runs `vela ai statusline` as its status line, with its plan's
+#                5-hour and weekly windows, the model and its effort in the
+#                JSON on stdin (documented at code.claude.com/docs/en/statusline).
+#                They go to ai/claude.json, and a status line the user already
+#                had is run after it with the same input, so theirs keeps
+#                working. The rest of /usage -- a model's own weekly limit,
+#                Fable's -- comes from asking Claude Code (`claude-usage`).
+#   Codex        writes its plan's windows into its own session files after
+#                every reply (token_count events under ~/.codex/sessions);
+#                `status` reads the newest one. Nothing to set up.
+#   Both         run `vela ai hook <tool>` from their hooks, if connected, for
+#                "working", "needs you" and "done". Kept in the runtime dir: a
+#                session does not outlive a reboot.
+#
+# `connect` and `disconnect` add and remove only vela's own entries, and save
+# the file as it was first (settings.json.vela-backup, hooks.json.vela-backup).
+AI_STATE_DIR="$STATE_DIR/ai"
+
+cmd_ai() {
+    local bin="$HOME/.local/bin/vela"
+    [ -x "$bin" ] || bin="$(command -v vela 2>/dev/null || readlink -f "$0")"
+    # -c rather than a heredoc: statusline and hook read the tool's JSON on
+    # stdin, which a heredoc would take.
+    VELA_AI_STATE="$AI_STATE_DIR" VELA_AI_BIN="$bin" python3 -c "$VELA_AI_PY" "$@"
+}
+
+read -r -d '' VELA_AI_PY <<'PY' || true
+import contextlib, fcntl, json, os, shlex, shutil, subprocess, sys, time
+from datetime import datetime
+
+HOME = os.path.expanduser("~")
+STATE = os.environ["VELA_AI_STATE"]
+RUNTIME = os.environ.get("XDG_RUNTIME_DIR") or STATE
+LIVE = os.path.join(RUNTIME, "vela-ai-live.json")
+VELA = os.environ["VELA_AI_BIN"]
+CLAUDE_DIR = os.environ.get("CLAUDE_CONFIG_DIR") or os.path.join(HOME, ".claude")
+CODEX_DIR = os.environ.get("CODEX_HOME") or os.path.join(HOME, ".codex")
+CLAUDE_SETTINGS = os.path.join(CLAUDE_DIR, "settings.json")
+CODEX_HOOKS = os.path.join(CODEX_DIR, "hooks.json")
+CLAUDE_USAGE = os.path.join(STATE, "claude.json")
+# The full /usage numbers, asked of Claude Code itself (`claude-usage`).
+CLAUDE_PLAN = os.path.join(STATE, "claude-usage.json")
+# The status line the user had before vela's, run after vela's.
+CLAUDE_PREVIOUS = os.path.join(STATE, "claude-statusline.json")
+MARK_STATUS = "ai statusline"
+MARK_HOOK = "ai hook"
+
+# Hook event -> what the session is doing. Stop and done: the shell shows
+# "done" for a moment and then nothing. A tool the user approved shows up as
+# PostToolUse, which is how "needs you" goes back to "working".
+STATES = {
+    "SessionStart": "idle",
+    "UserPromptSubmit": "working",
+    "PermissionRequest": "need",
+    "PostToolUse": "working",
+    "Stop": "done",
+    "StopFailure": "done",
+    "SessionEnd": "end",
+}
+CLAUDE_EVENTS = ["SessionStart", "UserPromptSubmit", "PermissionRequest", "PostToolUse", "Stop", "StopFailure", "SessionEnd"]
+CODEX_EVENTS = ["SessionStart", "UserPromptSubmit", "PermissionRequest", "PostToolUse", "Stop", "SessionEnd"]
+
+
+def die(msg):
+    print(f"vela: {msg}", file=sys.stderr)
+    sys.exit(1)
+
+
+def read_json(path, default=None):
+    try:
+        with open(path) as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return default
+
+
+def read_settings(path):
+    """A tool's own settings file: missing is empty, unreadable is an error
+    (vela never writes over a file it could not parse)."""
+    if not os.path.exists(path):
+        return {}
+    try:
+        with open(path) as f:
+            data = json.load(f)
+    except ValueError as e:
+        die(f"{path} is not valid JSON ({e}); not touching it")
+    if not isinstance(data, dict):
+        die(f"{path} is not a JSON object; not touching it")
+    return data
+
+
+def write_json(path, data, indent=None):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    tmp = f"{path}.vela-tmp"
+    with open(tmp, "w") as f:
+        json.dump(data, f, indent=indent)
+        f.write("\n")
+    if os.path.exists(path):
+        shutil.copymode(path, tmp)
+    os.replace(tmp, path)
+
+
+def backup(path):
+    if os.path.exists(path):
+        shutil.copy2(path, f"{path}.vela-backup")
+
+
+def ts(value):
+    if isinstance(value, (int, float)):
+        return int(value)
+    try:
+        return int(datetime.fromisoformat(str(value).replace("Z", "+00:00")).timestamp())
+    except ValueError:
+        return 0
+
+
+@contextlib.contextmanager
+def live_file():
+    """The live sessions, read and written under a lock: two tools, or two
+    sessions of one, can fire hooks at the same moment."""
+    os.makedirs(os.path.dirname(LIVE), exist_ok=True)
+    with open(f"{LIVE}.lock", "w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        data = read_json(LIVE, {}) or {}
+        data.setdefault("sessions", {})
+        before = json.dumps(data, sort_keys=True)
+        yield data
+        # Written once even when empty: the shell watches it for changes.
+        if json.dumps(data, sort_keys=True) != before or not os.path.exists(LIVE):
+            write_json(LIVE, data)
+
+
+def parent_of(pid):
+    try:
+        with open(f"/proc/{pid}/stat") as f:
+            return int(f.read().rsplit(")", 1)[1].split()[1])
+    except (OSError, ValueError, IndexError):
+        return 0
+
+
+def comm_of(pid):
+    try:
+        with open(f"/proc/{pid}/comm") as f:
+            return f.read().strip()
+    except OSError:
+        return ""
+
+
+def cmdline_of(pid):
+    try:
+        with open(f"/proc/{pid}/cmdline", "rb") as f:
+            return f.read().replace(b"\0", b" ").decode(errors="replace")
+    except OSError:
+        return ""
+
+
+def is_tool(pid, tool):
+    comm = comm_of(pid)
+    if comm == tool or comm.startswith(f"{tool}-"):
+        return True
+    # Installed with npm: node running the package.
+    return comm == "node" and ("claude-code" if tool == "claude" else "@openai/codex") in cmdline_of(pid)
+
+
+def ancestry(pid):
+    chain = []
+    while pid > 1 and len(chain) < 24:
+        chain.append(pid)
+        pid = parent_of(pid)
+    return chain
+
+
+def alive(pid):
+    return pid > 0 and os.path.exists(f"/proc/{pid}")
+
+
+# ---- Claude Code's status line ----------------------------------------------
+def statusline():
+    raw = sys.stdin.buffer.read()
+    try:
+        data = json.loads(raw or b"{}")
+    except ValueError:
+        data = {}
+    windows = {}
+    # Every window Claude Code reports, not only the two known today: one it
+    # adds later (a model's own weekly share, say) shows up without a change.
+    for key, window in (data.get("rate_limits") or {}).items():
+        if isinstance(window, dict) and "used_percentage" in window:
+            windows[key] = {"used": float(window.get("used_percentage") or 0), "resetsAt": int(window.get("resets_at") or 0)}
+    model = data.get("model") or {}
+    context = (data.get("context_window") or {}).get("used_percentage")
+    # Only a reply carries the windows, and an API-key session never does:
+    # without them the last known numbers stay.
+    if windows:
+        write_json(CLAUDE_USAGE, {
+            "updated": int(time.time()),
+            "model": model.get("display_name") or model.get("id") or "",
+            "modelId": model.get("id") or "",
+            "cwd": (data.get("workspace") or {}).get("current_dir") or data.get("cwd") or "",
+            "context": context,
+            # Absent for a model without the effort setting.
+            "effort": (data.get("effort") or {}).get("level") or "",
+            "fast": bool(data.get("fast_mode")),
+            "windows": windows,
+        })
+    previous = read_json(CLAUDE_PREVIOUS)
+    if isinstance(previous, dict) and previous.get("command"):
+        try:
+            done = subprocess.run(previous["command"], shell=True, input=raw, capture_output=True, timeout=10)
+            sys.stdout.buffer.write(done.stdout)
+        except subprocess.TimeoutExpired:
+            pass
+        return
+    parts = [model.get("display_name") or ""]
+    if context is not None:
+        parts.append(f"context {round(context)}%")
+    if "five_hour" in windows:
+        parts.append(f"5h {round(windows['five_hour']['used'])}%")
+    if "seven_day" in windows:
+        parts.append(f"week {round(windows['seven_day']['used'])}%")
+    print(" · ".join(p for p in parts if p))
+
+
+# ---- Claude Code's /usage --------------------------------------------------------
+def claude_usage():
+    """What /usage shows, from Claude Code itself: its `get_usage` request,
+    which it describes as for "a usage meter". The status line carries only
+    the 5-hour and weekly windows; this has the rest -- a model's own weekly
+    limit (Fable's), Sonnet's -- and the plan. Claude Code is run once,
+    headless, with no session saved, no hooks and no MCP servers, and asked
+    nothing else: no message goes to a model. Experimental in Claude Code, so
+    anything unexpected leaves the last numbers as they were."""
+    exe = which("claude")
+    if not exe:
+        die("claude is not installed")
+    request = {"type": "control_request", "request_id": "vela-usage", "request": {"subtype": "get_usage", "skip_behaviors": True}}
+    command = [exe, "-p", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose",
+               "--no-session-persistence", "--strict-mcp-config", "--disable-slash-commands",
+               "--settings", json.dumps({"disableAllHooks": True})]
+    try:
+        done = subprocess.run(command, input=(json.dumps(request) + "\n").encode(), capture_output=True, timeout=60, cwd=HOME)
+    except (OSError, subprocess.TimeoutExpired) as e:
+        die(f"claude did not answer ({e})")
+    answer = None
+    for line in done.stdout.splitlines():
+        try:
+            msg = json.loads(line)
+        except ValueError:
+            continue
+        response = msg.get("response") or {}
+        if msg.get("type") == "control_response" and response.get("request_id") == "vela-usage":
+            if response.get("subtype") != "success":
+                die(f"claude: {response.get('error') or 'get_usage failed'}")
+            answer = response.get("response") or {}
+    if answer is None:
+        die("claude gave no usage answer")
+    limits = answer.get("rate_limits") if answer.get("rate_limits_available") else None
+    windows = {}
+    if isinstance(limits, dict):
+        for key in ("five_hour", "seven_day", "seven_day_sonnet", "seven_day_opus"):
+            w = limits.get(key)
+            if isinstance(w, dict) and w.get("utilization") is not None:
+                windows[key] = {"used": float(w["utilization"]), "resetsAt": ts(w.get("resets_at"))}
+        for w in limits.get("model_scoped") or []:
+            if isinstance(w, dict) and w.get("utilization") is not None and w.get("display_name"):
+                windows[f"model:{w['display_name']}"] = {"used": float(w["utilization"]), "resetsAt": ts(w.get("resets_at"))}
+    write_json(CLAUDE_PLAN, {
+        "updated": int(time.time()),
+        "available": bool(windows),
+        "plan": answer.get("subscription_type") or "",
+        "windows": windows,
+    })
+
+
+# ---- hooks --------------------------------------------------------------------
+def hook(tool):
+    try:
+        data = json.load(sys.stdin)
+    except ValueError:
+        return
+    state = STATES.get(data.get("hook_event_name") or "")
+    sid = data.get("session_id") or ""
+    if state is None or not sid:
+        return
+    key = f"{tool}:{sid}"
+    with live_file() as live:
+        sessions = live["sessions"]
+        current = sessions.get(key) or {}
+        if state == "end":
+            sessions.pop(key, None)
+            return
+        if current.get("state") == state and state == "working":
+            return
+        pid, above = current.get("pid") or 0, current.get("chain") or []
+        if not pid:
+            chain = ancestry(os.getppid())
+            pid = next((p for p in chain if is_tool(p, tool)), chain[0] if chain else 0)
+            # Everything above the tool: the terminal it runs in is one of
+            # these, which is how the pill finds the window to focus.
+            above = chain[chain.index(pid) + 1:] if pid in chain else []
+        sessions[key] = {
+            "tool": tool,
+            "state": state,
+            "since": int(time.time()),
+            "cwd": data.get("cwd") or current.get("cwd") or "",
+            "model": data.get("model") or current.get("model") or "",
+            "pid": pid,
+            "chain": above,
+        }
+
+
+# ---- connect / disconnect -------------------------------------------------------
+def hook_command(tool):
+    return f"{shlex.quote(VELA)} ai hook {tool}"
+
+
+def add_hooks(hooks, events, command, sync=()):
+    for event in events:
+        groups = hooks.setdefault(event, [])
+        entry = {"type": "command", "command": command, "timeout": 10}
+        if event not in sync:
+            entry["async"] = True
+        mine = [h for g in groups for h in g.get("hooks", []) if MARK_HOOK in str(h.get("command", ""))]
+        if mine:
+            for h in mine:
+                h.clear()
+                h.update(entry)
+        else:
+            groups.append({"hooks": [entry]})
+
+
+def remove_hooks(hooks):
+    for event in list(hooks):
+        groups = hooks[event]
+        if not isinstance(groups, list):
+            continue
+        for g in groups:
+            g["hooks"] = [h for h in g.get("hooks", []) if MARK_HOOK not in str(h.get("command", ""))]
+        hooks[event] = [g for g in groups if g.get("hooks")]
+        if not hooks[event]:
+            del hooks[event]
+
+
+def connect_claude():
+    settings = read_settings(CLAUDE_SETTINGS)
+    backup(CLAUDE_SETTINGS)
+    current = settings.get("statusLine")
+    if isinstance(current, dict) and MARK_STATUS not in str(current.get("command", "")):
+        write_json(CLAUDE_PREVIOUS, current)
+    elif not current and os.path.exists(CLAUDE_PREVIOUS):
+        os.remove(CLAUDE_PREVIOUS)
+    line = {"type": "command", "command": f"{shlex.quote(VELA)} ai statusline"}
+    previous = read_json(CLAUDE_PREVIOUS) or {}
+    for key in ("padding", "refreshInterval", "hideVimModeIndicator"):
+        if key in previous:
+            line[key] = previous[key]
+    settings["statusLine"] = line
+    add_hooks(settings.setdefault("hooks", {}), CLAUDE_EVENTS, hook_command("claude"))
+    write_json(CLAUDE_SETTINGS, settings, indent=2)
+
+
+def disconnect_claude():
+    if not os.path.exists(CLAUDE_SETTINGS):
+        return
+    settings = read_settings(CLAUDE_SETTINGS)
+    backup(CLAUDE_SETTINGS)
+    current = settings.get("statusLine")
+    if isinstance(current, dict) and MARK_STATUS in str(current.get("command", "")):
+        previous = read_json(CLAUDE_PREVIOUS)
+        if isinstance(previous, dict) and previous.get("command"):
+            settings["statusLine"] = previous
+        else:
+            del settings["statusLine"]
+    if os.path.exists(CLAUDE_PREVIOUS):
+        os.remove(CLAUDE_PREVIOUS)
+    if isinstance(settings.get("hooks"), dict):
+        remove_hooks(settings["hooks"])
+        if not settings["hooks"]:
+            del settings["hooks"]
+    write_json(CLAUDE_SETTINGS, settings, indent=2)
+
+
+def connect_codex():
+    data = read_settings(CODEX_HOOKS)
+    backup(CODEX_HOOKS)
+    # SessionEnd hooks always run synchronously in Codex; asking for async
+    # there only earns a warning.
+    add_hooks(data.setdefault("hooks", {}), CODEX_EVENTS, hook_command("codex"), sync=("SessionEnd",))
+    write_json(CODEX_HOOKS, data, indent=2)
+
+
+def disconnect_codex():
+    if not os.path.exists(CODEX_HOOKS):
+        return
+    data = read_settings(CODEX_HOOKS)
+    backup(CODEX_HOOKS)
+    if isinstance(data.get("hooks"), dict):
+        remove_hooks(data["hooks"])
+    if data == {"hooks": {}} or not data:
+        os.remove(CODEX_HOOKS)
+    else:
+        write_json(CODEX_HOOKS, data, indent=2)
+
+
+# ---- status, for the shell --------------------------------------------------------
+def codex_windows(limit):
+    def window(w):
+        if not isinstance(w, dict) or w.get("used_percent") is None:
+            return None
+        return {"used": float(w["used_percent"]), "minutes": w.get("window_minutes"), "resetsAt": int(w.get("resets_at") or 0)}
+
+    out = {"id": limit.get("limit_id") or "codex", "name": limit.get("limit_name") or "", "primary": window(limit.get("primary")), "secondary": window(limit.get("secondary"))}
+    spend = limit.get("individual_limit")
+    if isinstance(spend, dict) and spend.get("remaining_percent") is not None:
+        out["spend"] = {"used": max(0.0, 100.0 - float(spend["remaining_percent"])), "resetsAt": int(spend.get("resets_at") or 0)}
+    return out
+
+
+def codex_file_usage(path):
+    """The newest windows in one session file, per limit (Codex keeps one for
+    the plan and may add one per model). Read from the end, where they are."""
+    try:
+        size = os.path.getsize(path)
+        f = open(path, "rb")
+    except OSError:
+        return None
+    found, plan, updated = {}, "", 0
+    with f:
+        chunk = 256 * 1024
+        while True:
+            start = max(0, size - chunk)
+            f.seek(start)
+            lines = f.read(size - start).split(b"\n")
+            if start > 0:
+                lines = lines[1:]
+            for line in reversed(lines):
+                if b'"token_count"' not in line or b'"rate_limits"' not in line:
+                    continue
+                try:
+                    obj = json.loads(line)
+                except ValueError:
+                    continue
+                payload = obj.get("payload") or {}
+                limits = payload.get("rate_limits")
+                if obj.get("type") != "event_msg" or payload.get("type") != "token_count" or not isinstance(limits, dict):
+                    continue
+                entry = codex_windows(limits)
+                if entry["id"] in found:
+                    continue
+                found[entry["id"]] = entry
+                updated = max(updated, ts(obj.get("timestamp")))
+                if not plan and limits.get("plan_type"):
+                    plan = str(limits["plan_type"])
+            if found or start == 0 or chunk >= 32 * 1024 * 1024:
+                break
+            chunk *= 4
+    if not found:
+        return None
+    ordered = sorted(found.values(), key=lambda e: e["id"] != "codex")
+    return {"updated": updated, "plan": plan, "limits": ordered}
+
+
+def codex_turn(path):
+    """The model and reasoning effort of a session's latest turn."""
+    try:
+        size = os.path.getsize(path)
+        with open(path, "rb") as f:
+            f.seek(max(0, size - 512 * 1024))
+            lines = f.read().split(b"\n")
+    except OSError:
+        return None
+    for line in reversed(lines):
+        if b'"turn_context"' not in line:
+            continue
+        try:
+            obj = json.loads(line)
+        except ValueError:
+            continue
+        payload = obj.get("payload") or {}
+        if obj.get("type") == "turn_context" and payload.get("model"):
+            effort = payload.get("effort")
+            return {"model": payload["model"], "effort": effort if isinstance(effort, str) else ""}
+    return None
+
+
+def codex_usage():
+    base = os.path.join(CODEX_DIR, "sessions")
+    days = []
+    try:
+        for y in sorted(os.listdir(base), reverse=True)[:2]:
+            for m in sorted(os.listdir(os.path.join(base, y)), reverse=True)[:2]:
+                for d in sorted(os.listdir(os.path.join(base, y, m)), reverse=True)[:3]:
+                    days.append(os.path.join(base, y, m, d))
+    except OSError:
+        pass
+    files = []
+    for day in days[:3]:
+        try:
+            files += [os.path.join(day, n) for n in os.listdir(day) if n.startswith("rollout-") and n.endswith(".jsonl")]
+        except OSError:
+            pass
+    files.sort(key=lambda p: os.path.getmtime(p) if os.path.exists(p) else 0, reverse=True)
+    # A session that has only just started has no reply yet: the one before
+    # it has the last numbers. Its model is the newest session's, though.
+    turn = next((t for t in (codex_turn(p) for p in files[:3]) if t), None)
+    for path in files[:6]:
+        usage = codex_file_usage(path)
+        if usage:
+            if turn:
+                usage.update(turn)
+            return usage
+    return {"updated": 0, "plan": "", "limits": [], **turn} if turn else None
+
+
+def which(name):
+    extra = [os.path.join(HOME, p) for p in (".local/bin", ".npm-global/bin", ".bun/bin", ".volta/bin")] + ["/usr/local/bin"]
+    return shutil.which(name, path=os.pathsep.join([os.environ.get("PATH", ""), *extra]))
+
+
+def running():
+    counts = {"claude": 0, "codex": 0}
+    uid = os.getuid()
+    for entry in os.listdir("/proc"):
+        if not entry.isdigit():
+            continue
+        pid = int(entry)
+        # This user's, not another's on the same machine.
+        try:
+            if os.stat(f"/proc/{pid}").st_uid != uid:
+                continue
+        except OSError:
+            continue
+        for tool in counts:
+            if is_tool(pid, tool) and not is_tool(parent_of(pid), tool):
+                counts[tool] += 1
+    return counts
+
+
+def connected():
+    settings = read_json(CLAUDE_SETTINGS, {}) or {}
+    line = settings.get("statusLine") if isinstance(settings, dict) else None
+    try:
+        codex = MARK_HOOK in open(CODEX_HOOKS).read()
+    except OSError:
+        codex = False
+    return {"claude": isinstance(line, dict) and MARK_STATUS in str(line.get("command", "")), "codex": codex}
+
+
+def status():
+    with live_file() as live:
+        sessions = live["sessions"]
+        for key in [k for k, s in sessions.items() if not alive(int(s.get("pid") or 0))]:
+            del sessions[key]
+        snapshot = dict(sessions)
+    out = {
+        "now": int(time.time()),
+        "installed": {
+            "claude": bool(which("claude")) or os.path.isdir(CLAUDE_DIR),
+            "codex": bool(which("codex")) or os.path.isdir(os.path.join(CODEX_DIR, "sessions")),
+        },
+        "running": running(),
+        "connected": connected(),
+        "claude": read_json(CLAUDE_USAGE),
+        "claudePlan": read_json(CLAUDE_PLAN),
+        "codex": codex_usage(),
+        "sessions": snapshot,
+    }
+    print(json.dumps(out))
+
+
+args = sys.argv[1:]
+cmd = args[0] if args else ""
+if cmd == "statusline":
+    statusline()
+elif cmd == "hook" and len(args) == 2 and args[1] in ("claude", "codex"):
+    hook(args[1])
+elif cmd == "status":
+    status()
+elif cmd == "claude-usage":
+    claude_usage()
+elif cmd in ("connect", "disconnect") and len(args) == 2 and args[1] in ("claude", "codex"):
+    {"connect": {"claude": connect_claude, "codex": connect_codex}, "disconnect": {"claude": disconnect_claude, "codex": disconnect_codex}}[cmd][args[1]]()
+    print(f"{args[1]}: {cmd}ed")
+    if cmd == "connect" and args[1] == "codex":
+        print("codex: open Codex and trust vela's hooks when it asks (or in /hooks) for the live status")
+else:
+    die("usage: vela ai [status|claude-usage|connect claude|codex|disconnect claude|codex|statusline|hook claude|codex]")
+PY
+
 case "${1:-}" in
     wallpaper) shift; cmd_wallpaper "$@" ;;
     theme)     shift; cmd_theme "$@" ;;
@@ -1333,6 +1937,7 @@ case "${1:-}" in
     calendar)  shift; cmd_calendar "$@" ;;
     idle)      shift; cmd_idle "$@" ;;
     doctor)    cmd_doctor ;;
+    ai)        shift; cmd_ai "$@" ;;
     -h|--help|help|"") usage ;;
     *) die "unknown command: $1 (try 'vela help')" ;;
 esac

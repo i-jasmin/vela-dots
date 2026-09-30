@@ -49,6 +49,18 @@ vela calendar keyring           # check the keyring the passwords are in
 Adding accounts and events is done from the shell; the [calendar
 guide](../../features/calendar/#the-command-line) covers the rest.
 
+## Claude Code and Codex
+
+```sh
+vela ai status                  # plan usage and what each session is doing (JSON)
+vela ai claude-usage            # ask Claude Code for what /usage shows
+vela ai connect claude|codex    # add vela's status line and hooks to that tool (backup first)
+vela ai disconnect claude|codex # take them out again
+```
+
+`vela ai statusline` and `vela ai hook <tool>` are what the tools run once
+connected. See [Claude Code and Codex](../../features/ai-tools/).
+
 ## Other
 
 ```sh

@@ -94,7 +94,26 @@ Item {
         return Math.max(root.homeHeight, Math.min(wanted, along - Appearance.dashboard.stripHeight));
     }
 
-    readonly property int contentHeight: root.tab === "home" && root.monthOpen ? root.homeOpenHeight : (root.side ? Appearance.dashboard.heightsSide : Appearance.dashboard.heightsTop)[root.tab]
+    // System with the AI tools' cards under it: taller by them, worked out
+    // with the cards' own formula (`AiCards.qml`) since they size nothing
+    // until they exist. Side by side off a horizontal bar, stacked off a
+    // vertical one.
+    readonly property int aiHeight: {
+        const tools = AiUsage.tools;
+        if (tools.length === 0)
+            return 0;
+        const d = Appearance.dashboard;
+        const inner = root.side ? d.widthSide - 2 * d.padSide : d.widthTop - 2 * d.padTop;
+        const pair = !root.side && tools.length > 1;
+        const width = pair ? (inner - d.gap) / 2 : inner;
+        const stacked = d.aiStacked(tools, width);
+        const rows = t => d.aiRows(t, width, stacked);
+        if (pair)
+            return d.gap + d.aiCardHeight(Math.max(...tools.map(rows)), stacked);
+        return tools.reduce((sum, t) => sum + d.gap + d.aiCardHeight(rows(t), stacked), 0);
+    }
+
+    readonly property int contentHeight: root.tab === "home" && root.monthOpen ? root.homeOpenHeight : (root.side ? Appearance.dashboard.heightsSide : Appearance.dashboard.heightsTop)[root.tab] + (root.tab === "system" ? root.aiHeight : 0)
     readonly property int pageWidth: root.side ? Appearance.dashboard.widthSide : Appearance.dashboard.widthTop
     readonly property int pageHeight: Appearance.dashboard.stripHeight + root.contentHeight
 

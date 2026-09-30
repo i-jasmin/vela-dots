@@ -492,6 +492,48 @@ QtObject {
         readonly property int ringValueMs: root.scaled(root.reduceMotion ? 0 : 900)
         readonly property int ringGap: 14
         readonly property int ringPad: 12
+        // The AI tools' cards under the rest (`AiCards.qml`): a header, then
+        // one small ring per plan window, as many to a row as fit. Every
+        // size is fixed so the drawer can work out the cards' height before
+        // they exist -- `aiCardHeight` is the one formula both use.
+        readonly property int aiRing: 58
+        readonly property int aiStroke: 6
+        readonly property real aiValue: 15
+        readonly property real aiUnit: 9
+        readonly property int aiMeter: 160
+        // Three or more windows to a half card: the label under the ring
+        // instead of beside it, so they still fit on one row.
+        readonly property int aiStackWidth: 96
+        readonly property int aiStackHeight: 96
+        readonly property int aiMeterGap: 10
+        readonly property int aiColumnGap: 12
+        readonly property int aiRowGap: 10
+        readonly property int aiHeader: 36
+        readonly property int aiHeaderGap: 12
+        readonly property int aiBadge: 30
+        readonly property int aiBadgeRadius: Math.round(9 * root.radiusScale)
+        readonly property real aiName: 14
+        readonly property real aiDim: 0.55
+        function aiColumns(cardWidth: real, stacked: bool): int {
+            const inner = cardWidth - 2 * root.dashboard.cardPadH;
+            const meter = stacked ? root.dashboard.aiStackWidth : root.dashboard.aiMeter;
+            return Math.max(1, Math.floor((inner + root.dashboard.aiColumnGap) / (meter + root.dashboard.aiColumnGap)));
+        }
+        function aiCardHeight(rows: int, stacked: bool): int {
+            const n = Math.max(1, rows);
+            const row = stacked ? root.dashboard.aiStackHeight : root.dashboard.aiRing;
+            return 2 * root.dashboard.cardPadV + root.dashboard.aiHeader + root.dashboard.aiHeaderGap + n * row + (n - 1) * root.dashboard.aiRowGap;
+        }
+        // Whether the cards stack their labels: when a card has more windows
+        // than fit beside their rings on one row.
+        function aiStacked(tools: var, cardWidth: real): bool {
+            const beside = root.dashboard.aiColumns(cardWidth, false);
+            return tools.some(t => t.windows.length > beside);
+        }
+        function aiRows(tool: var, cardWidth: real, stacked: bool): int {
+            const n = tool.windows.length;
+            return n === 0 ? 1 : Math.ceil(n / root.dashboard.aiColumns(cardWidth, stacked));
+        }
         readonly property int historyHeight: 58
         readonly property int historyGap: 2
         readonly property int historyRadius: 2

@@ -100,6 +100,8 @@ BarFlow {
             return trayComponent;
         case "privacy":
             return privacyComponent;
+        case "ai":
+            return aiComponent;
         case "battery":
             return batteryComponent;
         case "clock":
@@ -242,6 +244,14 @@ BarFlow {
         id: privacyComponent
 
         PrivacyDots {
+            bar: root.bar
+        }
+    }
+
+    Component {
+        id: aiComponent
+
+        AiStatus {
             bar: root.bar
         }
     }
