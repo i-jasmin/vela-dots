@@ -225,6 +225,12 @@ QtObject {
         readonly property int windowsRowHeight: 38
         readonly property int windowsSpacing: 1
 
+        // ---- a tray app's menu ------------------------------------------------
+        //
+        // One list too, so the window list's rows, at a control popout's width
+        // for the labels apps write. A long one scrolls past twelve rows.
+        readonly property int menuMax: 12 * windowsRowHeight + 11 * windowsSpacing
+
         // ---- the notification centre, off the bell --------------------------
         //
         // Wider than a control popout, because a notification is a sentence

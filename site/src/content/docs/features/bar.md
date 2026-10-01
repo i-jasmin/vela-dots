@@ -50,6 +50,9 @@ item itself; opening another while one is open slides across to it.
 - **Bluetooth** -- your paired devices with their battery where they report it,
   and the devices nearby to pair with. Both lists open out the same way.
 - **Power** -- the battery, time left, and the three power profiles.
+- **A tray app's menu** -- right-click an app's icon in the tray. The app
+  decides what is in its menu; vela draws it like everything else, in your
+  palette. A submenu opens in place, with a row at the top to go back.
 
 ## Folding it away
 

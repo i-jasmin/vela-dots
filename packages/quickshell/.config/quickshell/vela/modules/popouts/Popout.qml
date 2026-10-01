@@ -19,8 +19,9 @@ import qs.modules.bar
 // anchor machinery without being controls of that kind: the workspace window
 // list, the bar's own popout; the notification centre off the bell -- the
 // history, which is the notifications' control in the sense that matters,
-// since it is where you act on one you missed; and, off the privacy capsule,
-// who has the microphone, camera or screen, with the microphone's mute.
+// since it is where you act on one you missed; off the privacy capsule, who
+// has the microphone, camera or screen, with the microphone's mute; and off a
+// tray icon, that app's own menu, the app's control by definition.
 //
 // ONE OPEN, SHELL-WIDE. `BarPopouts` is a singleton because the design's rule
 // is that popouts never stack: one is open, shell-wide, or none is. Every
@@ -150,6 +151,8 @@ Item {
             return centreContent;
         case "privacy":
             return inUseContent;
+        case "tray":
+            return trayContent;
         }
         return null;
     }
@@ -286,5 +289,13 @@ Item {
         id: inUseContent
 
         InUse {}
+    }
+
+    Component {
+        id: trayContent
+
+        TrayMenu {
+            item: root.subject
+        }
     }
 }

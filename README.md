@@ -227,6 +227,9 @@ popouts, the launcher and the power menu use the same drawer
 - **Popouts** grow out of the bar item that opened them. Opening another
   while one is open slides the drawer along the bar to the new item and
   crosses the contents over, rather than closing one and opening the other.
+  A tray app's menu is one too: the app says what is in it, and the shell
+  draws it in its own colours (`modules/popouts/TrayMenu.qml`), a submenu
+  opening in place.
 - **The launcher** is centred on a horizontal bar and a little way down a
   vertical one. Its height follows the results as you type, and the search
   field stays next to the bar, so on a bottom bar it is the bottom row.

@@ -25,14 +25,15 @@ import qs.tokens
 //
 //   current      "" when nothing is open, otherwise one of
 //                "output" | "network" | "bluetooth" | "power" | "workspaces" |
-//                "notifications" | "privacy". The first four are the bar's
-//                control popouts. "workspaces" is the workspace window list,
-//                "notifications" the notification centre off the bell, and
-//                "privacy" who has the microphone, camera or screen -- popouts
-//                on the same anchor machinery, outside those four.
+//                "notifications" | "privacy" | "tray". The first four are the
+//                bar's control popouts. "workspaces" is the workspace window
+//                list, "notifications" the notification centre off the bell,
+//                "privacy" who has the microphone, camera or screen, and
+//                "tray" a tray app's own menu -- popouts on the same anchor
+//                machinery, outside those four.
 //   payload      free-form detail for the open popout. The workspace popout
-//                puts the workspace id here; the four control popouts leave it
-//                undefined.
+//                puts the workspace id here, a tray menu the tray item whose
+//                menu it is; the four control popouts leave it undefined.
 //   screenName   the name of the ShellScreen the anchor is on. Compared by
 //                name, never by object: `Variants` hands each module its own
 //                ShellScreen instance and two of them for the same output are
@@ -49,7 +50,7 @@ import qs.tokens
 Singleton {
     id: root
 
-    readonly property list<string> names: ["output", "network", "bluetooth", "power", "workspaces", "notifications", "privacy"]
+    readonly property list<string> names: ["output", "network", "bluetooth", "power", "workspaces", "notifications", "privacy", "tray"]
 
     property string current: ""
     property var payload: undefined
