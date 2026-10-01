@@ -114,6 +114,20 @@ Singleton {
             "xf86audiostop": "stop"
         })
 
+    // The pairs `keyNames` gives one name, so the cheatsheet can list each
+    // pair as one row, told apart again for Settings: there every bind is a
+    // row of its own, and two rows that both read "Volume" on "vol ±" could
+    // not be told apart.
+    readonly property var exactNames: ({
+            "xf86audioraisevolume": "vol +",
+            "xf86audiolowervolume": "vol −",
+            "xf86monbrightnessup": "bright +",
+            "xf86monbrightnessdown": "bright −",
+            "xf86kbdbrightnessup": "kbd +",
+            "xf86kbdbrightnessdown": "kbd −",
+            "xf86audiopause": "pause"
+        })
+
     function refresh(): void {
         if (!query.running)
             query.running = true;
@@ -126,6 +140,11 @@ Singleton {
         if (k.length === 1 || /^f\d+$/.test(k))
             return k.toUpperCase();
         return key;
+    }
+
+    // `keyLabel`, for a key on its own rather than merged with its pair.
+    function exactKeyLabel(key: string): string {
+        return root.exactNames[key.toLowerCase()] ?? root.keyLabel(key);
     }
 
     // The keys of one row, merged: a run of digits is a range, arrows sit

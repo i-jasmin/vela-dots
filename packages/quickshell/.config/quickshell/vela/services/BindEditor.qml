@@ -229,7 +229,7 @@ Singleton {
         const mods = s.mods.map(m => m.toLowerCase());
         if (row.family)
             return [...mods, Binds.mergeKeys(row.family.map(k => Binds.keyLabel(k)))];
-        return [...mods, Binds.keyLabel(s.key)];
+        return [...mods, Binds.exactKeyLabel(s.key)];
     }
 
     // What a bind is on now, the way the shell prints a key in its own text
