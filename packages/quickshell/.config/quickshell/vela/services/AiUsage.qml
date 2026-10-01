@@ -70,8 +70,11 @@ Singleton {
 
     // ---- sessions (hooks) ------------------------------------------------------
 
-    // [{ key, tool, state, since, cwd, model, pid, chain }], "done" turned to
-    // "idle" once it has been shown for a moment.
+    // [{ key, tool, state, since, cwd, model, pid, chain, app }], "done"
+    // turned to "idle" once it has been shown for a moment. One the ChatGPT
+    // app runs ("app": "chatgpt") only while it works, needs you or has just
+    // replied: the app is open all day for everything else it does, and
+    // that is not Codex at work.
     readonly property var sessionsLive: {
         const all = root.status?.sessions ?? {};
         return Object.keys(all).map(k => {
@@ -81,7 +84,7 @@ Singleton {
             if (s.state === "done" && root.now - (s.since ?? 0) >= root.doneSeconds)
                 s.state = "idle";
             return s;
-        });
+        }).filter(s => !s.app || s.state !== "idle");
     }
 
     readonly property var rank: ({

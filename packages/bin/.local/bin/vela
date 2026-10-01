@@ -1425,6 +1425,8 @@ CODEX_EVENTS = ["SessionStart", "UserPromptSubmit", "PermissionRequest", "PostTo
 # the TUI starts and leaves running (and its updater, `app-server daemon`),
 # the app-server an editor runs, the MCP and exec servers.
 SERVERS = {"app-server", "mcp-server", "exec-server", "stdio-to-uds", "responses-api-proxy"}
+# The ChatGPT app for Linux (/usr/lib/chatgpt/ChatGPT), as /proc names it.
+DESKTOP = "ChatGPT"
 
 
 def die(msg):
@@ -1565,15 +1567,26 @@ def workdir(pid, tool):
     return here
 
 
+def desktop_of(server):
+    """The ChatGPT app a Codex server runs under, or 0. The app for Linux runs
+    Codex as an app-server of its own, and a session there is the app's."""
+    host = parent_of(server)
+    return host if comm_of(host) == DESKTOP else 0
+
+
 def session_pid(tool, chain, cwd):
     """The session a hook comes from: the tool above it. Codex's TUI runs its
     sessions in the app-server daemon it starts, and the hooks with them, but
     the daemon outlives the TUI and fires no SessionEnd when you quit, and
     what is above it is only whichever TUI happened to start it. So a hook
-    under the daemon belongs to the Codex open in the session's folder."""
+    under the daemon belongs to the Codex open in the session's folder -- and
+    one under the ChatGPT app's own server, to the app."""
     first = next((p for p in chain if is_tool(p, tool)), 0)
     if not first or not is_server(first):
         return first or (chain[0] if chain else 0)
+    app = desktop_of(first)
+    if app:
+        return app
     real = os.path.realpath(cwd) if cwd else ""
     same = [s for s in processes()[tool] if real and os.path.realpath(s["cwd"]) == real]
     return max(same, key=lambda s: started(s["pid"]))["pid"] if same else 0
@@ -1800,8 +1813,9 @@ def hook(tool):
         if not pid or is_server(pid):
             pid = session_pid(tool, chain, data.get("cwd") or "")
             # Everything above the tool: the terminal it runs in is one of
-            # these, which is how the pill finds the window to focus.
-            above = ancestry(parent_of(pid)) if pid else []
+            # these, which is how the pill finds the window to focus. The
+            # ChatGPT app is that window itself.
+            above = [pid] if comm_of(pid) == DESKTOP else ancestry(parent_of(pid)) if pid else []
         sessions[key] = {
             "tool": tool,
             "state": state,
@@ -1811,6 +1825,9 @@ def hook(tool):
             "model": data.get("model") or current.get("model") or "",
             "pid": pid,
             "chain": above,
+            # Run by the ChatGPT app: shown while it works, not for as long
+            # as the app is open, which is all day for everything else in it.
+            "app": "chatgpt" if comm_of(pid) == DESKTOP else "",
         }
 
 
@@ -2064,8 +2081,12 @@ def status():
     with live_file() as live:
         sessions = live["sessions"]
         # Gone with its process. One on a Codex server is from before vela
-        # told the daemon from the session, and would never go.
-        for key in [k for k, s in sessions.items() if not alive(int(s.get("pid") or 0)) or is_server(int(s.get("pid") or 0))]:
+        # told the daemon from the session, and would never go. The ChatGPT
+        # app need not end a session when you leave its thread, so one there
+        # an hour past its last reply is let go; a new prompt brings it back.
+        quiet = time.time() - 3600
+        for key in [k for k, s in sessions.items() if not alive(int(s.get("pid") or 0)) or is_server(int(s.get("pid") or 0))
+                    or (s.get("app") and s.get("state") in ("idle", "done") and (s.get("since") or 0) < quiet)]:
             del sessions[key]
         snapshot = dict(sessions)
     open_now = processes()

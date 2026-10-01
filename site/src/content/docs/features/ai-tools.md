@@ -20,7 +20,8 @@ go and the tab looks as it always did.
   (*Fable week*), the same rows `/usage` shows. A ring turns red at 90%. At
   90% you also get one notification, which you can switch off.
 
-Click a card to go to the terminal that session is running in.
+Click a card to go to the terminal that session is running in, or to the
+ChatGPT app.
 
 ## How fresh the numbers are
 
@@ -54,6 +55,12 @@ files in `~/.codex/sessions`. For the live status, press **Connect**. This
 adds a few hooks to `~/.codex/hooks.json`, backed up the same way. Codex asks
 you once to trust new hooks (also under `/hooks` in Codex). On a Business
 plan an admin can turn personal hooks off; the usage still shows.
+
+**Codex in the ChatGPT app.** The ChatGPT app for Linux runs Codex itself,
+with your `~/.codex`, so Connect Codex covers it too. Codex there shows only
+while it is doing something: working, waiting on you, or just done. The app
+is open for everything else in it as well, so the app being open does not
+count.
 
 **Disconnect** takes out only vela's entries and puts back a status line you
 had before. The same from a terminal:
@@ -101,11 +108,12 @@ the way CPU and memory do.
 
 Once the tool is closed, the pill is gone. Click it for the dashboard's System
 tab, where the cards are, the way CPU and memory open it; click again to close
-it. Right-click it to go to the terminal of the session that most wants you.
+it. Right-click it to go to the terminal (or the ChatGPT app) of the session
+that most wants you.
 
 vela sees that a tool is open from its process, so that part needs nothing.
 Codex's background server, which it starts and leaves running after you
-quit, does not count as open.
+quit, does not count as open, and neither does the ChatGPT app.
 *Working*, *Needs you* and *Done* come from the tool's hooks, so they need the
 tool to be connected. Codex fires no hook until your first prompt: until then
 it shows as open.

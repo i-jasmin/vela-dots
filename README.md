@@ -197,7 +197,8 @@ Claude Code's come from its status line once connected and from asking
 Claude Code for `/usage`; Codex's from its own session files, with nothing
 to set up. vela never reads a login or talks to a server itself. An optional
 bar pill shows each tool's logo and its 5-hour window while the tool is open,
-and whether it is working or waiting on you. The logos are Anthropic's and OpenAI's, so
+and whether it is working or waiting on you. Codex in the ChatGPT app for
+Linux shows too, while it is at work. The logos are Anthropic's and OpenAI's, so
 they are not in this repository: the installer fetches them from theSVG
 (`vela ai icons`).
 
