@@ -254,16 +254,20 @@ cmd_retint() {
     mkdir -p "$STATE_DIR" "$config/gtk-3.0" "$config/gtk-4.0" "$config/fastfetch" "$config/cava"
     set_colour_scheme "$mode"
     # matugen's own complaint is kept back unless the fallback fails too: a
-    # recovered retint should not look like an error.
-    local source_args colour err
+    # recovered retint should not look like an error. Nor is the fallback
+    # named until it has worked -- a template matugen cannot write fails it
+    # as well, and is then told as what it is, not as a colour it could not
+    # pick.
+    local source_args colour err again
     mapfile -t source_args < <(matugen_source_args)
     if ! err=$(matugen --config "$MATUGEN_CONFIG" -q -t "$scheme" -m "$mode" image "${source_args[@]}" "$path" 2>&1 </dev/null); then
-        if ! colour=$(dominant_colour "$path"); then
+        if ! colour=$(dominant_colour "$path") \
+            || ! again=$(matugen --config "$MATUGEN_CONFIG" -q -t "$scheme" -m "$mode" color hex "$colour" 2>&1 </dev/null); then
             printf '%s\n' "$err" >&2
+            [ -z "${again:-}" ] || [ "$again" = "$err" ] || printf '%s\n' "$again" >&2
             die "matugen could not make a palette from $path"
         fi
-        printf 'vela: matugen could not pick a colour from the image; using its dominant colour, %s\n' "$colour" >&2
-        matugen --config "$MATUGEN_CONFIG" -q -t "$scheme" -m "$mode" color hex "$colour" </dev/null
+        printf 'vela: matugen could not pick a colour from the image; used its dominant colour, %s\n' "$colour" >&2
     fi
     notify_running_apps
 }
