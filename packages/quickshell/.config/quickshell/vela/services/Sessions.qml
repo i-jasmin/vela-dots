@@ -687,10 +687,22 @@ Singleton {
         onTriggered: root.snapshot()
     }
 
+    // Only when the counts are really different. `recount` hands out a new
+    // object every time it runs, equal or not, and `snapshot` runs it itself
+    // through `Hypr.refresh` -- so each snapshot restarted the wait for the
+    // next one, and with nothing on screen changing the shell probed every
+    // terminal's folder every sixteen seconds, for as long as it ran.
+    property string countsSeen: ""
+
     Connections {
         target: Hypr
 
         function onWindowCountsChanged(): void {
+            const counts = Hypr.windowCounts;
+            const seen = Object.keys(counts).sort().map(id => `${id}:${counts[id]}`).join(",");
+            if (seen === root.countsSeen)
+                return;
+            root.countsSeen = seen;
             if (root.loaded)
                 settle.restart();
         }
