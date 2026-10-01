@@ -13,7 +13,7 @@ import qs.tokens
 //         subtitle: qsTr("Panels and cards")
 //         labelWidth: Appearance.settings.labelWidth
 //
-//         Slider { Layout.fillWidth: true }
+//         SettingSlider {}
 //         SettingValue { text: "22 px" }
 //     }
 //

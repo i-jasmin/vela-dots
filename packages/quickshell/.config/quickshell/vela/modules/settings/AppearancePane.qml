@@ -193,7 +193,7 @@ PaneScroll {
             subtitle: qsTr("Panels and cards")
             labelWidth: Appearance.settings.labelWidth
 
-            Slider {
+            SettingSlider {
                 // `radius.panel` is the slider's own unit: it is 22 at the
                 // default scale and it is what every other radius in the shell
                 // is derived from, so the readout and the thing being read out
@@ -201,17 +201,12 @@ PaneScroll {
                 readonly property real wanted: Appearance.radius.panel / Appearance.settings.radiusMax
 
                 value: wanted
-                handleWidth: Appearance.settings.sliderHandle
-                handleHeight: Appearance.settings.sliderHandle
                 stepSize: 1 / Appearance.settings.radiusMax
                 onWantedChanged: value = wanted
                 onMoved: v => {
                     Config.appearance.radiusScale = v * Appearance.settings.radiusMax / Appearance.settings.radiusBase;
                     Persist.commit();
                 }
-
-                Layout.fillWidth: true
-                Layout.alignment: Qt.AlignVCenter
             }
 
             SettingValue {
@@ -224,21 +219,16 @@ PaneScroll {
             subtitle: qsTr("Behind the blur")
             labelWidth: Appearance.settings.labelWidth
 
-            Slider {
+            SettingSlider {
                 readonly property real wanted: Config.appearance.panelOpacity
 
                 value: wanted
-                handleWidth: Appearance.settings.sliderHandle
-                handleHeight: Appearance.settings.sliderHandle
                 stepSize: 0.01
                 onWantedChanged: value = wanted
                 onMoved: v => {
                     Config.appearance.panelOpacity = v;
                     Persist.commit();
                 }
-
-                Layout.fillWidth: true
-                Layout.alignment: Qt.AlignVCenter
             }
 
             SettingValue {
@@ -291,12 +281,10 @@ PaneScroll {
             enabled: Config.appearance.animations
             opacity: enabled ? 1 : Appearance.settings.disabledOpacity
 
-            Slider {
+            SettingSlider {
                 readonly property real wanted: (Config.appearance.animationSpeed - Appearance.settings.speedMin) / (Appearance.settings.speedMax - Appearance.settings.speedMin)
 
                 value: wanted
-                handleWidth: Appearance.settings.sliderHandle
-                handleHeight: Appearance.settings.sliderHandle
                 stepSize: Appearance.settings.speedStep / (Appearance.settings.speedMax - Appearance.settings.speedMin)
                 onWantedChanged: value = wanted
                 onMoved: v => {
@@ -304,9 +292,6 @@ PaneScroll {
                     Config.appearance.animationSpeed = Math.round(speed / Appearance.settings.speedStep) * Appearance.settings.speedStep;
                     Persist.commit();
                 }
-
-                Layout.fillWidth: true
-                Layout.alignment: Qt.AlignVCenter
             }
 
             SettingValue {

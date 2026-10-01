@@ -122,13 +122,11 @@ PaneScroll {
             subtitle: qsTr("Urgent ones stay until dealt with")
             labelWidth: Appearance.settings.labelWidthNarrow
 
-            Slider {
+            SettingSlider {
                 readonly property int span: Appearance.settings.timeoutMax - Appearance.settings.timeoutMin
                 readonly property real wanted: (Config.notifications.timeout - Appearance.settings.timeoutMin) / span
 
                 value: wanted
-                handleWidth: Appearance.settings.sliderHandle
-                handleHeight: Appearance.settings.sliderHandle
                 stepSize: Appearance.settings.timeoutStep / span
                 onWantedChanged: value = wanted
                 onMoved: v => {
@@ -136,9 +134,6 @@ PaneScroll {
                     Config.notifications.timeout = Appearance.settings.timeoutMin + Math.round(v * span / step) * step;
                     Persist.commit();
                 }
-
-                Layout.fillWidth: true
-                Layout.alignment: Qt.AlignVCenter
             }
 
             SettingValue {
@@ -153,22 +148,17 @@ PaneScroll {
             subtitle: qsTr("Cards at once; each app is one card")
             labelWidth: Appearance.settings.labelWidthNarrow
 
-            Slider {
+            SettingSlider {
                 readonly property int span: Appearance.settings.maxVisibleMax - 1
                 readonly property real wanted: (Config.notifications.maxVisible - 1) / span
 
                 value: wanted
-                handleWidth: Appearance.settings.sliderHandle
-                handleHeight: Appearance.settings.sliderHandle
                 stepSize: 1 / span
                 onWantedChanged: value = wanted
                 onMoved: v => {
                     Config.notifications.maxVisible = 1 + Math.round(v * span);
                     Persist.commit();
                 }
-
-                Layout.fillWidth: true
-                Layout.alignment: Qt.AlignVCenter
             }
 
             SettingValue {

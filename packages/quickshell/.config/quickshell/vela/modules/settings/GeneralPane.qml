@@ -196,13 +196,11 @@ PaneScroll {
             subtitle: qsTr("From neutral to fully warm")
             labelWidth: Appearance.settings.labelWidthNarrow
 
-            Slider {
+            SettingSlider {
                 readonly property int span: Appearance.settings.rampMax - Appearance.settings.rampMin
                 readonly property real wanted: (Config.appearance.eveningWarmth.rampMinutes - Appearance.settings.rampMin) / span
 
                 value: wanted
-                handleWidth: Appearance.settings.sliderHandle
-                handleHeight: Appearance.settings.sliderHandle
                 stepSize: Appearance.settings.rampStep / span
                 onWantedChanged: value = wanted
                 onMoved: v => {
@@ -210,9 +208,6 @@ PaneScroll {
                     Config.appearance.eveningWarmth.rampMinutes = Appearance.settings.rampMin + Math.round(v * span / step) * step;
                     Persist.commit();
                 }
-
-                Layout.fillWidth: true
-                Layout.alignment: Qt.AlignVCenter
             }
 
             SettingValue {
@@ -232,12 +227,10 @@ PaneScroll {
             subtitle: qsTr("Lower keeps more of the wallpaper's colour")
             labelWidth: Appearance.settings.labelWidthNarrow
 
-            Slider {
+            SettingSlider {
                 readonly property real wanted: Config.appearance.eveningWarmth.strength
 
                 value: wanted
-                handleWidth: Appearance.settings.sliderHandle
-                handleHeight: Appearance.settings.sliderHandle
                 stepSize: Appearance.settings.warmthStep
                 onWantedChanged: value = wanted
                 onMoved: v => {
@@ -245,9 +238,6 @@ PaneScroll {
                     Config.appearance.eveningWarmth.strength = Math.round(v / step) * step;
                     Persist.commit();
                 }
-
-                Layout.fillWidth: true
-                Layout.alignment: Qt.AlignVCenter
             }
 
             SettingValue {
@@ -303,13 +293,11 @@ PaneScroll {
             subtitle: qsTr("Daylight is 6500 K")
             labelWidth: Appearance.settings.labelWidthNarrow
 
-            Slider {
+            SettingSlider {
                 readonly property int span: Appearance.settings.kelvinMax - Appearance.settings.kelvinMin
                 readonly property real wanted: (Config.appearance.eveningWarmth.toKelvin - Appearance.settings.kelvinMin) / span
 
                 value: wanted
-                handleWidth: Appearance.settings.sliderHandle
-                handleHeight: Appearance.settings.sliderHandle
                 stepSize: Appearance.settings.kelvinStep / span
                 onWantedChanged: value = wanted
                 onMoved: v => {
@@ -317,9 +305,6 @@ PaneScroll {
                     Config.appearance.eveningWarmth.toKelvin = Appearance.settings.kelvinMin + Math.round(v * span / step) * step;
                     Persist.commit();
                 }
-
-                Layout.fillWidth: true
-                Layout.alignment: Qt.AlignVCenter
             }
 
             SettingValue {

@@ -215,19 +215,14 @@ PaneScroll {
                 subtitle: timeout.modelData.key === "screenOff" && timeout.seconds > 0 && timeout.lockAt > 0 && timeout.seconds < timeout.lockAt ? qsTr("Before it locks — the desktop shows on wake") : timeout.modelData.subtitle
                 labelWidth: Appearance.settings.labelWidthNarrow
 
-                Slider {
+                SettingSlider {
                     readonly property int span: root.stops.length - 1
                     readonly property real wanted: root.stopOf(timeout.seconds) / span
 
                     value: wanted
-                    handleWidth: Appearance.settings.sliderHandle
-                    handleHeight: Appearance.settings.sliderHandle
                     stepSize: 1 / span
                     onWantedChanged: value = wanted
                     onMoved: v => Hypridle.set(root.idleSource, timeout.modelData.key, root.stops[Math.round(v * span)])
-
-                    Layout.fillWidth: true
-                    Layout.alignment: Qt.AlignVCenter
 
                     Behavior on value {
                         enabled: root.idleSwitching

@@ -211,12 +211,10 @@ PaneScroll {
             subtitle: qsTr("Stops accidental pops")
             labelWidth: Appearance.settings.labelWidthNarrow
 
-            Slider {
+            SettingSlider {
                 readonly property real wanted: Config.bar.autohide.revealDelay / Appearance.settings.revealMax
 
                 value: wanted
-                handleWidth: Appearance.settings.sliderHandle
-                handleHeight: Appearance.settings.sliderHandle
                 stepSize: Appearance.settings.revealStep / Appearance.settings.revealMax
                 onWantedChanged: value = wanted
                 onMoved: v => {
@@ -224,9 +222,6 @@ PaneScroll {
                     Config.bar.autohide.revealDelay = Math.round(v * Appearance.settings.revealMax / step) * step;
                     Persist.commit();
                 }
-
-                Layout.fillWidth: true
-                Layout.alignment: Qt.AlignVCenter
             }
 
             SettingValue {

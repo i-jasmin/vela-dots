@@ -109,22 +109,17 @@ PaneScroll {
             subtitle: qsTr("How many rows the list shows")
             labelWidth: Appearance.settings.labelWidthNarrow
 
-            Slider {
+            SettingSlider {
                 readonly property int span: Appearance.settings.maxResultsMax - Appearance.settings.maxResultsMin
                 readonly property real wanted: (Config.launcher.maxResults - Appearance.settings.maxResultsMin) / span
 
                 value: wanted
-                handleWidth: Appearance.settings.sliderHandle
-                handleHeight: Appearance.settings.sliderHandle
                 stepSize: 1 / span
                 onWantedChanged: value = wanted
                 onMoved: v => {
                     Config.launcher.maxResults = Appearance.settings.maxResultsMin + Math.round(v * span);
                     Persist.commit();
                 }
-
-                Layout.fillWidth: true
-                Layout.alignment: Qt.AlignVCenter
             }
 
             SettingValue {

@@ -31,6 +31,15 @@ Item {
     property real value: 0
     property bool interactive: true
     property real stepSize: 0.05
+    // The wheel moves it only once it has focus, and until then goes past it
+    // to what it sits in: for a slider on a page that scrolls.
+    property bool wheelNeedsFocus: false
+
+    // The wheel's turn towards the next step. A mouse wheel's notch is 120; a
+    // touchpad sends a swipe as many small turns, and a high-resolution wheel
+    // a notch as several. Stepping on every one of them took a light swipe
+    // from one end to the other.
+    property real wheelTurn: 0
 
     property real trackHeight: Appearance.widget.sliderTrack
     // 0 draws no handle.
@@ -139,8 +148,18 @@ Item {
     }
 
     WheelHandler {
-        enabled: root.interactive
+        enabled: root.interactive && (!root.wheelNeedsFocus || root.activeFocus)
         acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
-        onWheel: event => root.nudge(event.angleDelta.y > 0 ? root.stepSize : -root.stepSize)
+        onWheel: event => {
+            const turn = event.angleDelta.y / 120;
+            // Turning back starts afresh rather than first undoing the part
+            // of a step left over from the other way.
+            root.wheelTurn = Math.sign(turn) === Math.sign(root.wheelTurn) ? root.wheelTurn + turn : turn;
+            const steps = Math.trunc(root.wheelTurn);
+            if (steps !== 0) {
+                root.wheelTurn -= steps;
+                root.nudge(steps * root.stepSize);
+            }
+        }
     }
 }
