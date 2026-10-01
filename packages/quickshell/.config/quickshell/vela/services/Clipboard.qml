@@ -383,7 +383,12 @@ Singleton {
             if (entry.kind === "image" && !decoded.includes(`${entry.id}`))
                 undecoded.push(`${entry.id}:${entry.imageFormat}`);
 
-        root.entries = built;
+        // The poll below rebuilds every half minute whether anything was
+        // copied or not, which keeps Today and Yesterday honest. A new list
+        // for the same entries, though, is new results to the launcher, and it
+        // put the cursor back on the first row under whoever was choosing one.
+        if (JSON.stringify(built) !== JSON.stringify(root.entries))
+            root.entries = built;
 
         if (undecoded.length > 0)
             decodeProc.decode(undecoded);
