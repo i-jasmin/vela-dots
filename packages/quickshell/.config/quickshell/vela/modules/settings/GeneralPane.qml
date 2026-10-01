@@ -436,8 +436,8 @@ PaneScroll {
         }
 
         SettingRow {
-            title: qsTr("Show what changed after an update")
-            subtitle: qsTr("The notable packages, once, the next time you log in")
+            title: qsTr("Check for updates")
+            subtitle: qsTr("Every six hours; what is waiting shows in the dashboard's System tab")
 
             Toggle {
                 readonly property bool wanted: Config.updates.showWhatChanged

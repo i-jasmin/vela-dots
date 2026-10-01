@@ -337,12 +337,15 @@ Singleton {
         // `checkCommand`'s own repo column. The key is kept so an Arch config
         // still validates; it is read by nothing here.
         property string aurCommand: ""
-        // Off for an ext4 root: there is no pre-upgrade snapshot to take and
-        // nothing for the rollback button in "what changed" to roll back to.
+        // Deliberately inert, like `aurCommand`: vela takes no pre-upgrade
+        // snapshots, so there is nothing for it to turn on. Kept, being in
+        // every shell.json.
         property bool snapshotBefore: false
-        // Gates the surface itself, in `services/ShellState.qml`, so the
-        // keybind and the IPC call both refuse -- and one that is already open
-        // closes when this goes false.
+        // Checking for updates at all -- Settings, General, "Check for
+        // updates". Off, `services/Updates.qml` runs nothing, the System tab's
+        // line goes, and "what changed" refuses to open (and closes if it is
+        // up), in `services/ShellState.qml`. Named for that screen, which it
+        // once gated alone; renamed, it would be lost from every shell.json.
         property bool showWhatChanged: true
     }
 

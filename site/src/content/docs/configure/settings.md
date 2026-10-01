@@ -13,7 +13,7 @@ super + I again. A page's **Reset** asks before it puts anything back.
 
 | Page | Covers |
 | --- | --- |
-| **General** | where you are (for the weather and sunset), units, evening warmth, your picture, the wallpaper / screenshot / recording folders, restoring your session at login, what changed after an update |
+| **General** | where you are (for the weather and sunset), units, evening warmth, your picture, the wallpaper / screenshot / recording folders, restoring your session at login, checking for updates |
 | **Appearance** | the palette and its variant, light / dark / auto, corner radius, panel opacity, motion (full, reduced or off) and its speed |
 | **Bar** | which edge, floating or attached, autohide, the dock and its pinned apps and stacks |
 | **Notifications** | do not disturb, where cards go, how long they stay, how many stack, the focus digest |
@@ -57,6 +57,7 @@ knowing:
 | `weather.units` | `"metric"` | or `"imperial"` |
 | `sessions.restoreOnLogin` | `true` | bring the last layout back at login |
 | `dashboard.focusTimer.*` | 25 min, 4 sessions | the focus timer, and its two switches |
+| `updates.showWhatChanged` | `true` | check for updates at all (**Check for updates** in General) |
 | `updates.checkCommand` | `dnf5 check-update --refresh` | how updates are counted |
 | `ai.claude`, `ai.codex` | `true`, `true` | a card in the System tab for each, while that tool is there |
 | `ai.claudeUsage` | `true` | ask Claude Code for what `/usage` shows (Fable's week, the plan) |

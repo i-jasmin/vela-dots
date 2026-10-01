@@ -21,10 +21,9 @@ import qs.components
 //    is waiting and dates it from the last check. Rendering the true
 //    post-upgrade view needs `dnf5 history` behind a new field on `Updates`.
 //
-// 2. A SNAPSHOT. An ext4 root has none. `Updates.snapshotAvailable` is false
-//    and `snapshotReason` says why, so the footer states the absence and
-//    carries no rollback button -- a button that cannot roll anything back is
-//    worse than no button.
+// 2. A SNAPSHOT. The design ends on the pre-upgrade snapshot, with a button to
+//    roll back to it. vela takes none, so there is no footer: one that only
+//    ever said there was no snapshot told nobody anything.
 //
 // The banner is real: `rebootRequired` compares the running kernel against the
 // newest one on disk, which is genuinely post-upgrade evidence.
@@ -521,62 +520,6 @@ PanelWindow {
                                 }
                             }
                         }
-                    }
-                }
-
-                // ---- the snapshot footer ---------------------------------------
-                Rectangle {
-                    radius: Appearance.radius.cardLg
-                    color: Colours.hover
-
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: snapshot.implicitHeight + Appearance.overlays.changes.bannerPadV * 2
-
-                    RowLayout {
-                        id: snapshot
-
-                        anchors.fill: parent
-                        anchors.leftMargin: Appearance.overlays.changes.bannerPadH
-                        anchors.rightMargin: Appearance.overlays.changes.bannerPadH
-                        spacing: Appearance.overlays.changes.bannerGap
-
-                        Icon {
-                            text: "backup"
-                            size: Appearance.overlays.iconToolbar
-                            color: Colours.outline
-
-                            Layout.alignment: Qt.AlignVCenter
-                        }
-
-                        ColumnLayout {
-                            spacing: 0
-
-                            Layout.fillWidth: true
-                            Layout.alignment: Qt.AlignVCenter
-
-                            Text {
-                                text: Updates.snapshotAvailable ? qsTr("Snapshot taken before the upgrade") : qsTr("No pre-upgrade snapshot")
-                                font.family: Appearance.font.ui
-                                font.pixelSize: Appearance.size.body
-                                color: Colours.on.surface
-
-                                Layout.fillWidth: true
-                            }
-
-                            Text {
-                                text: Updates.snapshotReason
-                                font.family: Appearance.font.mono
-                                font.pixelSize: Appearance.size.label
-                                color: Colours.outline
-                                elide: Text.ElideRight
-
-                                Layout.fillWidth: true
-                            }
-                        }
-
-                        // No rollback button, deliberately. There is nothing on
-                        // this filesystem to roll back to, and the absence is
-                        // the honest rendering.
                     }
                 }
             }

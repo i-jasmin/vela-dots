@@ -9,9 +9,10 @@ import qs.components
 
 // System: how busy the machine is, right now and over the last minute.
 //
-// Three live rings (CPU, memory, GPU), the CPU's last sixty seconds, and the
-// busiest processes. While this tab is shown SysInfo samples every second
-// (its fast mode); nothing pays for that when it is not.
+// Three live rings (CPU, memory, GPU), the CPU's last sixty seconds, the
+// busiest processes, and what package updates are waiting. While this tab is
+// shown SysInfo samples every second (its fast mode); nothing pays for that
+// when it is not.
 // Top layout: rings in a row, history beside busiest. Side: rings in a row of
 // three, the rest stacked.
 Item {
@@ -26,10 +27,15 @@ Item {
     onHoldingChanged: {
         root.holding ? SysInfo.holdFast() : SysInfo.releaseFast();
         root.holding ? AiUsage.hold() : AiUsage.release();
+        // An update done since the last check is checked again, rather than
+        // still counted as waiting.
+        if (root.holding)
+            Updates.look();
     }
     Component.onCompleted: if (root.holding) {
         SysInfo.holdFast();
         AiUsage.hold();
+        Updates.look();
     }
     Component.onDestruction: if (root.holding) {
         SysInfo.releaseFast();
@@ -270,6 +276,66 @@ Item {
         }
     }
 
+    // What is waiting from the package manager, and whether the last update
+    // wants a reboot: one line, there once the check has answered
+    // (`services/Updates.qml`). Clicked, "what changed" opens with the list.
+    component UpdatesLine: Tile {
+        id: line
+
+        readonly property string headline: {
+            if (Updates.count === 0)
+                return qsTr("Up to date");
+            const count = Updates.count === 1 ? qsTr("1 update") : qsTr("%1 updates").arg(Updates.count);
+            return Updates.securityCount > 0 ? qsTr("%1 · %2 security").arg(count).arg(Updates.securityCount) : count;
+        }
+
+        implicitHeight: Appearance.dashboard.updatesHeight
+        visible: Updates.shown
+
+        RowLayout {
+            anchors.fill: parent
+            anchors.leftMargin: Appearance.dashboard.cardPadH
+            anchors.rightMargin: Appearance.dashboard.cardPadH
+            spacing: Appearance.dashboard.aiMeterGap
+
+            Icon {
+                text: "history"
+                size: Appearance.size.iconMd
+                color: Colours.primary
+            }
+
+            Text {
+                text: line.headline
+                font.family: Appearance.font.ui
+                font.pixelSize: Appearance.dashboard.ringLabelTop
+                color: Colours.on.surface
+                elide: Text.ElideRight
+                Layout.fillWidth: true
+            }
+
+            // A newer kernel installed than the one running says more than
+            // when the list was last asked for.
+            Text {
+                text: Updates.rebootRequired ? qsTr("Reboot recommended") : qsTr("checked %1").arg(Qt.formatDateTime(Updates.lastChecked, "HH:mm"))
+                font.family: Updates.rebootRequired ? Appearance.font.ui : Appearance.font.mono
+                font.pixelSize: Appearance.dashboard.hourValue
+                color: Updates.rebootRequired ? Colours.error : Colours.outline
+            }
+
+            Icon {
+                text: "chevron_right"
+                size: Appearance.size.iconSm
+                color: Colours.outline
+            }
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            cursorShape: Qt.PointingHandCursor
+            onClicked: ShellState.open("whatChanged")
+        }
+    }
+
     // ---- top -----------------------------------------------------------------
     Component {
         id: topLayout
@@ -344,6 +410,10 @@ Item {
                     Layout.preferredWidth: 1
                     Layout.fillHeight: true
                 }
+            }
+
+            UpdatesLine {
+                Layout.fillWidth: true
             }
 
             AiCards {
@@ -426,6 +496,10 @@ Item {
             }
 
             Busiest {
+                Layout.fillWidth: true
+            }
+
+            UpdatesLine {
                 Layout.fillWidth: true
             }
 

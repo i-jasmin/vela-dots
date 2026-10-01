@@ -124,7 +124,7 @@ transition) are only in the file; everything else has a control:
 
 | Page | Covers |
 |---|---|
-| General | location for the weather and sunset (found from your connection, or a city you name), units, evening warmth (the colours, by how much -- a third by default, so the wallpaper's colour stays -- and with hyprsunset the screen as well, on the same curve), profile picture, the wallpaper / screenshot / recording folders, restore at login, what changed after an update |
+| General | location for the weather and sunset (found from your connection, or a city you name), units, evening warmth (the colours, by how much -- a third by default, so the wallpaper's colour stays -- and with hyprsunset the screen as well, on the same curve), profile picture, the wallpaper / screenshot / recording folders, restore at login, checking for updates |
 | Appearance | palette source and variant, light / dark / auto, corner radius, panel opacity, motion (full, reduced or off) and how fast it is -- windows included |
 | Bar | edge, floating or attached (against the edge, rounded only on the side facing in), autohide, the dock and its pinned apps and stacks |
 | Notifications | do not disturb, where the cards go, how long they stay, how many stack, the focus digest |
@@ -200,8 +200,13 @@ shape rather than squashed. Four tabs, one job each:
 |---|---|---|
 | Home | clock, weather with the next five hours, the day's events, and a month that folds out under them | `Time`, `Weather`, `Calendar` (khal) |
 | Media | the playing track, a spinning cover in a radial visualiser, controls | `Players` (MPRIS, cava or the PipeWire peak meter) |
-| System | live CPU, memory and GPU rings, the CPU's last 60 s, busiest processes, and a card for Claude Code and Codex while they are open | `SysInfo`, `AiUsage` |
+| System | live CPU, memory and GPU rings, the CPU's last 60 s, busiest processes, pending updates, and a card for Claude Code and Codex while they are open | `SysInfo`, `Updates`, `AiUsage` |
 | Focus | the session timer, its lengths, hold notifications, countdown in the bar | `Focus` |
+
+The updates line says what dnf has waiting, how much of it is security, and
+when a newer kernel wants a reboot; click it for the list, split into what
+needs something from you and the rest. It is checked every six hours, and
+again when you open the tab after updating.
 
 The Claude Code and Codex cards show the plan, the model and its effort, what
 each session is doing, and a ring per plan window with its reset: the 5-hour

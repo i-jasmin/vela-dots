@@ -113,7 +113,11 @@ Item {
         return tools.reduce((sum, t) => sum + d.gap + d.aiCardHeight(rows(t), stacked), 0);
     }
 
-    readonly property int contentHeight: root.tab === "home" && root.monthOpen ? root.homeOpenHeight : (root.side ? Appearance.dashboard.heightsSide : Appearance.dashboard.heightsTop)[root.tab] + (root.tab === "system" ? root.aiHeight : 0)
+    // And the line for pending updates over them, once the check has
+    // answered.
+    readonly property int updatesHeight: Updates.shown ? Appearance.dashboard.gap + Appearance.dashboard.updatesHeight : 0
+
+    readonly property int contentHeight: root.tab === "home" && root.monthOpen ? root.homeOpenHeight : (root.side ? Appearance.dashboard.heightsSide : Appearance.dashboard.heightsTop)[root.tab] + (root.tab === "system" ? root.updatesHeight + root.aiHeight : 0)
     readonly property int pageWidth: root.side ? Appearance.dashboard.widthSide : Appearance.dashboard.widthTop
     readonly property int pageHeight: Appearance.dashboard.stripHeight + root.contentHeight
 

@@ -53,11 +53,10 @@ Singleton {
     }
 
     // A surface the config has switched off. Only `whatChanged` has such a key
-    // -- `updates.showWhatChanged` -- and it was in the design's shell.json
-    // being read by nothing, which is the worst state for a setting to be in:
-    // the settings window could offer it and it would move nothing. Refusing
-    // here covers the keybind, the IPC call and the dashboard's health card at
-    // once, in the same place the lock refusal lives.
+    // -- `updates.showWhatChanged`, which turns the update check off with it
+    // (Settings, General, "Check for updates"). Refusing here covers the IPC
+    // call and the System tab's updates line at once, in the same place the
+    // lock refusal lives.
     function enabled(surface: string): bool {
         return surface !== "whatChanged" || Config.updates.showWhatChanged;
     }

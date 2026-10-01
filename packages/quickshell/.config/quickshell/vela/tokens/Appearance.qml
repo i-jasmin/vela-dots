@@ -519,6 +519,9 @@ QtObject {
         readonly property int aiBadge: 30
         readonly property int aiBadgeRadius: Math.round(9 * root.radiusScale)
         readonly property real aiName: 14
+        // The updates line under the rest of the System tab (`SystemTab.qml`),
+        // there once the update check has answered.
+        readonly property int updatesHeight: 44
         function aiColumns(cardWidth: real, stacked: bool): int {
             const inner = cardWidth - 2 * root.dashboard.cardPadH;
             const meter = stacked ? root.dashboard.aiStackWidth : root.dashboard.aiMeter;

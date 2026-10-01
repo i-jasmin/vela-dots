@@ -5,7 +5,8 @@ import Quickshell
 import Quickshell.Io
 import qs.config
 
-// Pending package updates -- the whole of the "what changed" overlay.
+// Pending package updates: the line in the dashboard's System tab, and the
+// "what changed" overlay it opens.
 //
 // The design assumes Arch: `checkupdates` for the repos and `paru -Qua` for
 // the AUR. vela targets Fedora, so `Config.updates.checkCommand` is
@@ -22,11 +23,18 @@ import qs.config
 Singleton {
     id: root
 
+    // Whether to look at all: Settings, General, "Check for updates". Off,
+    // nothing here runs, and the System tab's line and "what changed" go.
+    readonly property bool enabled: Config.updates.showWhatChanged
+
     // How often to look. shell.json has no `updates.intervalMinutes` -- no
     // settings page exposes one -- and the settings window is the only thing
     // entitled to add a key, so the cadence is named here instead of inlined.
-    // An hour is the shortest interval that is not rude to a mirror.
-    readonly property int intervalMinutes: 60
+    // Six hours, because the command vela ships forces a metadata refresh, and
+    // Fedora's updates repository is set to go stale after six hours anyway
+    // (`metadata_expire=6h`): hourly, it went to the mirrors six times as
+    // often as dnf itself would. Updating by hand is noticed sooner (`look`).
+    readonly property int intervalMinutes: 360
 
     // The configured checker exists and answered. False means the tool is not
     // installed, and the UI should say nothing rather than "0 updates".
@@ -68,35 +76,46 @@ Singleton {
     property string newestKernel: ""
     readonly property bool rebootRequired: !!runningKernel && !!newestKernel && runningKernel !== newestKernel
 
-    // --- snapshots ------------------------------------------------------
-    //
-    // The design's footer offers a rollback to the pre-upgrade btrfs snapshot.
-    // Where root is ext4, there is no snapshot to take and nothing to roll back
-    // to. Saying so is the whole feature: a rollback button that does nothing
-    // is worse than an absent one, and the dashboard's "Snapshot 2h ago" row
-    // has to be able to read "Not available" instead.
-    readonly property bool snapshotAvailable: false
-
-    // `updates.snapshotBefore` was in the design's shell.json and was read by
-    // nothing. It cannot be honoured here -- there is no subvolume to snapshot
-    // -- but a key nothing reads is worse than one that cannot be granted, so
-    // it is consulted and the refusal is said out loud. With the key off (the
-    // shipped default) the reason is unchanged.
-    readonly property bool snapshotRequested: Config.updates.snapshotBefore
-    readonly property bool willSnapshot: root.snapshotRequested && root.snapshotAvailable
-    // Not "root is ext4": Fedora's default root is btrfs, and what is missing is
-    // the snapshot step itself, which vela does not take.
-    readonly property string snapshotReason: root.snapshotRequested && !root.snapshotAvailable ? qsTr("Asked for, but vela does not take snapshots yet") : qsTr("No pre-upgrade snapshots")
-
     property date lastChecked: new Date(0)
     readonly property bool everChecked: lastChecked.getTime() > 0
 
+    // Something to say in the System tab: the check is on and has answered.
+    readonly property bool shown: root.enabled && root.available && root.everChecked
+
+    // When the rpm database last changed, as of the last check. Installing or
+    // updating anything changes it; reading it does not.
+    property string rpmStamp: ""
+
     function refresh(): void {
-        if (checking)
+        if (checking || !root.enabled)
             return;
         checking = true;
         proc.running = true;
     }
+
+    // Asked as the System tab opens: if packages were installed or updated
+    // since the last check -- a `dnf upgrade` in a terminal -- check again,
+    // rather than go on showing what was waiting before it for hours. A stat,
+    // not a check, unless something changed.
+    function look(): void {
+        if (root.enabled && root.everChecked && !root.checking && !stamp.running)
+            stamp.running = true;
+    }
+
+    // Switched on in Settings: look now, rather than in six hours. Not while
+    // the session is starting -- shell.json loading moves the switch too, and
+    // the first check waits for the desktop to settle (below).
+    onEnabledChanged: {
+        if (root.enabled && root.settled)
+            root.refresh();
+        else if (!root.enabled)
+            proc.running = false;
+    }
+
+    // The rpm database and its write-ahead log, wherever this Fedora keeps
+    // them (/var/lib/rpm is a link to the first on a current one): the newest
+    // modification time of the lot.
+    readonly property string stampScript: "stat -c %Y /usr/lib/sysimage/rpm/rpmdb.sqlite /usr/lib/sysimage/rpm/rpmdb.sqlite-wal /var/lib/rpm/rpmdb.sqlite /var/lib/rpm/rpmdb.sqlite-wal 2>/dev/null | sort -n | tail -1"
 
     // Base Fedora repos, as dnf5 names them. Anything else is third party.
     function sourceOf(repo: string): string {
@@ -141,7 +160,7 @@ Singleton {
     }
 
     Timer {
-        running: true
+        running: root.enabled
         interval: root.intervalMinutes * 60000
         repeat: true
         onTriggered: root.refresh()
@@ -151,11 +170,29 @@ Singleton {
     // is the better part of a minute -- doing it at `Component.onCompleted`
     // would compete with everything else the session is starting. Two minutes
     // in, the desktop is settled and the dashboard has a real figure without
-    // anyone having opened it; the hourly timer takes over from there.
+    // anyone having opened it; the six-hourly timer takes over from there.
+    property bool settled: false
+
     Timer {
         running: true
         interval: 120000
-        onTriggered: root.refresh()
+        onTriggered: {
+            root.settled = true;
+            root.refresh();
+        }
+    }
+
+    Process {
+        id: stamp
+
+        command: ["sh", "-c", root.stampScript]
+
+        stdout: StdioCollector {
+            onStreamFinished: {
+                if (text.trim() !== root.rpmStamp)
+                    root.refresh();
+            }
+        }
     }
 
     Process {
@@ -202,6 +239,9 @@ Singleton {
             # The reboot banner in "what changed": what is running against the newest
             # module tree installed, which is what the next boot would pick.
             printf 'K\\t%s\\t%s\\n' "$(uname -r)" "$(ls -1 /lib/modules 2>/dev/null | sort -V | tail -1)"
+
+            # The rpm database as this answer saw it, for look().
+            printf 'R\\t%s\\n' "$(${root.stampScript})"
         `, "sh", Config.updates.checkCommand]
 
         stdout: StdioCollector {
@@ -236,6 +276,9 @@ Singleton {
                     case "K":
                         root.runningKernel = f[1] ?? "";
                         root.newestKernel = f[2] ?? "";
+                        break;
+                    case "R":
+                        root.rpmStamp = (f[1] ?? "").trim();
                         break;
                     }
                 }
