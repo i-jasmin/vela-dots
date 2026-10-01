@@ -16,11 +16,13 @@ Targets **Hyprland 0.56** (Lua config manager), **Quickshell 0.3.1** and
 
 ```
 packages/          one stow package per target, each mirroring $HOME
-  vela/            ~/.config/vela        shell.json, matugen.toml, templates/
+  vela/            ~/.config/vela        matugen.toml, templates/
   quickshell/      ~/.config/quickshell/vela   the shell itself
   bin/             ~/.local/bin/vela     the `vela` command
-  hypr/            ~/.config/hypr        hyprland.lua + conf/*.lua, hypridle, hyprlock
+  hypr/            ~/.config/hypr        hyprland.lua + conf/*.lua, hyprlock
   kitty/ fish/ fuzzel/ starship/ bash/   terminal, shells, prompt, fallback runner
+defaults/          your first copy of the files that are then yours: shell.json,
+                   hypridle.conf, the palette files (also mirroring $HOME)
 install.sh         the one-line install: clone, then bootstrap.sh
 bootstrap.sh       packages + linking
 packaging/fedora/  the matugen 4 build vela installs, since Fedora's is 3.1
@@ -66,11 +68,19 @@ watcher.
 - **Your old configs are kept.** Anything already at one of vela's paths
   (`~/.config/hypr`, `kitty`, `fish`, `fuzzel`, `quickshell/vela`, `vela`,
   `starship.toml`) is moved, whole, to `~/.local/state/vela/backup-<date>/`.
-- **Updating** is the same line again, or `git pull` in
-  `~/.local/share/vela-dots`.
+- **Your files stay yours.** `~/.config/vela`, `hypr`, `kitty`, `fuzzel` and
+  `fish` are real folders with vela's files linked into them one by one, so
+  what is written there -- `shell.json`, the palette, the idle times, your
+  keybinds, `conf/local.lua`, fish's variables -- stays in your home and never
+  in the repo. The first copy of each comes from `defaults/`, once.
+- **Updating** is the same line again. By hand: `git pull` in
+  `~/.local/share/vela-dots`, then `./bootstrap.sh --link` there, which links
+  anything new. An install from before this layout is moved over by the
+  installer (or `--link`) the first time, your files byte for byte.
 - **From a clone of your own:** `./bootstrap.sh` does the packages and the
-  links; `--packages` and `--link` do one each, `--unlink` removes every link,
-  `--matugen` installs vela's matugen if the one there is older.
+  links; `--packages` and `--link` do one each, `--unlink` removes every link
+  (your own files stay), `--matugen` installs vela's matugen if the one there
+  is older.
 - **kitty opens fish**; the login shell stays bash, so a console or SSH is
   still bash, with the same prompt and greeting.
 - **NVIDIA:** the installer says so if the card has no driver. vela does not
@@ -81,7 +91,7 @@ watcher.
 with (`localectl status` shows it; `localectl set-x11-keymap it` changes it).
 Anything for one machine only -- a different layout, monitor positions,
 scaling -- goes in `~/.config/hypr/conf/local.lua`, which is loaded last and
-never committed:
+lives only in your home:
 
 ```lua
 hl.config({ input = { kb_layout = "it" } })
@@ -105,8 +115,10 @@ vela doctor                              # what is installed, linked and running
 vela idle on power|battery               # true only on that power source (hypridle's check)
 ```
 
-Configuration is `~/.config/vela/shell.json`, watched and applied live. The
-settings window (super + I) writes the same file. A few rarely-changed keys
+Configuration is `~/.config/vela/shell.json`, watched and applied live. It is
+yours: a copy of `defaults/.config/vela/shell.json` made at install, which no
+update touches. The settings window (super + I) writes the same file. A few
+rarely-changed keys
 (clipboard history size, the calendar and update commands, the wallpaper
 transition) are only in the file; everything else has a control:
 
@@ -172,9 +184,10 @@ terminal window, from fish, which kitty opens
 (`~/.bashrc.d/vela.sh`); `VELA_GREETING=off` in the environment turns it off
 (`set -Ux VELA_GREETING off` in fish).
 
-The Hyprland, hyprlock, kitty and fuzzel files live in the repo (so the configs
-are valid before a first wallpaper), which means a retint shows up in
-`git status`. `git update-index --skip-worktree <file>` hides that if it grates.
+The Hyprland, hyprlock, kitty and fuzzel colour files are written into your
+own folders, not the repo, so a retint never shows up in `git status`. Their
+first copies come from `defaults/`, so the configs are valid before a first
+wallpaper.
 
 ## Dashboard
 

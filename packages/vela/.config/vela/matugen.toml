@@ -26,12 +26,10 @@ output_path = '~/.local/state/vela/colours.json'
 # Everything below retints the rest of the desktop from the same wallpaper.
 # Two notes on the output paths:
 #
-#   * Once the hypr/kitty/fuzzel packages are stowed, ~/.config/hypr and
-#     friends are symlinks into this repo, so these writes land in the repo
-#     working tree. That is intended -- the packages ship a default version of
-#     each generated file so the configs are valid before a wallpaper is ever
-#     set -- but it does mean `git status` shows them as modified after every
-#     retint.
+#   * ~/.config/hypr, ~/.config/kitty and ~/.config/fuzzel are real folders
+#     with vela's files linked into them (bootstrap.sh, UNFOLDED), so these
+#     land in your home, never in the repo. The first copy of each comes from
+#     defaults/, so the configs are valid before a wallpaper is ever set.
 #   * gtk.css has no include mechanism, so the GTK entries own the whole file.
 #     If another rice also generates ~/.config/gtk-3.0/gtk.css, last writer
 #     wins.

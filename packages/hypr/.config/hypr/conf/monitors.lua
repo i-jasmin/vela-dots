@@ -2,7 +2,7 @@
 --
 -- Every screen gets its own best mode, placed automatically -- the rule at the
 -- bottom. Anything for one machine only (a scale, a position, a refresh rate)
--- belongs in conf/local.lua, which is loaded last and not committed, so the
+-- belongs in conf/local.lua, which is loaded last and only in your home, so the
 -- same config fits every machine. Names come from `hyprctl monitors all`.
 --
 -- One screen at 1.25x -- eDP-1 is a laptop's own; a PC's monitors are DP-1,

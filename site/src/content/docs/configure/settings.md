@@ -27,7 +27,10 @@ super + I again. A page's **Reset** asks before it puts anything back.
 ## shell.json
 
 The window writes `~/.config/vela/shell.json`, and the shell watches the file:
-edit it by hand and the change applies as soon as you save. A few settings
+edit it by hand and the change applies as soon as you save. It is your own
+file, copied once from vela's defaults when you install, and no update
+touches it; a key vela adds later takes its default until you change it. A
+few settings
 that rarely change are only in the file. The groups, with the keys worth
 knowing:
 

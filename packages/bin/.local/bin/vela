@@ -512,6 +512,14 @@ cmd_doctor() {
             fail "not linked from the repo: ${unlinked[*]} (run $repo/bootstrap.sh --link)"
         fi
     fi
+    # The folders that hold your own files too (bootstrap.sh's UNFOLDED) are
+    # real ones. Linked whole, as an older install left them, your settings
+    # and palette are written into the repo, and updates refuse to run.
+    local whole=()
+    for rel in .config/vela .config/hypr .config/kitty .config/fuzzel .config/fish; do
+        [ -L "$HOME/$rel" ] && whole+=("~/$rel")
+    done
+    [ "${#whole[@]}" -eq 0 ] || fail "linked whole, as an older install left them: ${whole[*]} -- your files in them are in the repo. Run the installer again, or $repo/bootstrap.sh --link"
     [ -f "$HOME/.config/hypr/conf/local.lua" ] && note "~/.config/hypr/conf/local.lua overrides some settings on this machine"
 
     # The palette every config reads.

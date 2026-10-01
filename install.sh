@@ -10,7 +10,9 @@
 # It clones the repo to ~/.local/share/vela-dots, installs the packages
 # (bootstrap.sh), links the configs into place -- moving anything already
 # there aside, never deleting it -- sets a first wallpaper so the palette
-# exists, and checks the result with `vela doctor`. Run it again to update.
+# exists, and checks the result with `vela doctor`. Run it again to update:
+# your own files (settings, palette, idle times) live in your home, not the
+# repo, so an update never touches them.
 # ~/.local/state/vela/install.log keeps the steps and anything that went
 # wrong, dnf's warnings included, for after the terminal has scrolled away.
 #
@@ -109,10 +111,27 @@ main() {
         sudo dnf install -y git
     fi
 
+    local moved=0
     if [ -d "$DEST/.git" ]; then
         log "Updating $DEST"
-        if ! git -C "$DEST" pull --ff-only --quiet origin "$BRANCH"; then
-            die "could not update $DEST (local changes, or a different history). Sort it out there with git, then run this again."
+        git -C "$DEST" fetch --quiet origin "$BRANCH" || die "could not fetch the latest vela into $DEST"
+        git -C "$DEST" merge-base --is-ancestor HEAD FETCH_HEAD \
+            || die "could not update $DEST: its history is not the one being installed. Sort it out there with git, then run this again."
+        # Installs from before kept your settings and palette inside the repo,
+        # in folders linked whole into ~/.config, and the update would refuse
+        # to pull over them. The new version's bootstrap.sh moves them out
+        # first, into real folders in your home, without changing a byte of
+        # them.
+        local next
+        next="$(mktemp)"
+        git -C "$DEST" show FETCH_HEAD:bootstrap.sh >"$next"
+        if grep -q -- '--unfold' "$next"; then
+            for d in vela hypr kitty fuzzel fish; do [ -L "$HOME/.config/$d" ] && moved=1; done
+            VELA_BOOTSTRAP_REPO="$DEST" bash "$next" --unfold || { rm -f "$next"; die "could not move your files out of $DEST; nothing was updated"; }
+        fi
+        rm -f "$next"
+        if ! git -C "$DEST" merge --ff-only --quiet FETCH_HEAD; then
+            die "could not update $DEST (git says why, above): one of vela's own files is changed there. Put the change somewhere of your own -- conf/local.lua, for Hyprland -- or undo it with git, then run this again."
         fi
     elif [ -e "$DEST" ]; then
         die "$DEST exists and is not a git clone. Move it away, or set VELA_DIR to somewhere else."
@@ -132,6 +151,19 @@ main() {
     fi
 
     VELA="$DEST/packages/bin/.local/bin/vela"
+
+    # Moved out of the repo just now. Hyprland and a running shell found them
+    # through the old links, so they read them again from the new place; they
+    # are the same files, so nothing on screen changes.
+    if [ "$moved" = 1 ]; then
+        log "Your settings, palette and idle times are in your home now, not the repo: updates leave them alone"
+        if [ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]; then
+            hyprctl reload >/dev/null 2>&1 || true
+            if qs -c vela ipc show >/dev/null 2>&1; then
+                "$VELA" shell restart >/dev/null 2>&1 || warn "could not restart the shell; do it with super + shift + R"
+            fi
+        fi
+    fi
 
     # ---- a first wallpaper ----------------------------------------------------------
     #

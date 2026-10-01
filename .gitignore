@@ -2,9 +2,18 @@
 *.bak
 .DS_Store
 
-# Per-machine Hyprland overrides (monitors, keyboard): never shared.
-packages/hypr/.config/hypr/conf/local.lua
-
-# Keybinds changed in Settings, Keybinds (conf/keybinds.lua reads it). Yours,
-# and kept out of the repo so an update never resets or conflicts with it.
+# Your own files: settings, keybinds, the palette, idle times, this machine's
+# Hyprland overrides, fish's variables. They live in your home, in real
+# folders vela links its files into (bootstrap.sh, UNFOLDED), and the copies
+# vela starts you with are under defaults/. A copy showing up here means a
+# folder is still linked whole from before: run the installer, or
+# bootstrap.sh --link, to move it out.
+packages/vela/.config/vela/shell.json
 packages/vela/.config/vela/keybinds.json
+packages/hypr/.config/hypr/hypridle.conf
+packages/hypr/.config/hypr/colours.conf
+packages/hypr/.config/hypr/conf/colours.lua
+packages/hypr/.config/hypr/conf/local.lua
+packages/kitty/.config/kitty/colours.conf
+packages/fuzzel/.config/fuzzel/colours.ini
+packages/fish/.config/fish/fish_variables

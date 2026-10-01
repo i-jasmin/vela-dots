@@ -7,11 +7,13 @@ description: A map of the repo, for anyone reading or changing the code.
 
 ```
 packages/          one stow package per target, each mirroring $HOME
-  vela/            ~/.config/vela        shell.json, matugen.toml, templates/
+  vela/            ~/.config/vela        matugen.toml, templates/
   quickshell/      ~/.config/quickshell/vela   the shell itself
   bin/             ~/.local/bin/vela     the `vela` command
-  hypr/            ~/.config/hypr        hyprland.lua + conf/*.lua, hypridle, hyprlock
+  hypr/            ~/.config/hypr        hyprland.lua + conf/*.lua, hyprlock
   kitty/ fish/ fuzzel/ starship/ bash/   terminal, shells, prompt, fallback launcher
+defaults/          the first copy of the files that are then the user's:
+                   shell.json, hypridle.conf, the palette files
 install.sh         the one-line install
 bootstrap.sh       packages and linking
 packaging/fedora/  the matugen build vela installs (Fedora's is too old)

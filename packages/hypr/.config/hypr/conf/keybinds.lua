@@ -2,7 +2,7 @@
 --
 -- binds.lua is vela's defaults, and an update of the dots replaces it. What you
 -- change in Settings, Keybinds goes to ~/.config/vela/keybinds.json instead,
--- which no update touches (it is in .gitignore), and binds.lua reads it every
+-- which no update touches (it is never in the repo), and binds.lua reads it every
 -- time Hyprland loads the config:
 --
 --     {

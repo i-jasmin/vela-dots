@@ -64,6 +64,12 @@ If any of them already exists, it is moved -- whole -- to
 `~/.local/state/vela/backup-<date>/` before vela's is linked in. To go back to
 yours, see [Update and uninstall](../update/#uninstall).
 
+`~/.config/vela`, `hypr`, `kitty`, `fish` and `fuzzel` are then real folders
+with vela's files linked into them, because they also hold your own:
+your settings, the palette, the idle times. Those are copied in once and are
+yours from then on; no update touches them. See
+[Your files](../update/#your-files).
+
 ## Options
 
 Set these in front of `bash` in the one-liner:

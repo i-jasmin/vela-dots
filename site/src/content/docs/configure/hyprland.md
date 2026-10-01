@@ -23,7 +23,8 @@ It needs Hyprland 0.56 or newer (the Lua config). `vela doctor` checks.
 
 The config is shared -- one repo for every machine you install it on. What is
 true of one machine only goes in **`~/.config/hypr/conf/local.lua`**. It is
-loaded last, so it wins, and it is never committed. Create it yourself:
+loaded last, so it wins, and it lives only in your home: the repo never has it,
+so no update touches it. Create it yourself:
 
 ```lua
 -- ~/.config/hypr/conf/local.lua

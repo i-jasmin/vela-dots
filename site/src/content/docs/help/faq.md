@@ -20,15 +20,21 @@ No. Anything already at one of vela's paths is moved to
 Yes. Keybinds: change them in **Settings → Keybinds**, which keeps them in
 `~/.config/vela/keybinds.json`, a file no update touches -- see
 [Keybinds](../../configure/keybinds/). Monitors and the keyboard layout go in
-`~/.config/hypr/conf/local.lua`, which is loaded last and never committed. See
-[Hyprland and this machine](../../configure/hyprland/).
+`~/.config/hypr/conf/local.lua`, which is loaded last and lives only in your
+home. See [Hyprland and this machine](../../configure/hyprland/).
+
+## Will an update undo my settings?
+
+No. Your settings, keybinds, palette, idle times and `conf/local.lua` live in
+your home, in folders vela only links its own files into; the repo never has
+them, so an update cannot change them. See
+[Your files](../../start/update/#your-files).
 
 ## Why does git show changed files after I pick a wallpaper?
 
-The colour files for Hyprland, kitty and fuzzel live in the repo, so they
-exist before your first wallpaper, and every retint rewrites them. It is
-expected; `git update-index --skip-worktree <file>` hides one if it bothers
-you.
+On an install from before your files were moved out of the repo, the colour
+files lived in it, and every retint rewrote them. Run the installer once more:
+it moves them into your home, and `git status` stays clean from then on.
 
 ## Why does kitty open fish? Can I have bash?
 
