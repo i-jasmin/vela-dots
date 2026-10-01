@@ -981,6 +981,13 @@ def complaint(text):
     # business, not the reader's.
     found = re.sub(r"^Unknown error occurred for acc_[0-9a-f]+\S*:\s*", "", found)
     found = re.sub(r"\s*\bacc_[0-9a-f]+(_remote|_local)?\b", "", found)
+    # vdirsyncer asks secret-tool for each account's secret, and when the
+    # keyring gives nothing back -- locked, or a keyring that never had it --
+    # it prints the whole command it ran.
+    asked = re.search(r"\['secret-tool', 'lookup'.*'field', '(\w+)'\]' returned non-zero", found)
+    if asked:
+        what = "link" if asked.group(1) == "url" else "password"
+        found = f"the keyring did not give its {what}. Unlock the keyring; if it is unlocked, remove the account and add it again"
     return found[:1].upper() + found[1:]
 
 
