@@ -439,6 +439,9 @@ Item {
             today: root.today
             openHeight: root.homeOpenHeight
             editor: root.editor
+            // `live`, not `shown` as the other tabs take: the clock and the
+            // now line hold still only once the drawer has closed over them.
+            live: root.live
             onMonthToggled: root.toggleMonth()
             onDayPicked: d => root.pick(d)
             onNewRequested: root.newEvent()

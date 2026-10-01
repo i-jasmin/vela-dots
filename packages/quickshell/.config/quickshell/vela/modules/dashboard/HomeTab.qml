@@ -30,6 +30,9 @@ Item {
     required property real openHeight
     // The event being written in the month, or null (Dashboard's `editor`).
     required property var editor
+    // From the moment the dashboard is asked for until it has fully gone
+    // (Dashboard's `live`).
+    required property bool live
 
     signal monthToggled
     signal dayPicked(date day)
@@ -38,7 +41,11 @@ Item {
     signal editorClosed
     signal dayStepped(int by)
 
-    readonly property date now: Time.now
+    // The clock only while the dashboard is up. This page stays built behind
+    // a closed dashboard, and the seconds and the now line changing in it
+    // still had the window draw a frame -- once a second, all session long,
+    // with nothing new on screen. Hidden, it rests at midnight.
+    readonly property date now: root.live ? Time.now : root.today
 
     readonly property bool isToday: root.day.getTime() === root.today.getTime()
     readonly property date dayEnd: {
@@ -141,7 +148,8 @@ Item {
             }
 
             Text {
-                text: Time.second
+                // Not ticking behind a closed dashboard: see `now`.
+                text: root.live ? Time.second : ""
                 font.family: Appearance.font.mono
                 font.pixelSize: clockBlock.secondsSize
                 color: Colours.primary
