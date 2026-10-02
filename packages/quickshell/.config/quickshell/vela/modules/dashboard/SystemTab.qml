@@ -279,7 +279,8 @@ Item {
     // What is waiting from the package manager, and whether the last update
     // wants a reboot: one line, there once the check has answered
     // (`services/Updates.qml`). Clicked, "what changed" opens with the list,
-    // and with why, when dnf could not check or left a repository out.
+    // and with why, when dnf could not check or left a repository out. While
+    // updates wait, Update runs them, in a terminal.
     component UpdatesLine: Tile {
         id: line
 
@@ -329,6 +330,17 @@ Item {
                 color: Updates.rebootRequired ? Colours.error : Updates.keys.length > 0 ? Colours.tertiary : Colours.outline
             }
 
+            Pill {
+                visible: Updates.count > 0 && Updates.canUpgrade
+                text: qsTr("Update")
+                icon: "download"
+                tone: "accent"
+                onClicked: {
+                    Updates.upgrade();
+                    ShellState.closeAll();
+                }
+            }
+
             Icon {
                 text: "chevron_right"
                 size: Appearance.size.iconSm
@@ -336,8 +348,10 @@ Item {
             }
         }
 
+        // Under the row, so Update takes its own clicks.
         MouseArea {
             anchors.fill: parent
+            z: -1
             cursorShape: Qt.PointingHandCursor
             onClicked: ShellState.open("whatChanged")
         }

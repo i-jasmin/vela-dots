@@ -10,6 +10,10 @@ import qs.tokens
 // vertical bar, a word beside a number along a horizontal one. Both are
 // monospace, because both are quantities.
 //
+// While package updates wait, a third pair follows them: a download arrow
+// and how many, in the accent (`services/Updates.qml`). The System tab, a
+// click away, says what they are and has the button that runs them.
+//
 // Clicking opens the dashboard on its System tab, NOT a popout; a second click
 // puts it away. System stats are information you
 // go and look at; a popout is a control for the thing you clicked. The design
@@ -44,6 +48,8 @@ Item {
             }
         ];
     }
+
+    readonly property int updates: Updates.shown ? Updates.count : 0
 
     implicitWidth: root.bar.vertical ? stack.implicitWidth : chip.implicitWidth
     implicitHeight: root.bar.vertical ? stack.implicitHeight : chip.implicitHeight
@@ -81,6 +87,28 @@ Item {
                     font.pixelSize: Appearance.bar.statSize
                     color: Colours.outline
                 }
+            }
+        }
+
+        BarFlow {
+            visible: root.updates > 0
+            Layout.alignment: Qt.AlignHCenter
+            vertical: true
+            gap: Appearance.bar.statGap
+
+            Icon {
+                Layout.alignment: Qt.AlignHCenter
+                text: "download"
+                size: Appearance.size.iconSm
+                color: Colours.primary
+            }
+
+            Text {
+                Layout.alignment: Qt.AlignHCenter
+                text: root.updates
+                font.family: Appearance.font.mono
+                font.pixelSize: Appearance.bar.statSize
+                color: Colours.primary
             }
         }
     }
@@ -123,6 +151,27 @@ Item {
                     font.pixelSize: Appearance.size.caption
                     color: Colours.on.surfaceVariant
                 }
+            }
+        }
+
+        BarFlow {
+            visible: root.updates > 0
+            Layout.alignment: Qt.AlignVCenter
+            gap: Appearance.space.xs
+
+            Icon {
+                Layout.alignment: Qt.AlignVCenter
+                text: "download"
+                size: Appearance.size.iconSm
+                color: Colours.primary
+            }
+
+            Text {
+                Layout.alignment: Qt.AlignVCenter
+                text: root.updates
+                font.family: Appearance.font.mono
+                font.pixelSize: Appearance.size.caption
+                color: Colours.primary
             }
         }
     }

@@ -205,8 +205,11 @@ shape rather than squashed. Four tabs, one job each:
 
 The updates line says what dnf has waiting, how much of it is security, and
 when a newer kernel wants a reboot; click it for the list, split into what
-needs something from you and the rest. It is checked every six hours, and
-again when you open the tab after updating.
+needs something from you and the rest. While updates wait, the bar's CPU and
+memory item shows how many, and Update opens a terminal on
+`sudo dnf upgrade --refresh`, which still asks before it changes anything.
+It is checked every six hours, again when you open the tab after updating,
+and as soon as an Update run finishes.
 
 The Claude Code and Codex cards show the plan, the model and its effort, what
 each session is doing, and a ring per plan window with its reset: the 5-hour
@@ -358,6 +361,7 @@ qs -c vela ipc call notifs toggleDnd|clear
 qs -c vela ipc call nightlight toggle|resume|set 4000   # held by hand until the evening turns
 qs -c vela ipc call wallpaper apply <path>|revert
 qs -c vela ipc call lock lock|isLocked
+qs -c vela ipc call updates check
 ```
 
 With no shell running these exit 255, which is what lets hypridle fall back to

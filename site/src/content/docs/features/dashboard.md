@@ -34,12 +34,25 @@ Click it for the list. Updates that need something from you come first --
 a new kernel wants a reboot, a new Hyprland a fresh login -- and the rest
 follow as old and new versions.
 
+While updates wait, the CPU and memory item on the bar shows them too: a
+download arrow and how many, like **↓ 5**.
+
+**Update**, on the line and at the top of the list, opens your terminal on
+`sudo dnf upgrade --refresh`. You type your password there, and dnf shows
+what it will change and asks before it does. When it is done, vela checks
+again straight away, so the count goes, and the window waits for Enter so
+you can read what dnf said. After a new kernel, the line says **Reboot
+recommended**.
+
 vela checks two minutes after you log in, then every six hours, with
 `dnf5 check-update` (`updates.checkCommand` in
 [settings](../../configure/settings/#shelljson)). It checks again when you
 open the tab after installing or updating anything, so the line does not go
-on counting what you have just installed. Updating is up to you: vela only
-looks.
+on counting what you have just installed. To check right now:
+
+```sh
+qs -c vela ipc call updates check
+```
 
 When dnf could not check everything, the line says so, and the list says
 which and why:

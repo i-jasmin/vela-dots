@@ -122,6 +122,42 @@ Singleton {
             proc.running = false;
     }
 
+    // Updating is dnf's to do, in a terminal where it can be watched: what it
+    // is about to change, its question before it does, the password. Offered
+    // for the checker vela ships, whose upgrade command is known.
+    readonly property bool canUpgrade: root.tool === "dnf5" || root.tool === "dnf"
+
+    // The terminal, on `sudo dnf upgrade --refresh`. Once dnf is done it asks
+    // the shell to check again (`updates check`, below), so the count on the
+    // bar goes without waiting six hours, and it waits for Enter, so what dnf
+    // said can still be read. Detached: restarting the shell must not take a
+    // running upgrade down with it.
+    function upgrade(): void {
+        if (root.canUpgrade)
+            Quickshell.execDetached([Apps.terminal, "--title", qsTr("Updating Fedora"), "-e", "sh", "-c", root.upgradeScript, "sh", root.tool]);
+    }
+
+    readonly property string upgradeScript: `
+        sudo "$1" upgrade --refresh
+        code=$?
+        echo
+        if [ "$code" -eq 0 ]; then echo "Done."; else echo "dnf stopped (exit $code)."; fi
+        qs -c vela ipc call updates check >/dev/null 2>&1
+        printf 'Press Enter to close this window. '
+        read -r _
+    `
+
+    // Check now, from a terminal or a keybind -- and from the update window
+    // above, once dnf is done:
+    //   qs -c vela ipc call updates check
+    IpcHandler {
+        target: "updates"
+
+        function check(): void {
+            root.refresh();
+        }
+    }
+
     // The rpm database and its write-ahead log, wherever this Fedora keeps
     // them (/var/lib/rpm is a link to the first on a current one): the newest
     // modification time of the lot.

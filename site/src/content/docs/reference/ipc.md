@@ -20,6 +20,7 @@ qs -c vela ipc call notifs toggleDnd              # or clear
 qs -c vela ipc call nightlight toggle             # or resume, or: set 4000
 qs -c vela ipc call wallpaper apply <path>        # or revert
 qs -c vela ipc call lock lock                     # or isLocked
+qs -c vela ipc call updates check                 # check for package updates now
 ```
 
 With no shell running these exit with 255. That is what lets hypridle fall

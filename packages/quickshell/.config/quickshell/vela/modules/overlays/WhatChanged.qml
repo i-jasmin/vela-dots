@@ -260,6 +260,25 @@ PanelWindow {
 
                         Layout.alignment: Qt.AlignVCenter
                     }
+
+                    // Having read what is coming: run it, in a terminal, where
+                    // dnf asks before it changes anything.
+                    Pill {
+                        visible: Updates.count > 0 && Updates.canUpgrade
+                        text: qsTr("Update")
+                        icon: "download"
+                        tone: "accent"
+                        pillHeight: Appearance.overlays.changes.buttonHeight
+                        hPadding: Appearance.overlays.changes.buttonPadding
+                        fontSize: Appearance.size.body
+
+                        Layout.alignment: Qt.AlignVCenter
+
+                        onClicked: {
+                            Updates.upgrade();
+                            ShellState.close("whatChanged");
+                        }
+                    }
                 }
 
                 // ---- the reboot banner ---------------------------------------
