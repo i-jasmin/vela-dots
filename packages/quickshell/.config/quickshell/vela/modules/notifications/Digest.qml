@@ -226,9 +226,11 @@ Item {
                                 anchors.topMargin: Appearance.notifications.rowPadV
                                 spacing: root.gap
 
-                                Icon {
-                                    text: entry.urgent ? "priority_high" : Hypr.symbolFor(entry.modelData)
+                                AppIcon {
+                                    source: entry.urgent ? "" : AppIcons.forClass(entry.modelData)
+                                    glyph: entry.urgent ? "priority_high" : Hypr.symbolFor(entry.modelData)
                                     size: Appearance.size.iconMd
+                                    imageSize: Appearance.size.iconMd + Appearance.size.appIconGrow
                                     // Neutral, except for the two things that
                                     // are not: something urgent got held, or
                                     // the row still has somewhere to go.

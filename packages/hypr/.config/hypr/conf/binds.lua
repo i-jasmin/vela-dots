@@ -48,7 +48,11 @@ local vela = "qs -c vela ipc call"
 -- Every surface goes through one handler, `shell`, which owns the mutual
 -- exclusion.
 K.bind("shell.launcher", mod .. " + SPACE", hl.dsp.exec_cmd(vela .. " shell toggle launcher"), { description = "Shell: Launcher" })
-K.bind("shell.fallback-launcher", mod .. " + SHIFT + SPACE", hl.dsp.exec_cmd("fuzzel"), { description = "Shell › Fallback launcher" })
+-- fuzzel in the apps' icon theme, read as it opens: Settings (Appearance, App
+-- icons) sets it for GTK, and fuzzel.ini can only name one theme for good.
+K.bind("shell.fallback-launcher", mod .. " + SHIFT + SPACE",
+    hl.dsp.exec_cmd("t=$(gsettings get org.gnome.desktop.interface icon-theme 2>/dev/null | tr -d \"'\"); exec fuzzel --icon-theme=\"${t:-Adwaita}\""),
+    { description = "Shell › Fallback launcher" })
 K.bind("shell.dashboard", mod .. " + D", hl.dsp.exec_cmd(vela .. " shell toggle dashboard"), { description = "Shell: Dashboard" })
 K.bind("shell.calendar", mod .. " + SHIFT + D", hl.dsp.exec_cmd(vela .. " shell toggle calendar"), { description = "Shell: Calendar" })
 K.bind("shell.clipboard", mod .. " + V", hl.dsp.exec_cmd(vela .. " shell toggle clipboard"), { description = "Shell: Clipboard history" })

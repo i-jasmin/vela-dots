@@ -24,6 +24,18 @@ vela shell restart    # super + shift + R does the same
 vela shell log        # follow its log
 ```
 
+## App icons
+
+```sh
+vela icon-theme             # the installed icon themes, the one in use marked
+vela icon-theme <name>      # draw apps from that theme, in the shell and GTK apps
+vela icon-theme vela        # back to vela's own symbols
+vela icon-theme --json      # the list with a few icons from each, for Settings
+```
+
+Choosing one restarts the shell: Quickshell reads its icon theme once, as it
+starts. See [Wallpapers and colours](../../features/theming/#app-icons).
+
 ## vela doctor
 
 ```sh

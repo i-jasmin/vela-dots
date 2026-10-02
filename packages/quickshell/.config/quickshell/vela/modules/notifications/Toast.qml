@@ -262,16 +262,22 @@ Item {
                 implicitWidth: Appearance.notifications.toastTile
                 implicitHeight: Appearance.notifications.toastTile
                 radius: Appearance.bar.tileRadius(Appearance.notifications.toastTile)
-                color: root.urgent ? Colours.alpha(Colours.error, root.tileTint) : Colours.hover
+                // No square behind an app's own icon, which has a shape of its own.
+                color: toastIcon.showsImage ? "transparent" : root.urgent ? Colours.alpha(Colours.error, root.tileTint) : Colours.hover
 
                 Layout.alignment: Qt.AlignTop
 
-                Icon {
+                AppIcon {
+                    id: toastIcon
+
                     anchors.centerIn: parent
                     // Urgency has its own glyph; everything else is drawn as
-                    // whatever the application is.
-                    text: root.urgent ? "priority_high" : Hypr.symbolFor(root.app)
+                    // whatever the application is -- its own icon, when an icon
+                    // theme is chosen.
+                    source: root.urgent ? "" : AppIcons.forClass(root.app)
+                    glyph: root.urgent ? "priority_high" : Hypr.symbolFor(root.app)
                     size: Appearance.size.iconMd
+                    imageSize: Appearance.notifications.toastTile
                     color: root.urgent ? Colours.error : Colours.on.surfaceVariant
                 }
             }

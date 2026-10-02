@@ -61,6 +61,13 @@ Singleton {
         property string mode: "dark"
         property bool generateFromWallpaper: true
         property real radiusScale: 1.0
+        // The icon theme applications are drawn with, by its folder name
+        // under ~/.local/share/icons or /usr/share/icons ("Papirus-Dark"), or
+        // "" for vela's own Material symbols. `vela shell start` hands it to
+        // Quickshell as QS_ICON_THEME, which Quickshell reads once, as it
+        // starts -- so choosing one goes through `vela icon-theme`, which
+        // restarts the shell and sets GTK apps to the same theme.
+        property string iconTheme: ""
 
         // Panel opacity has a floor, and it is a contrast floor rather than a
         // taste one. Text is drawn on `Colours.panel` -- `panelBase` composited

@@ -61,6 +61,54 @@ PaneScroll {
 
     readonly property bool canRetheme: Wallpaper.themerAvailable && Wallpaper.current !== ""
 
+    // The app icon choices: vela's own symbols, then every icon theme on the
+    // machine, by name. A theme chosen and since uninstalled is still listed,
+    // so the setting does not look like something it is not.
+    readonly property var iconChoices: {
+        const home = Quickshell.env("HOME");
+        const folder = path => {
+            const dir = path.slice(0, path.lastIndexOf("/"));
+            return home && dir.startsWith(home) ? "~" + dir.slice(home.length) : dir;
+        };
+        const out = [
+            {
+                key: "",
+                title: qsTr("vela"),
+                subtitle: qsTr("Symbols in your colours · the default")
+            }
+        ];
+        for (const t of AppIcons.themes)
+            out.push({
+                key: t.id,
+                title: t.name,
+                // Fedora's own has next to no application icons; what shows is
+                // each app's own, which is worth saying.
+                subtitle: t.id === "Adwaita" ? qsTr("Fedora's own · each app's own icon") : folder(t.path),
+                mono: t.id !== "Adwaita",
+                preview: t.preview
+            });
+        const chosen = Config.appearance.iconTheme;
+        if (chosen && AppIcons.scanned && !out.some(c => c.key === chosen))
+            out.push({
+                key: chosen,
+                title: chosen,
+                subtitle: qsTr("Not installed")
+            });
+        return out;
+    }
+
+    // Chosen, but nowhere on the machine: uninstalled since, or a name typed
+    // into shell.json by hand. `vela shell start` passes over it.
+    readonly property bool iconThemeMissing: Config.appearance.iconTheme !== "" && AppIcons.scanned && !AppIcons.themes.some(t => t.id === Config.appearance.iconTheme)
+
+    // vela's own row of icons in the list: the glyphs it draws for the same
+    // five apps the themes are shown with.
+    readonly property var velaPreview: ["public", "terminal", "folder", "code", "chat_bubble"]
+
+    // Every page visit lists them again, so a theme installed while the shell
+    // runs is there the next time the page opens.
+    Component.onCompleted: AppIcons.scan()
+
     // Re-run matugen against the current wallpaper with whatever scheme and
     // mode are now set. This is the screen's one affirmative action: the other
     // controls here change a colour the shell already has, and this is the one
@@ -184,6 +232,46 @@ PaneScroll {
         }
     }
 
+    // ---- app icons ----------------------------------------------------------
+    //
+    // vela's symbols, or an icon theme. Choosing one is not held either, but
+    // it is not instant: Quickshell reads its icon theme once, as it starts,
+    // so `vela icon-theme` restarts the shell with it -- and sets GTK apps to
+    // the same theme -- then opens this page again.
+    Section {
+        title: qsTr("App icons")
+        gap: Appearance.settings.cardGapTight
+
+        SettingRow {
+            title: qsTr("Icon theme")
+            subtitle: qsTr("The shell and your apps: Files, Settings, the other GTK apps")
+            gap: Appearance.settings.rowGapTight
+
+            Dropdown {
+                model: root.iconChoices
+                current: Config.appearance.iconTheme
+                preview: themePreview
+                onPicked: key => {
+                    Config.appearance.iconTheme = key;
+                    Persist.now();
+                    AppIcons.use(key);
+                }
+
+                Layout.alignment: Qt.AlignVCenter
+            }
+        }
+
+        Text {
+            text: root.iconThemeMissing ? qsTr("%1 is not installed. Install it again, or pick another.").arg(Config.appearance.iconTheme) : AppIcons.pending ? qsTr("Not applied yet: the shell starts with it the next time it restarts (super + shift + R).") : qsTr("Picking one restarts the shell for a second. With vela's symbols, apps keep Fedora's Adwaita.")
+            font.family: Appearance.font.ui
+            font.pixelSize: Appearance.size.label
+            color: Colours.outline
+            wrapMode: Text.WordWrap
+
+            Layout.fillWidth: true
+        }
+    }
+
     Section {
         title: qsTr("Shape & density")
         gap: Appearance.settings.cardGapWide
@@ -296,6 +384,64 @@ PaneScroll {
 
             SettingValue {
                 text: qsTr("%1×").arg(Number(Config.appearance.animationSpeed.toFixed(2)))
+            }
+        }
+    }
+
+    // A few of a choice's icons, for the dropdown: on its button (`compact`,
+    // four) and at the end of each row (five). vela's are its glyphs on the
+    // tile the dock draws them on; a theme's are its own icons, as it drew them.
+    Component {
+        id: themePreview
+
+        RowLayout {
+            id: strip
+
+            property var choice: null
+            property bool compact: false
+
+            readonly property bool glyphs: strip.choice?.key === ""
+            readonly property real side: strip.compact ? Appearance.settings.previewIconCompact : Appearance.settings.previewIcon
+
+            spacing: strip.compact ? Appearance.settings.previewIconGapCompact : Appearance.settings.previewIconGap
+
+            Repeater {
+                model: (strip.glyphs ? root.velaPreview : strip.choice?.preview ?? []).slice(0, strip.compact ? Appearance.settings.previewCountCompact : Appearance.settings.previewCount)
+
+                Item {
+                    id: cell
+
+                    required property string modelData
+
+                    implicitWidth: strip.side
+                    implicitHeight: strip.side
+
+                    Rectangle {
+                        anchors.fill: parent
+                        visible: strip.glyphs
+                        radius: Appearance.settings.previewTileRadius
+                        color: Colours.hover
+
+                        Icon {
+                            anchors.centerIn: parent
+                            text: cell.modelData
+                            size: strip.compact ? Appearance.settings.previewGlyphCompact : Appearance.settings.previewGlyph
+                            color: Colours.on.surfaceVariant
+                        }
+                    }
+
+                    Image {
+                        anchors.fill: parent
+                        visible: !strip.glyphs
+                        source: strip.glyphs ? "" : `file://${cell.modelData}`
+                        sourceSize.width: Appearance.settings.previewIcon
+                        sourceSize.height: Appearance.settings.previewIcon
+                        fillMode: Image.PreserveAspectFit
+                        asynchronous: true
+                        smooth: true
+                        mipmap: true
+                    }
+                }
             }
         }
     }

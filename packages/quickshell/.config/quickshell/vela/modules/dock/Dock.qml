@@ -110,6 +110,7 @@ Scope {
                             key: key,
                             entry: entry,
                             icon: win.symbolFor(entry, id),
+                            image: AppIcons.forEntry(entry) || AppIcons.forClass(id.replace(/\.desktop$/i, "")),
                             label: entry?.name ?? id
                         });
                     }
@@ -125,6 +126,7 @@ Scope {
                                 key: key,
                                 entry: found.entry,
                                 icon: win.symbolFor(found.entry, found.appClass),
+                                image: AppIcons.forEntry(found.entry) || AppIcons.forClass(found.appClass),
                                 label: found.entry?.name ?? found.appClass
                             });
                         }
@@ -236,7 +238,8 @@ Scope {
                 // Which Material Symbol a tile carries. The design draws monochrome
                 // ligatures rather than themed app icons; the table that answers this
                 // lives in `Apps` and `Hypr` so the bar, the launcher and the dock
-                // cannot disagree about what an application looks like.
+                // cannot disagree about what an application looks like. With an icon
+                // theme chosen, `image` is the app's own icon and this its fallback.
                 function symbolFor(entry: var, fallback: string): string {
                     if (entry) {
                         const byCategory = Apps.symbolForCategories(entry.categories);

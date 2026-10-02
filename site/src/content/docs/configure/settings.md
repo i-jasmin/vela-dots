@@ -14,7 +14,7 @@ super + I again. A page's **Reset** asks before it puts anything back.
 | Page | Covers |
 | --- | --- |
 | **General** | where you are (for the weather and sunset), units, evening warmth, your picture, the wallpaper / screenshot / recording folders, restoring your session at login, checking for updates |
-| **Appearance** | the palette and its variant, light / dark / auto, corner radius, panel opacity, motion (full, reduced or off) and its speed |
+| **Appearance** | the palette and its variant, light / dark / auto, app icons (vela's symbols or an icon theme), corner radius, panel opacity, motion (full, reduced or off) and its speed |
 | **Bar** | which edge, floating or attached, autohide, the dock and its pinned apps and stacks |
 | **Notifications** | do not disturb, where cards go, how long they stay, how many stack, the focus digest |
 | **Calendars** | your accounts, each calendar's colour and whether it shows, reminders, how often they sync |
@@ -38,6 +38,7 @@ knowing:
 | --- | --- | --- |
 | `appearance.mode` | `"auto"` | `"light"`, `"dark"`, or `"auto"` (dark after sunset) |
 | `appearance.scheme` | `"scheme-tonal-spot"` | matugen's variant -- how colourful the palette is |
+| `appearance.iconTheme` | `""` | the icon theme apps are drawn with, by its folder name (`"Papirus-Dark"`); empty for vela's symbols. Edited by hand, it applies when the shell next starts, and GTK apps keep their own until you pick it in Settings or run `vela icon-theme` |
 | `appearance.eveningWarmth.*` | on, from sunset, 90 min, `strength` 0.35 | the evening warmth; `strength` is how far the shell's colours go toward amber (0–1); `screen: true` warms the screen too (hyprsunset) |
 | `bar.position` | `"top"` | `"top"`, `"bottom"`, `"left"`, `"right"` |
 | `bar.floating` | `true` | a gap round the bar; `false` attaches it to its edge |

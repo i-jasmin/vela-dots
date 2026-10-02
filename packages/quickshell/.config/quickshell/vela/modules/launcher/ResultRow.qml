@@ -34,13 +34,18 @@ Row {
             radius: Appearance.radius.small
             // A wash of the row's own foreground, so the tile lifts off both a
             // neutral row and a `primaryContainer` one without a second colour.
-            color: root.selected ? Colours.alpha(Colours.on.primaryContainer, 0.12) : Colours.hover
+            // None behind an app's own icon, which has a shape of its own.
+            color: app.showsImage ? "transparent" : root.selected ? Colours.alpha(Colours.on.primaryContainer, 0.12) : Colours.hover
 
-            Icon {
+            AppIcon {
+                id: app
+
                 anchors.centerIn: parent
                 visible: !root.result?.glyph
-                text: root.result?.icon ?? ""
+                source: root.result?.image ?? ""
+                glyph: root.result?.icon ?? ""
                 size: Appearance.size.iconMd
+                imageSize: Appearance.launcher.tile
                 color: root.selected ? Colours.on.primaryContainer : Colours.outline
             }
 

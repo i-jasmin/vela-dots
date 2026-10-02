@@ -23,6 +23,13 @@ usage: vela <command> [args]
                                       Regenerate every palette from an image
                                       (what the shell runs; no wallpaper change)
   shell [start|stop|restart|log]      Manage the Quickshell instance
+  icon-theme                          List the icon themes installed, the
+                                      one in use marked
+  icon-theme <name>|vela              Draw app icons from that theme, in the
+                                      shell and in GTK apps ("vela": the
+                                      shell's own symbols); restarts the shell
+  icon-theme --json                   The same list with a few icons from
+                                      each (what Settings reads)
   colours                             Print the current generated palette
   greet                               The terminal greeting: fastfetch in the
                                       palette
@@ -342,7 +349,21 @@ cmd_shell() {
     case "${1:-restart}" in
         # -n: a second start while one is up would otherwise be a second
         # shell -- two bars, and IPC calls landing on either.
-        start)   qs -c vela -n -d ;;
+        #
+        # With the icon theme chosen in Settings (Appearance, App icons).
+        # Quickshell reads QS_ICON_THEME once, as it starts, and cannot change
+        # it afterwards -- which is why choosing one restarts the shell. Unset
+        # for vela's own symbols, so a value left in the environment by
+        # whatever ran this script cannot outlive the choice.
+        start)
+            local theme
+            theme=$(icon_themes start) || theme=""
+            if [ -n "$theme" ]; then
+                QS_ICON_THEME="$theme" qs -c vela -n -d
+            else
+                env -u QS_ICON_THEME qs -c vela -n -d
+            fi
+            ;;
         # Never pkill -f here: the pattern also matches the shell running this script.
         # `qs kill` only asks, so this waits (up to 3 s) until it has gone.
         stop)
@@ -356,6 +377,269 @@ cmd_shell() {
         restart) cmd_shell stop; cmd_shell start ;;
         log)     qs log -c vela -f ;;
         *)       die "unknown shell command: $1" ;;
+    esac
+}
+
+# ---- app icons -----------------------------------------------------------
+#
+# Which icons applications are drawn with: vela's own Material symbols (the
+# default, `iconTheme` empty in shell.json), or an icon theme installed on the
+# machine -- in the shell (launcher, dock, alt + tab, the overview, the window
+# title, notifications) and, through GTK's own setting, in Files, Settings and
+# the other GTK apps. With vela's symbols the apps keep Adwaita, Fedora's
+# own: the symbols are a font for the shell, not an icon theme an app can use.
+#
+#   icon_themes list        the installed themes, for a person
+#   icon_themes json        the same with a few icons from each, for Settings
+#   icon_themes set NAME    choose one ("vela" for the symbols): shell.json
+#                           and GTK; the caller restarts the shell
+#   icon_themes start       the theme the shell should start with, or nothing
+#
+# Themes are found where the freedesktop icon theme spec looks, the user's own
+# folders first, so a theme copied into ~/.local/share/icons wins over a
+# packaged one of the same name. A folder there is an icon theme if its
+# index.theme lists directories: a cursor theme (Bibata) has only cursors/,
+# and hicolor is the fallback every theme ends in rather than a look of its own.
+icon_themes() {
+    python3 - "$SHELL_CONFIG" "$@" <<'PY'
+import configparser, json, os, shutil, subprocess, sys
+
+config_path = sys.argv[1]
+cmd = sys.argv[2] if len(sys.argv) > 2 else "list"
+arg = sys.argv[3] if len(sys.argv) > 3 else ""
+home = os.path.expanduser("~")
+
+
+def die(message):
+    print(f"vela: {message}", file=sys.stderr)
+    sys.exit(1)
+
+
+def icon_bases():
+    data_home = os.environ.get("XDG_DATA_HOME") or os.path.join(home, ".local", "share")
+    wanted = [os.path.join(data_home, "icons"), os.path.join(home, ".icons")]
+    for d in (os.environ.get("XDG_DATA_DIRS") or "/usr/local/share:/usr/share").split(":"):
+        if d:
+            wanted.append(os.path.join(d, "icons"))
+    out, seen = [], set()
+    for b in wanted:
+        real = os.path.realpath(b)
+        if real not in seen and os.path.isdir(b):
+            seen.add(real)
+            out.append(b)
+    return out
+
+
+BASES = icon_bases()
+INDEXES = {}
+
+
+def index_of(tid):
+    # The first index.theme found for a name is the one that describes it.
+    if tid not in INDEXES:
+        INDEXES[tid] = None
+        for b in BASES:
+            path = os.path.join(b, tid, "index.theme")
+            if not os.path.isfile(path):
+                continue
+            parser = configparser.RawConfigParser(strict=False)
+            parser.optionxform = str
+            try:
+                with open(path, encoding="utf-8", errors="replace") as f:
+                    parser.read_file(f)
+            except Exception:
+                continue
+            if parser.has_section("Icon Theme"):
+                INDEXES[tid] = parser
+                break
+    return INDEXES[tid]
+
+
+def directories(idx):
+    meta = idx["Icon Theme"]
+    names = (meta.get("Directories", "") + "," + meta.get("ScaledDirectories", "")).split(",")
+    return list(dict.fromkeys(n.strip() for n in names if n.strip()))
+
+
+def installed():
+    themes, seen = [], set()
+    for b in BASES:
+        try:
+            names = sorted(os.listdir(b))
+        except OSError:
+            continue
+        for tid in names:
+            if tid in seen or tid in ("hicolor", "locolor", "default"):
+                continue
+            idx = index_of(tid)
+            if idx is None:
+                continue
+            seen.add(tid)
+            meta = idx["Icon Theme"]
+            if meta.get("Hidden", "").strip().lower() == "true" or not directories(idx):
+                continue
+            themes.append({"id": tid, "name": meta.get("Name", "").strip() or tid, "path": os.path.join(b, tid)})
+    themes.sort(key=lambda t: t["name"].lower())
+    return themes
+
+
+# Five applications nearly every theme draws, each with a few names it might
+# go by, for the row of icons Settings shows beside a theme. The first name a
+# theme itself has wins; hicolor -- each app's own icon -- only answers once the
+# theme and what it inherits have nothing, which is what Adwaita, with almost no
+# application icons of its own, shows.
+PREVIEW = [
+    ["google-chrome", "firefox", "org.mozilla.firefox", "chromium-browser", "chromium", "brave-browser", "web-browser", "internet-web-browser"],
+    ["kitty", "com.mitchellh.ghostty", "org.gnome.Ptyxis", "org.gnome.Console", "org.gnome.Terminal", "utilities-terminal"],
+    ["org.gnome.Nautilus", "system-file-manager", "file-manager", "nautilus"],
+    ["code", "visual-studio-code", "com.visualstudio.code", "dev.zed.Zed", "org.gnome.TextEditor", "accessories-text-editor"],
+    ["discord", "com.discordapp.Discord", "org.telegram.desktop", "telegram", "signal-desktop", "org.gnome.Settings", "preferences-system"],
+]
+
+
+def app_dirs(tid):
+    # A theme's application folders, the size closest to how big Settings draws
+    # them first and scalable before that.
+    idx = index_of(tid)
+    if idx is None:
+        return []
+
+    def rank(d):
+        sec = idx[d] if idx.has_section(d) else {}
+        try:
+            size = int(sec.get("Size", "0"))
+        except ValueError:
+            size = 0
+        return (0 if sec.get("Type", "") == "Scalable" else 1, abs(size - 64), 0 if sec.get("Scale", "1") == "1" else 1)
+
+    apps = [d for d in directories(idx) if (idx[d].get("Context", "") if idx.has_section(d) else "") == "Applications" or "apps" in d.split("/")]
+    out = []
+    for d in sorted(apps, key=rank):
+        for b in BASES:
+            full = os.path.join(b, tid, d)
+            if os.path.isdir(full):
+                out.append(full)
+    return out
+
+
+def chain(tid):
+    out, queue = [], [tid]
+    while queue and len(out) < 8:
+        t = queue.pop(0)
+        if t in out or t == "hicolor" or index_of(t) is None:
+            continue
+        out.append(t)
+        queue += [i.strip() for i in index_of(t)["Icon Theme"].get("Inherits", "").split(",") if i.strip()]
+    return out
+
+
+def preview(tid):
+    styled = [d for t in chain(tid) for d in app_dirs(t)]
+    fallback = app_dirs("hicolor")
+    found = []
+    for names in PREVIEW:
+        hit = None
+        for dirs in (styled, fallback):
+            for name in names:
+                for d in dirs:
+                    for ext in (".svg", ".png"):
+                        path = os.path.join(d, name + ext)
+                        if os.path.exists(path):
+                            hit = path
+                            break
+                    if hit:
+                        break
+                if hit:
+                    break
+            if hit:
+                break
+        if hit:
+            found.append(hit)
+    return found
+
+
+def read_config():
+    try:
+        with open(config_path) as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {}
+    except Exception as e:
+        die(f"cannot read {config_path}: {e}")
+
+
+def current():
+    value = read_config().get("appearance", {}).get("iconTheme", "")
+    return value if isinstance(value, str) else ""
+
+
+if cmd == "start":
+    tid = current()
+    if tid and index_of(tid) is not None:
+        print(tid)
+elif cmd == "json":
+    themes = installed()
+    for t in themes:
+        t["preview"] = preview(t["id"])
+    print(json.dumps({"current": current(), "themes": themes}))
+elif cmd == "list":
+    tid = current()
+    rows = [("vela", "vela's own symbols", tid == "")] + [(t["id"], t["name"], t["id"] == tid) for t in installed()]
+    width = max(len(r[0]) for r in rows)
+    for key, name, on in rows:
+        print(f"{'*' if on else ' '} {key.ljust(width)}  {name}")
+elif cmd == "set":
+    if arg in ("", "vela"):
+        tid = ""
+    else:
+        themes = installed()
+        match = next((t for t in themes if t["id"] == arg), None) or next((t for t in themes if t["name"].lower() == arg.lower()), None)
+        if match is None:
+            die(f"no icon theme called {arg} is installed (vela icon-theme lists them)")
+        tid = match["id"]
+    cfg = read_config()
+    cfg.setdefault("appearance", {})["iconTheme"] = tid
+    os.makedirs(os.path.dirname(config_path), exist_ok=True)
+    with open(config_path + ".tmp", "w") as f:
+        json.dump(cfg, f, indent=4)
+        f.write("\n")
+    os.replace(config_path + ".tmp", config_path)
+    # GTK apps read their icon theme from here, and pick a change up live.
+    # Adwaita is what they had before anything chose for them.
+    if shutil.which("gsettings"):
+        subprocess.run(["gsettings", "set", "org.gnome.desktop.interface", "icon-theme", tid or "Adwaita"], stderr=subprocess.DEVNULL, check=False)
+    print(tid or "vela's own symbols")
+else:
+    die(f"unknown icon_themes command: {cmd}")
+PY
+}
+
+cmd_icon_theme() {
+    case "${1:-}" in
+        "")     icon_themes list ;;
+        --json) icon_themes json ;;
+        -*)     die "unknown option: $1 (try 'vela help')" ;;
+        *)
+            local chosen reopen=0
+            [ "${2:-}" = "--settings" ] && reopen=1
+            chosen=$(icon_themes set "$1") || exit 1
+            if ! shell_running; then
+                printf 'vela: app icons: %s (from the next time the shell starts)\n' "$chosen"
+                return
+            fi
+            # The theme is the shell's from the moment it starts, so it starts
+            # again. Settings asked from inside the shell this restart closes,
+            # and is opened back where it was.
+            cmd_shell restart
+            if [ "$reopen" = 1 ]; then
+                for _ in $(seq 50); do
+                    shell_running && break
+                    sleep 0.1
+                done
+                qs -c vela ipc call shell settings appearance >/dev/null 2>&1 || true
+            fi
+            printf 'vela: app icons: %s\n' "$chosen"
+            ;;
     esac
 }
 
@@ -2142,6 +2426,7 @@ case "${1:-}" in
     theme)     shift; cmd_theme "$@" ;;
     retint)    shift; cmd_retint "$@" ;;
     shell)     shift; cmd_shell "$@" ;;
+    icon-theme) shift; cmd_icon_theme "$@" ;;
     colours)   cat "$STATE_DIR/colours.json" 2>/dev/null || die "no palette generated yet" ;;
     greet)     cmd_greet ;;
     calendar)  shift; cmd_calendar "$@" ;;

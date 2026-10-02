@@ -95,10 +95,16 @@ Item {
             }
         }
 
-        Icon {
+        // The app's own icon, when an icon theme is chosen; a stack is always
+        // its glyph. Decoded once at the largest step, so the magnification
+        // scales a picture rather than redrawing an SVG every frame.
+        AppIcon {
             anchors.centerIn: parent
-            text: root.item.icon
+            source: root.item.image ?? ""
+            glyph: root.item.icon
             size: root.glyph
+            imageSize: tile.width * Appearance.size.appIconFill
+            decodeSize: Appearance.dock.tileHover * Appearance.size.appIconFill
             color: root.accent ? Colours.on.primaryContainer : Colours.on.surfaceVariant
 
             Behavior on size {

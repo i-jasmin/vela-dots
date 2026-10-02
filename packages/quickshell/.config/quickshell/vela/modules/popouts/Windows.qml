@@ -71,10 +71,11 @@ PopoutContent {
 
             required property var modelData
 
-            // A monochrome glyph rather than the real application icon: the
-            // design draws `terminal` and `public` here, and a 16px desktop
-            // icon beside a title would be the only raster on the surface.
+            // A monochrome glyph, as the design draws `terminal` and `public`
+            // here -- or the real application icon, when an icon theme is
+            // chosen and the whole shell draws apps that way.
             icon: Hypr.iconOf(window.modelData)
+            iconSource: AppIcons.forClient(window.modelData)
             title: window.modelData.title
             selected: window.modelData.address === Hypr.activeAddress
             titleColour: window.selected ? Colours.on.surface : Colours.on.surfaceVariant

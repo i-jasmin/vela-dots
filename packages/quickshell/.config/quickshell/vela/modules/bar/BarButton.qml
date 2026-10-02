@@ -19,6 +19,9 @@ Item {
     id: root
 
     property string icon
+    // An application's own icon, drawn in the glyph's place when there is one
+    // (an icon theme, `AppIcons`) -- the focused window's tile on a vertical bar.
+    property string source
     property int size: Appearance.bar.iconButton
     property real iconSize: Appearance.size.iconMd
     // Draw a square behind the glyph. False for the bare tray glyphs.
@@ -75,10 +78,12 @@ Item {
         }
     }
 
-    Icon {
+    AppIcon {
         anchors.centerIn: parent
-        text: root.icon
+        source: root.source
+        glyph: root.icon
         size: root.iconSize
+        imageSize: root.size * Appearance.size.appIconFill
         // A bare glyph has no square to brighten, so it brightens itself --
         // one step up the neutral ramp, never into an accent.
         color: !root.tile && mouse.containsMouse ? Colours.on.surface : root.iconColour

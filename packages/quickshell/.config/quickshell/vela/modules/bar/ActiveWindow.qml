@@ -66,6 +66,8 @@ Item {
 
     readonly property bool present: root.toplevel !== null && root.title !== ""
     readonly property string glyph: Hypr.iconOf(root.toplevel)
+    // Its own icon instead, when an icon theme is chosen.
+    readonly property string image: AppIcons.forClient(root.toplevel)
 
     implicitWidth: root.bar.vertical ? tile.implicitWidth : inline.implicitWidth + Appearance.space.xs
     implicitHeight: root.bar.vertical ? tile.implicitHeight : inline.implicitHeight
@@ -83,6 +85,7 @@ Item {
         visible: root.bar.vertical
         anchors.centerIn: parent
         icon: root.glyph
+        source: root.image
         filled: true
         showing: root.bar.showing("workspaces")
 
@@ -103,10 +106,12 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         gap: Appearance.bar.titleGap
 
-        Icon {
+        AppIcon {
             Layout.alignment: Qt.AlignVCenter
-            text: root.glyph
+            source: root.image
+            glyph: root.glyph
             size: Appearance.size.iconSm
+            imageSize: Appearance.size.iconSm + Appearance.size.appIconGrow
             color: Colours.outline
         }
 

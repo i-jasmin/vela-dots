@@ -1543,6 +1543,35 @@ QtObject {
         readonly property int pickerRows: 7
         readonly property int pickerRowHeight: 34
 
+        // ---- a dropdown -----------------------------------------------------
+        // Not in the design either: a setting with more choices than a
+        // segmented rail holds (the app icon themes, Appearance). The button
+        // is a segmented rail's height plus its inset, so the two sit level in
+        // a row; the list under it is the folder picker's surface at a width
+        // for a name, a path and a row of five icons, and shows six at a time.
+        readonly property int dropdownHeight: 32
+        readonly property int dropdownPadStart: 12
+        readonly property int dropdownPadEnd: 8
+        readonly property int dropdownGap: 8
+        readonly property real dropdownChevron: 18
+        readonly property int dropdownWidth: 440
+        readonly property int dropdownRows: 6
+        readonly property int dropdownRowHeight: 48
+        readonly property int dropdownOffset: 6
+        // The check that marks the current choice, in a column of its own so
+        // the names line up whether or not a row carries it.
+        readonly property int dropdownCheck: 18
+        // A choice's preview: a row of icons, smaller on the button.
+        readonly property int previewIcon: 22
+        readonly property int previewIconCompact: 18
+        readonly property int previewIconGap: 6
+        readonly property int previewIconGapCompact: 4
+        readonly property int previewCount: 5
+        readonly property int previewCountCompact: 4
+        readonly property int previewTileRadius: Math.round(6 * root.radiusScale)
+        readonly property real previewGlyph: 14
+        readonly property real previewGlyphCompact: 12
+
         // ---- ranges --------------------------------------------------------
         // The corner-radius slider is in pixels, not in the multiplier the
         // config stores: the design's Appearance page reads "22 px" with its
@@ -1876,6 +1905,14 @@ QtObject {
         readonly property real iconMd: 18
         readonly property real iconLg: 21
         readonly property real iconXl: 26   // album placeholder
+        // An application's own icon (an icon theme, Settings, Appearance) is
+        // drawn this much larger than the glyph it stands in for: a glyph
+        // leaves air inside its em box, an icon fills its square to the edge
+        // with a shape of its own, and at the glyph's size it reads small.
+        readonly property real appIconGrow: 4
+        // Where the icon has a tile of its own to fill -- the dock, the
+        // launcher, a notification -- it takes this much of the tile.
+        readonly property real appIconFill: 0.74
     }
 
     readonly property real captionTracking: 0.1   // em, uppercase section labels

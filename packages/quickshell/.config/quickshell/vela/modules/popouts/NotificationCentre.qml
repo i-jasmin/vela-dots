@@ -283,12 +283,16 @@ PopoutContent {
                                 implicitWidth: Appearance.popout.centreTile
                                 implicitHeight: Appearance.popout.centreTile
                                 radius: Appearance.bar.tileRadius(Appearance.popout.centreTile)
-                                color: group.urgent ? Colours.alpha(Colours.error, Appearance.notifications.urgentTileTint) : Colours.hover
+                                color: groupIcon.showsImage ? "transparent" : group.urgent ? Colours.alpha(Colours.error, Appearance.notifications.urgentTileTint) : Colours.hover
 
-                                Icon {
+                                AppIcon {
+                                    id: groupIcon
+
                                     anchors.centerIn: parent
-                                    text: group.urgent ? "priority_high" : Hypr.symbolFor(group.modelData)
+                                    source: group.urgent ? "" : AppIcons.forClass(group.modelData)
+                                    glyph: group.urgent ? "priority_high" : Hypr.symbolFor(group.modelData)
                                     size: Appearance.size.iconSm
+                                    imageSize: Appearance.popout.centreTile
                                     color: group.urgent ? Colours.error : Colours.on.surfaceVariant
                                 }
                             }

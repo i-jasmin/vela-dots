@@ -41,10 +41,11 @@ Scope {
     // `kind`, `title`, `subtitle` and `icon`.
     //
     //   { kind: "app"|"command"|"web"|"answer"|"emoji"|"clip", title,
-    //     subtitle, icon, mono: bool, glyph: string,
+    //     subtitle, icon, image?: string, mono: bool, glyph: string,
     //     entry: DesktopEntry|clipboard entry|null, payload: string }
     //
-    // `glyph` is the emoji a row shows in place of its icon.
+    // `glyph` is the emoji a row shows in place of its icon, and `image` an
+    // app's own icon, when an icon theme is chosen (`AppIcons`).
     property var results: []
     // What the footer counts: every match found, before `maxResults` cuts the
     // list down to what fits.
@@ -326,6 +327,9 @@ Scope {
             title: entry.name,
             subtitle,
             icon: root.symbolFor(entry),
+            // The app's own icon when an icon theme is chosen, "" otherwise;
+            // `icon` stays the fallback.
+            image: AppIcons.forEntry(entry),
             mono: false,
             glyph: "",
             entry,

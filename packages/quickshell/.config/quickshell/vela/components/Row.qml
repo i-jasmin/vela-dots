@@ -31,6 +31,9 @@ Rectangle {
     property string subtitle
     // Material Symbols ligature for the leading glyph. Empty for none.
     property string icon
+    // An application's own icon, drawn in the glyph's place when there is one
+    // (`AppIcons`); the glyph stays the fallback.
+    property string iconSource
     property bool selected: false
     property bool interactive: true
 
@@ -112,10 +115,12 @@ Rectangle {
             Layout.alignment: Qt.AlignVCenter
         }
 
-        Icon {
-            text: root.icon
+        AppIcon {
+            source: root.iconSource
+            glyph: root.icon
             visible: root.icon !== "" && root.leading === null
             size: root.iconSize
+            imageSize: root.iconSize + Appearance.size.appIconGrow
             color: root.iconColour
             Layout.alignment: Qt.AlignVCenter
         }

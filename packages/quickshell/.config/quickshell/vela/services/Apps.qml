@@ -32,7 +32,8 @@ Singleton {
     // Which Material Symbol an application carries. The design draws monochrome
     // ligatures rather than themed app icons -- `videocam` for a recorder,
     // `edit_note` for a notes app -- so an entry's glyph is deduced, not read
-    // off the icon theme.
+    // off the icon theme. With an icon theme chosen in Settings the app's own
+    // icon is drawn instead (`AppIcons`), and this is what it falls back to.
     //
     // Categories first, because they are the entry's own statement of what it
     // is; a name heuristic only answers when Categories is absent or too

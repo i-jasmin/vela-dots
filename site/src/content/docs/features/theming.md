@@ -43,9 +43,39 @@ window crosses over to the new colours together.
 ## Look and feel
 
 **Settings → Appearance** sets the palette's variant (how colourful it is),
-light / dark / auto, how round the corners are, how see-through the panels are,
-and **motion**: full, reduced or off, and how fast -- Hyprland's own window
+light / dark / auto, the [app icons](#app-icons), how round the corners are,
+how see-through the panels are, and **motion**: full, reduced or off, and how fast -- Hyprland's own window
 animations follow the same setting.
+
+## App icons
+
+The shell draws apps as symbols in the palette's colours: a globe for a
+browser, a terminal for kitty, a folder for Files. **Settings → Appearance →
+App icons** can use an icon theme instead -- any one installed on the
+computer, such as Papirus (`sudo dnf install papirus-icon-theme`), or one you
+have put in `~/.local/share/icons`. The list shows a few icons from each.
+
+- The launcher, the dock, alt + tab, the overview, the window title on the bar
+  and notifications show each app's own icon from that theme. An app the
+  theme has no icon for keeps its symbol.
+- Files, Settings and your other GTK apps change to the same theme, and so
+  does the fallback launcher (super + shift + space). Going back to vela's
+  symbols puts them back on Adwaita, Fedora's own.
+- Picking one restarts the shell, which takes a second: Quickshell reads its
+  icon theme once, as it starts. Settings opens again where it was.
+- The shell's own symbols -- Wi-Fi, battery, the buttons -- stay as they are.
+  Only apps change.
+
+Apps that are not GTK apps, such as Qt and KDE ones, and Flatpak apps may keep
+their own icons.
+
+From a terminal:
+
+```sh
+vela icon-theme                # the installed themes, the one in use marked
+vela icon-theme Papirus-Dark   # use one
+vela icon-theme vela           # back to vela's symbols
+```
 
 ## Evening warmth
 

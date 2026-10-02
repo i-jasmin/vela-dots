@@ -113,8 +113,10 @@ Item {
 
             // The design draws monochrome ligatures rather than themed app
             // icons, and `Hypr` already answers "which app is this" for the
-            // bar's focused-window chip. Same question, same answer.
+            // bar's focused-window chip. Same question, same answer -- and
+            // the app's own icon, as the dock draws it, with an icon theme.
             icon: Hypr.symbolFor(appTile.modelData.replace(/\.desktop$/, ""))
+            source: AppIcons.forClass(appTile.modelData.replace(/\.desktop$/, ""))
             draggable: root.apps.length > 1
             x: appTile.dragging ? appTile.dragX : appTile.index * root.step
             z: appTile.dragging ? 1 : 0

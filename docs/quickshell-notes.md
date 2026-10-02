@@ -230,6 +230,19 @@ harness even for icons that exist on the system. Blank tray or launcher icons
 while testing are the harness, not the widget -- check against a file path
 before concluding the code is wrong.
 
+## The icon theme is fixed when Quickshell starts
+
+`QS_ICON_THEME` (or `//@ pragma IconTheme`) is applied once, with
+`QIcon::setThemeName`, as Quickshell launches (`src/launch/launch.cpp` in
+0.3.1), and nothing reachable from QML changes it afterwards. That is why
+Settings, Appearance, App icons restarts the shell (`vela icon-theme`) rather
+than applying live, and why `vela shell start` -- which autostart goes
+through -- passes the chosen theme on.
+
+Ask for an app's icon with `Quickshell.iconPath(name, true)`: it answers ""
+for a name the theme does not have. The bare `image://icon/<name>` answers
+with a placeholder that reports itself as loaded (`services/SysTray.qml`).
+
 ## Quickshell does not kill its children, and does not run QML teardown
 
 Verified by signalling a running shell: a process started with `Process` and

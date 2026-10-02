@@ -199,6 +199,10 @@ PanelWindow {
         Panel {
             id: win
 
+            // What a page's dropdown lifts its list onto (Dropdown.qml), out
+            // of the page's clipping.
+            objectName: "settingsPanel"
+
             // An application window, not a shell surface: opaque, so the panel
             // opacity slider is seen moving the bar behind it rather than the
             // window it is being dragged in.

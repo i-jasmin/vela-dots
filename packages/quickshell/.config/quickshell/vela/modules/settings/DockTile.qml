@@ -18,6 +18,8 @@ Rectangle {
     id: root
 
     property string icon
+    // A pinned app's own icon, when an icon theme is chosen (`AppIcons`).
+    property string source
     // The dashed outline of the "add" square, which has no fill.
     property bool outlined: false
     property bool draggable: false
@@ -101,10 +103,12 @@ Rectangle {
         }
     }
 
-    Icon {
+    AppIcon {
         anchors.centerIn: parent
-        text: root.icon
+        source: root.source
+        glyph: root.icon
         size: root.outlined ? Appearance.settings.tileIconSmall : Appearance.settings.tileIcon
+        imageSize: Appearance.settings.tile * Appearance.size.appIconFill
         color: root.accented ? Colours.on.primaryContainer : Colours.on.surfaceVariant
     }
 

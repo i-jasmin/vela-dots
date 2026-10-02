@@ -7,7 +7,12 @@ hl.on("hyprland.start", function()
     -- The shell. Owns the bar, wallpaper, notifications, OSD, launcher and
     -- lock screen, which is why nothing else here starts a notification
     -- daemon or a wallpaper setter.
-    hl.exec_cmd("qs -c vela")
+    --
+    -- Through `vela shell start` rather than `qs -c vela`, so it starts with
+    -- the icon theme chosen in Settings (Appearance, App icons): Quickshell
+    -- reads that once, as it starts. Should the script be missing, the shell
+    -- still comes up, with its own symbols.
+    hl.exec_cmd("vela shell start || qs -c vela -n")
 
     hl.exec_cmd("hypridle")
 

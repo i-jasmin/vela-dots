@@ -177,10 +177,12 @@ Item {
         // The honest empty state: a window too small to read, or one the
         // compositor would not hand over, is drawn as what it is rather than as
         // an empty box.
-        Icon {
+        AppIcon {
             anchors.centerIn: parent
-            text: Hypr.iconOf(root.client)
+            source: AppIcons.forClient(root.client)
+            glyph: Hypr.iconOf(root.client)
             size: Appearance.size.iconRow
+            imageSize: Appearance.size.iconRow + Appearance.size.appIconGrow
             color: Colours.outline
             visible: !view.hasContent || Math.min(root.width, root.height) < Appearance.overview.thumbMinSide
         }

@@ -123,11 +123,13 @@ Item {
                     height: capture.sourceSize.height * capture.scaleFactor
                 }
 
-                Icon {
+                AppIcon {
                     anchors.centerIn: parent
                     visible: !capture.hasContent
-                    text: Hypr.iconOf(root.client)
+                    source: AppIcons.forClient(root.client)
+                    glyph: Hypr.iconOf(root.client)
                     size: Appearance.overlays.picker.placeholder
+                    imageSize: Appearance.overlays.picker.placeholder * 2
                     color: Colours.outline
                 }
             }
@@ -158,9 +160,11 @@ Item {
                     anchors.rightMargin: Appearance.overlays.picker.footerPadH
                     spacing: Appearance.overlays.picker.footerGap
 
-                    Icon {
-                        text: Hypr.iconOf(root.client)
+                    AppIcon {
+                        source: AppIcons.forClient(root.client)
+                        glyph: Hypr.iconOf(root.client)
                         size: Appearance.size.iconRow
+                        imageSize: Appearance.size.iconRow + Appearance.size.appIconGrow
                         color: root.selected ? Colours.on.primaryContainer : Colours.outline
 
                         Layout.alignment: Qt.AlignVCenter
