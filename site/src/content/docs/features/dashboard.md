@@ -41,6 +41,19 @@ open the tab after installing or updating anything, so the line does not go
 on counting what you have just installed. Updating is up to you: vela only
 looks.
 
+When dnf could not check everything, the line says so, and the list says
+which and why:
+
+- **a key needs accepting** -- a repository signs its package list with a key
+  your user has not accepted yet. dnf asks to import it the first time you
+  run it yourself, and vela's check cannot answer, so that repository is left
+  out until you do. Run `dnf5 check-update` in a terminal once and answer
+  **y**.
+- **repos unreachable** -- one or more did not answer this time, often just
+  being offline.
+- **Couldn't check for updates** -- dnf stopped with an error, which the list
+  shows, or no repository could be reached at all.
+
 To stop the checks, switch off **Check for updates** in Settings → General.
 
 ## The focus timer

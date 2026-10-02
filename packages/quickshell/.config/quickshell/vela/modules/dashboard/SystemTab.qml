@@ -278,11 +278,14 @@ Item {
 
     // What is waiting from the package manager, and whether the last update
     // wants a reboot: one line, there once the check has answered
-    // (`services/Updates.qml`). Clicked, "what changed" opens with the list.
+    // (`services/Updates.qml`). Clicked, "what changed" opens with the list,
+    // and with why, when dnf could not check or left a repository out.
     component UpdatesLine: Tile {
         id: line
 
         readonly property string headline: {
+            if (Updates.failed)
+                return qsTr("Couldn't check for updates");
             if (Updates.count === 0)
                 return qsTr("Up to date");
             const count = Updates.count === 1 ? qsTr("1 update") : qsTr("%1 updates").arg(Updates.count);
@@ -299,9 +302,9 @@ Item {
             spacing: Appearance.dashboard.aiMeterGap
 
             Icon {
-                text: "history"
+                text: Updates.failed ? "sync_problem" : "history"
                 size: Appearance.size.iconMd
-                color: Colours.primary
+                color: Updates.failed ? Colours.error : Colours.primary
             }
 
             Text {
@@ -313,13 +316,17 @@ Item {
                 Layout.fillWidth: true
             }
 
-            // A newer kernel installed than the one running says more than
-            // when the list was last asked for.
+            // The one thing most worth knowing besides the count: a newer
+            // kernel than the one running, then a repository left out --
+            // its key waiting to be accepted, or not answering -- and
+            // otherwise when the list was asked for.
             Text {
-                text: Updates.rebootRequired ? qsTr("Reboot recommended") : qsTr("checked %1").arg(Qt.formatDateTime(Updates.lastChecked, "HH:mm"))
-                font.family: Updates.rebootRequired ? Appearance.font.ui : Appearance.font.mono
+                readonly property int unreachable: Updates.unreachable.length
+
+                text: Updates.rebootRequired ? qsTr("Reboot recommended") : Updates.failed ? "" : Updates.keys.length > 0 ? qsTr("a key needs accepting") : unreachable === 1 ? qsTr("1 repo unreachable") : unreachable > 1 ? qsTr("%1 repos unreachable").arg(unreachable) : qsTr("checked %1").arg(Qt.formatDateTime(Updates.lastChecked, "HH:mm"))
+                font.family: Updates.rebootRequired || Updates.keys.length > 0 ? Appearance.font.ui : Appearance.font.mono
                 font.pixelSize: Appearance.dashboard.hourValue
-                color: Updates.rebootRequired ? Colours.error : Colours.outline
+                color: Updates.rebootRequired ? Colours.error : Updates.keys.length > 0 ? Colours.tertiary : Colours.outline
             }
 
             Icon {

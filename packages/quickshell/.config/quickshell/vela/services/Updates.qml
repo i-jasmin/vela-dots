@@ -42,6 +42,16 @@ Singleton {
     property bool checking: false
     property string tool: ""
 
+    // What the last check could not do. `failed` is why it could not check at
+    // all -- dnf stopped with an error, or reached no repository -- and then
+    // there is no list. Otherwise the list stands, short of the repositories
+    // whose signing key this user has not accepted yet (by the key's name;
+    // `dnf5 check-update` in a terminal asks, once) and the ones that did not
+    // answer.
+    property string failed: ""
+    property var keys: []
+    property var unreachable: []
+
     // [{ id, name, arch, oldVersion, newVersion, repo, source, security,
     //    severity, action, notable }]
     property var updates: []
@@ -208,6 +218,11 @@ Singleton {
             set -u
             export LC_ALL=C
             CHECK=$1
+            # Nothing can answer dnf here, and a question left waiting on an
+            # open input waits forever: the check never ends and the line
+            # never comes. Closed, a question -- a repository's signing key to
+            # accept -- is answered no, and that repository is left out.
+            exec </dev/null
 
             set -- $CHECK
             TOOL=$1
@@ -216,7 +231,22 @@ Singleton {
             else
                 printf 'T\\tok\\t%s\\n' "$TOOL"
 
-                OUT=$(sh -c "$CHECK" 2>/dev/null)
+                # A repository left out -- its key refused, as above, or not
+                # answering -- does not change the exit code (Fedora skips an
+                # unavailable repository), so what was left out, and why, is
+                # read off what dnf says on the way.
+                ERRF=$(mktemp)
+                OUT=$(sh -c "$CHECK" 2>"$ERRF")
+                printf 'X\\t%s\\n' "$?"
+                awk '
+                    /^Importing OpenPGP key/ { key = 1; next }
+                    key && /UserID/ { sub(/^[^"]*"/, ""); sub(/".*$/, ""); print "S\\tkey\\t" $0; key = 0; next }
+                    /\\?\\?\\?%/ { r = $0; sub(/^ +/, "", r); sub(/ +\\?\\?\\?%.*$/, "", r); print "S\\tdown\\t" r; next }
+                    / 100% / { loaded++ }
+                    /^Error: / { err = $0 }
+                    END { print "L\\t" loaded + 0; if (err != "") print "F\\t" err }
+                ' "$ERRF"
+                rm -f "$ERRF"
                 # dnf5 ends with an "Obsoleting packages" table in the same
                 # three-column shape, which is not a list of upgrades.
                 PKGS=$(printf '%s\\n' "$OUT" | awk '
@@ -249,10 +279,27 @@ Singleton {
                 const rows = [];
                 const installed = {};
                 const advisories = {};
+                const keys = [];
+                const down = [];
+                let code = 0;
+                let loaded = -1;
+                let error = "";
 
                 for (const line of text.split("\n")) {
                     const f = line.split("\t");
                     switch (f[0]) {
+                    case "X":
+                        code = Number(f[1]);
+                        break;
+                    case "S":
+                        (f[1] === "key" ? keys : down).push(f[2] ?? "");
+                        break;
+                    case "L":
+                        loaded = Number(f[1]);
+                        break;
+                    case "F":
+                        error = (f[1] ?? "").replace(/^Error: /, "");
+                        break;
                     case "T":
                         root.available = f[1] === "ok";
                         root.tool = f[2] ?? "";
@@ -283,7 +330,12 @@ Singleton {
                     }
                 }
 
-                root.updates = rows.map(r => {
+                // dnf5 exits 100 with updates waiting and 0 without.
+                root.failed = code !== 0 && code !== 100 ? (error || qsTr("dnf stopped with an error")) : loaded === 0 && down.length > 0 ? qsTr("No repository could be reached") : "";
+                root.keys = [...new Set(keys)];
+                root.unreachable = [...new Set(down)];
+
+                root.updates = root.failed ? [] : rows.map(r => {
                     const dot = r.id.lastIndexOf(".");
                     const name = dot > 0 ? r.id.slice(0, dot) : r.id;
                     const advisory = advisories[r.id] ?? null;
