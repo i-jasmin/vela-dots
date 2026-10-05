@@ -4,7 +4,7 @@ A Hyprland desktop shell and dotfiles for Fedora, built on
 [Quickshell](https://quickshell.org). Material 3 throughout, retinted from the
 current wallpaper.
 
-![The vela desktop: the bar along the top and the dashboard open under the clock, with the time, the weather, the day's timeline, the month and today's events, over a dusk wallpaper.](site/src/assets/screenshots/hero.webp)
+![The vela desktop: the bar along the top and the dashboard open under the clock, with the time, the weather, the day's timeline, the month and today's events, over a dusk wallpaper, cut diagonally: the dark palette on one side of the line and the light one on the other.](site/src/assets/screenshots/hero.webp)
 
 **Documentation: [vela.ijasmin.it](https://vela.ijasmin.it/)**
 
