@@ -326,7 +326,7 @@ Scope {
             kind: "app",
             title: entry.name,
             subtitle,
-            icon: root.symbolFor(entry),
+            icon: Apps.symbolFor(entry),
             // The app's own icon when an icon theme is chosen, "" otherwise;
             // `icon` stays the fallback.
             image: AppIcons.forEntry(entry),
@@ -427,21 +427,6 @@ Scope {
             "searx.be": "SearXNG"
         };
         return known[host] ?? (host || qsTr("Web"));
-    }
-
-    // Which Material Symbol a result carries. The table lives in `Apps`,
-    // because the bar asks the same question of a window class.
-    function symbolFor(entry: var): string {
-        const byCategory = Apps.symbolForCategories(entry.categories);
-        if (byCategory)
-            return byCategory;
-
-        // `Hypr.symbolFor` is the same question asked of a window class, and
-        // the shell may not answer it twice with two tables. The desktop id is
-        // the closer match to a class ("org.kde.dolphin", "google-chrome"); the
-        // name catches the rest.
-        const byId = Hypr.symbolFor(entry.id);
-        return byId === "web_asset" ? Hypr.symbolFor(entry.name) : byId;
     }
 
     // ---- keyboard ----------------------------------------------------------

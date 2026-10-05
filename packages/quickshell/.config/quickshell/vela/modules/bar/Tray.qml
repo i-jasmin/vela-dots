@@ -58,7 +58,7 @@ Item {
 
                 required property SystemTrayItem modelData
 
-                readonly property string source: SysTray.usable(entry.modelData.icon) ? entry.modelData.icon : ""
+                readonly property string source: AppIcons.usable(entry.modelData.icon) ? entry.modelData.icon : ""
 
                 Layout.alignment: root.bar.vertical ? Qt.AlignHCenter : Qt.AlignVCenter
                 implicitWidth: root.glyphSize

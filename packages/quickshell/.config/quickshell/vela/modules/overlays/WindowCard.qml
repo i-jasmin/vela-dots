@@ -31,14 +31,15 @@ Item {
     readonly property string windowTitle: root.client?.title ?? ""
     readonly property int workspaceId: root.client?.workspace?.id ?? 0
 
-    // "foot · workspace 2", but "workspace 3" when the title already opens with
-    // the application's name and repeating it would say nothing.
+    // "Files · workspace 2" -- the app's name, not its class -- but
+    // "workspace 3" when the title already says it ("vela — Visual Studio
+    // Code") and repeating it would say nothing.
     readonly property string source: {
         const ws = qsTr("workspace %1").arg(root.workspaceId);
-        const cls = root.appClass;
-        if (!cls || root.windowTitle.toLowerCase().startsWith(cls.toLowerCase()))
+        const app = Hypr.appName(root.appClass);
+        if (!app || root.windowTitle.toLowerCase().includes(app.toLowerCase()))
             return ws;
-        return `${cls} · ${ws}`;
+        return `${app} · ${ws}`;
     }
 
     function htmlEscape(s: string): string {

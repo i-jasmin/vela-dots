@@ -77,7 +77,7 @@ Item {
         const counts = {};
         for (const w of root.windows)
             counts[w.appClass] = (counts[w.appClass] ?? 0) + 1;
-        const apps = Object.keys(counts).map(k => counts[k] > 1 ? `${Sessions.appName(k)} ×${counts[k]}` : Sessions.appName(k)).join(", ");
+        const apps = Object.keys(counts).map(k => counts[k] > 1 ? `${Hypr.appName(k)} ×${counts[k]}` : Hypr.appName(k)).join(", ");
         const parts = [n === 1 ? qsTr("1 window") : qsTr("%1 windows").arg(n)];
         if (spaces > 1)
             parts.push(qsTr("%1 workspaces").arg(spaces));

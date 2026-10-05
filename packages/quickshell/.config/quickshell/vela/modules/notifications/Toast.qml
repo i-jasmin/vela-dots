@@ -275,7 +275,7 @@ Item {
                     // whatever the application is -- its own icon, when an icon
                     // theme is chosen.
                     source: root.urgent ? "" : AppIcons.forClass(root.app)
-                    glyph: root.urgent ? "priority_high" : Hypr.symbolFor(root.app)
+                    glyph: root.urgent ? "priority_high" : Apps.symbolForClass(root.app)
                     size: Appearance.size.iconMd
                     imageSize: Appearance.notifications.toastTile
                     color: root.urgent ? Colours.error : Colours.on.surfaceVariant

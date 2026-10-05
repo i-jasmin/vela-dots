@@ -241,7 +241,18 @@ through -- passes the chosen theme on.
 
 Ask for an app's icon with `Quickshell.iconPath(name, true)`: it answers ""
 for a name the theme does not have. The bare `image://icon/<name>` answers
-with a placeholder that reports itself as loaded (`services/SysTray.qml`).
+with a placeholder that reports itself as loaded -- a magenta square -- so
+anything an app hands over by name (a tray icon, a notification sent with
+`notify-send -i firefox`) goes through `AppIcons.usable` first.
+
+## A binding cannot see `DesktopEntries.heuristicLookup` change
+
+The desktop entries are read in after the shell has started, and
+`heuristicLookup` is a plain call, so a binding that asked before they
+arrived keeps its first answer for good: a session card built with the shell
+showed "org.gnome.Nautilus" rather than "Files" until a restart.
+`Hypr.entryFor` reads a counter bumped on every change to the entries, which
+makes any binding that goes through it ask again.
 
 ## Quickshell does not kill its children, and does not run QML teardown
 

@@ -290,7 +290,7 @@ PopoutContent {
 
                                     anchors.centerIn: parent
                                     source: group.urgent ? "" : AppIcons.forClass(group.modelData)
-                                    glyph: group.urgent ? "priority_high" : Hypr.symbolFor(group.modelData)
+                                    glyph: group.urgent ? "priority_high" : Apps.symbolForClass(group.modelData)
                                     size: Appearance.size.iconSm
                                     imageSize: Appearance.popout.centreTile
                                     color: group.urgent ? Colours.error : Colours.on.surfaceVariant

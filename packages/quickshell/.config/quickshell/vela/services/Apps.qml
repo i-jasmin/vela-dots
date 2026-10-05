@@ -46,7 +46,11 @@ Singleton {
     //
     // First match wins, so the order runs specific before general: a player
     // that declares Music, Audio *and* AudioVideo is described by the first two.
-    readonly property var categorySymbols: [["recorder", "screencast"], "videocam", ["webbrowser"], "public", ["terminalemulator"], "terminal", ["filemanager"], "folder", ["ide", "development", "building", "debugger", "revisioncontrol"], "code", ["email", "contactmanagement"], "mail", ["instantmessaging", "irc", "ircclient", "chat", "telephony", "videoconference"], "forum", ["music", "audio", "midi", "mixer", "sequencer", "tuner"], "music_note", ["video", "tv", "dvd", "player", "audiovideo"], "movie", ["photography", "graphics", "2dgraphics", "3dgraphics", "rastergraphics", "vectorgraphics", "imageprocessing"], "palette", ["game"], "sports_esports", ["calculator"], "calculate", ["clock"], "schedule", ["texteditor", "wordprocessor", "office", "spreadsheet", "presentation", "documentation", "dictionary"], "edit_note", ["monitor", "security", "filesystem", "filetools", "archiving"], "monitoring", ["settings", "hardwaresettings", "desktopsettings"], "settings", ["network", "p2p", "webdevelopment", "remoteaccess", "dialup"], "language"]
+    //
+    // "viewer+office" asks for both. A document viewer declares Office, Viewer
+    // and Graphics, and an image viewer Graphics and Viewer: on Graphics alone
+    // both were an editor's palette.
+    readonly property var categorySymbols: [["recorder", "screencast"], "videocam", ["viewer+office"], "description", ["viewer+graphics", "viewer+photography", "viewer+rastergraphics"], "image", ["webbrowser"], "public", ["terminalemulator"], "terminal", ["filemanager"], "folder", ["ide", "development", "building", "debugger", "revisioncontrol"], "code", ["email"], "mail", ["contactmanagement"], "contacts", ["calendar"], "calendar_month", ["instantmessaging", "irc", "ircclient", "chat", "telephony", "videoconference"], "forum", ["music", "audio", "midi", "mixer", "sequencer", "tuner"], "music_note", ["video", "tv", "dvd", "player", "audiovideo"], "movie", ["photography", "graphics", "2dgraphics", "3dgraphics", "rastergraphics", "vectorgraphics", "imageprocessing"], "palette", ["game"], "sports_esports", ["calculator"], "calculate", ["clock"], "schedule", ["packagemanager"], "shopping_bag", ["emulator"], "computer", ["documentation"], "help", ["spreadsheet"], "table_chart", ["presentation"], "slideshow", ["texteditor", "wordprocessor", "office", "dictionary"], "edit_note", ["monitor", "security", "filesystem", "filetools", "archiving"], "monitoring", ["settings", "hardwaresettings", "desktopsettings"], "settings", ["network", "p2p", "webdevelopment", "remoteaccess", "dialup"], "language"]
 
     // The whole question, in the order that answers it best: what the entry
     // says it is, then what its id looks like, then its name. It existed
@@ -61,6 +65,15 @@ Singleton {
         // "google-chrome"); the name catches the rest.
         const byId = Hypr.symbolFor(entry?.id ?? "");
         return byId === "web_asset" ? Hypr.symbolFor(entry?.name ?? "") : byId;
+    }
+
+    // The same for a window class or a notification's app name
+    // ("org.gnome.Calendar", "Fractal"): through the desktop entry it belongs
+    // to where there is one, so a window carries the glyph its app has in the
+    // launcher and the dock, and by its name alone where there is not.
+    function symbolForClass(appClass: string): string {
+        const entry = Hypr.entryFor(appClass);
+        return entry ? root.symbolFor(entry) : Hypr.symbolFor(appClass);
     }
 
     // The terminal that `Terminal=true` entries run in -- the same one the
@@ -92,8 +105,9 @@ Singleton {
 
     function symbolForCategories(categories: var): string {
         const lower = (categories ?? []).map(c => c.toLowerCase());
+        const has = rule => rule.split("+").every(c => lower.includes(c));
         for (let i = 0; i < root.categorySymbols.length; i += 2)
-            if (root.categorySymbols[i].some(c => lower.includes(c)))
+            if (root.categorySymbols[i].some(has))
                 return root.categorySymbols[i + 1];
         return "";
     }

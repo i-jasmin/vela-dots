@@ -65,6 +65,38 @@ Singleton {
         return root.forClass(Hypr.classOf(client));
     }
 
+    // Whether an image source an app handed over -- a tray icon, a
+    // notification's picture -- will draw. Quickshell answers
+    // `image://icon/<name>` even for a name the theme does not have, with a
+    // magenta placeholder that reports itself as loaded, so a name is checked
+    // against the theme first. A notification sent with only an icon name
+    // (`notify-send -i firefox`) arrives as exactly that.
+    //
+    // An icon that ships its own directory (`?path=`, which is how Electron
+    // apps and anything installed outside the icon theme send one) is resolved
+    // by Quickshell's provider from that directory, so it is passed through:
+    // checking its bare name against the theme turned Discord, Slack or
+    // VS Code into the placeholder glyph. So is an icon sent as image data,
+    // which has no name to check, and a file.
+    // The theme name inside an `image://icon/<name>` source, "" for anything
+    // else (a file, image data, an icon that ships its own directory).
+    function iconName(source: string): string {
+        const prefix = "image://icon/";
+        const at = (source ?? "").indexOf(prefix);
+        if (at === -1 || source.includes("?path="))
+            return "";
+        return source.slice(at + prefix.length).split("?")[0];
+    }
+
+    function usable(source: string): bool {
+        if (!source)
+            return false;
+        if (!source.includes("image://icon/") || source.includes("?path="))
+            return true;
+        const name = root.iconName(source);
+        return name.length > 0 && Quickshell.iconPath(name, true) !== "";
+    }
+
     function scan(): void {
         if (!lister.running)
             lister.running = true;

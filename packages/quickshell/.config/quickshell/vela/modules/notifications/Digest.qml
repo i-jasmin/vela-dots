@@ -228,7 +228,7 @@ Item {
 
                                 AppIcon {
                                     source: entry.urgent ? "" : AppIcons.forClass(entry.modelData)
-                                    glyph: entry.urgent ? "priority_high" : Hypr.symbolFor(entry.modelData)
+                                    glyph: entry.urgent ? "priority_high" : Apps.symbolForClass(entry.modelData)
                                     size: Appearance.size.iconMd
                                     imageSize: Appearance.size.iconMd + Appearance.size.appIconGrow
                                     // Neutral, except for the two things that

@@ -237,10 +237,41 @@ Singleton {
     // The real application icon, for the dock and the window picker. Hyprland's
     // class is usually but not always the desktop-entry id -- `heuristicLookup`
     // is Quickshell's own matcher for the cases where it is not.
+    //
+    // `heuristicLookup` is a plain call, which a binding cannot see change, and
+    // the desktop entries are read in after the shell has started. A binding
+    // that asked before they were in (a session card, built with the shell's
+    // one window) kept "org.gnome.Nautilus" for good. Reading `entriesSeen`
+    // here makes every binding that goes through this ask again once they
+    // arrive, and whenever an app is installed or removed.
+    //
+    // A notification names its app as people see it ("Fractal"), which
+    // `heuristicLookup` -- ids and window classes only -- does not match, so
+    // an entry's own name, or the last part of its id, answers that.
     function entryFor(appClass: string): DesktopEntry {
-        if (!appClass)
+        if (!appClass || root.entriesSeen < 0)
             return null;
-        return DesktopEntries.heuristicLookup(appClass) ?? null;
+        const found = DesktopEntries.heuristicLookup(appClass);
+        if (found)
+            return found;
+        const want = appClass.toLowerCase();
+        return DesktopEntries.applications.values.find(e => (e.name ?? "").toLowerCase() === want || (e.id ?? "").toLowerCase().split(".").pop() === want) ?? null;
+    }
+
+    property int entriesSeen: 0
+
+    Connections {
+        target: DesktopEntries.applications
+
+        function onValuesChanged(): void {
+            root.entriesSeen++;
+        }
+    }
+
+    // "Files" rather than "org.gnome.Nautilus": the desktop entry's name where
+    // there is one, for anything that names a window or a saved one.
+    function appName(appClass: string): string {
+        return root.entryFor(appClass)?.name || appClass;
     }
 
     // A Material Symbols ligature, for the places that draw a monochrome glyph
@@ -280,13 +311,31 @@ Singleton {
             return "sports_esports";
         if (/nvim|vim|emacs|obsidian|writer/.test(c))
             return "edit_note";
+        // A class or an app name with no desktop entry to ask, and GNOME
+        // apps whose entries say only Utility (Weather, Maps): named for what
+        // they are.
+        if (/calendar/.test(c))
+            return "calendar_month";
+        if (/weather/.test(c))
+            return "partly_cloudy_day";
+        if (/calculator/.test(c))
+            return "calculate";
+        if (/contacts/.test(c))
+            return "contacts";
+        if (/\bmaps\b/.test(c))
+            return "map";
+        if (/software/.test(c))
+            return "shopping_bag";
         if (/settings|control|config/.test(c))
             return "settings";
         return "web_asset";
     }
 
+    // A window's glyph, through the desktop entry it belongs to where there is
+    // one -- an entry's categories say more than its class -- and its class
+    // where there is not (`Apps.symbolForClass`).
     function iconOf(client: var): string {
-        return symbolFor(classOf(client));
+        return Apps.symbolForClass(root.classOf(client));
     }
 
     // --- dispatch -------------------------------------------------------

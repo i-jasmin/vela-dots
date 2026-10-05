@@ -35,7 +35,7 @@ PopoutContent {
 
     // Room for an icon on every row once any of them has one, so the labels
     // still line up.
-    readonly property bool icons: opener.children.values.some(e => !e.isSeparator && SysTray.usable(e.icon))
+    readonly property bool icons: opener.children.values.some(e => !e.isSeparator && AppIcons.usable(e.icon))
 
     popoutWidth: Appearance.popout.width
     contentPadding: Appearance.space.sm
@@ -203,7 +203,7 @@ PopoutContent {
 
                             IconImage {
                                 anchors.fill: parent
-                                source: SysTray.usable(entry.modelData.icon) ? entry.modelData.icon : ""
+                                source: AppIcons.usable(entry.modelData.icon) ? entry.modelData.icon : ""
                                 asynchronous: true
                                 visible: source !== ""
                             }

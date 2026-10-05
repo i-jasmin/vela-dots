@@ -412,7 +412,19 @@ Singleton {
 
         readonly property string appName: notification?.appName ?? ""
         readonly property string appIcon: notification?.appIcon ?? ""
-        readonly property string image: notification?.image ?? ""
+        // The picture a card draws large: a screenshot, a contact's photo, a
+        // cover. "" when it would not draw -- an icon name the theme lacks
+        // would be a magenta square (`AppIcons.usable`) -- and when it is only
+        // the app's own icon (`notify-send -i firefox`), which the card's
+        // avatar already is.
+        readonly property string image: {
+            const src = notification?.image ?? "";
+            if (!AppIcons.usable(src))
+                return "";
+            const named = AppIcons.iconName(src).toLowerCase();
+            const own = [entry.appIcon, entry.appName, Hypr.entryFor(entry.appName)?.icon ?? ""].map(s => s.toLowerCase());
+            return named && own.includes(named) ? "" : src;
+        }
         readonly property string summary: notification?.summary ?? ""
         readonly property string body: notification?.body ?? ""
         readonly property bool resident: notification?.resident ?? false

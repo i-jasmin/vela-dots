@@ -236,19 +236,12 @@ Scope {
                 }
 
                 // Which Material Symbol a tile carries. The design draws monochrome
-                // ligatures rather than themed app icons; the table that answers this
-                // lives in `Apps` and `Hypr` so the bar, the launcher and the dock
-                // cannot disagree about what an application looks like. With an icon
-                // theme chosen, `image` is the app's own icon and this its fallback.
+                // ligatures rather than themed app icons; `Apps` answers it so the
+                // bar, the launcher and the dock cannot disagree about what an
+                // application looks like. With an icon theme chosen, `image` is the
+                // app's own icon and this its fallback.
                 function symbolFor(entry: var, fallback: string): string {
-                    if (entry) {
-                        const byCategory = Apps.symbolForCategories(entry.categories);
-                        if (byCategory)
-                            return byCategory;
-                        const byId = Hypr.symbolFor(entry.id);
-                        return byId === "web_asset" ? Hypr.symbolFor(entry.name) : byId;
-                    }
-                    return Hypr.symbolFor(fallback);
+                    return entry ? Apps.symbolFor(entry) : Apps.symbolForClass(fallback.replace(/\.desktop$/i, ""));
                 }
 
                 // ---- what it does -------------------------------------------------

@@ -71,19 +71,13 @@ Singleton {
 
     // ---- names ---------------------------------------------------------------
 
-    // "Files" rather than "org.gnome.Nautilus": the desktop entry's name where
-    // there is one.
-    function appName(appClass: string): string {
-        return Hypr.entryFor(appClass)?.name || appClass;
-    }
-
     // "Code + Files" -- the one or two apps the layout is mostly made of.
     function suggestName(windows: var): string {
         const counts = {};
         for (const w of windows)
             if (w.appClass)
                 counts[w.appClass] = (counts[w.appClass] ?? 0) + 1;
-        const names = Object.keys(counts).sort((a, b) => counts[b] - counts[a]).slice(0, 2).map(c => root.appName(c));
+        const names = Object.keys(counts).sort((a, b) => counts[b] - counts[a]).slice(0, 2).map(c => Hypr.appName(c));
         const base = names.length > 0 ? names.join(" + ") : qsTr("Session");
         let name = base;
         let n = 2;

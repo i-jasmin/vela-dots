@@ -115,7 +115,7 @@ Item {
             // icons, and `Hypr` already answers "which app is this" for the
             // bar's focused-window chip. Same question, same answer -- and
             // the app's own icon, as the dock draws it, with an icon theme.
-            icon: Hypr.symbolFor(appTile.modelData.replace(/\.desktop$/, ""))
+            icon: Apps.symbolForClass(appTile.modelData.replace(/\.desktop$/, ""))
             source: AppIcons.forClass(appTile.modelData.replace(/\.desktop$/, ""))
             draggable: root.apps.length > 1
             x: appTile.dragging ? appTile.dragX : appTile.index * root.step

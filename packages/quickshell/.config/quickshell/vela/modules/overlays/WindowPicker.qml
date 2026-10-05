@@ -63,11 +63,16 @@ PanelWindow {
     // could answer.
     readonly property list<var> ordered: [...root.scoped].sort((a, b) => Hypr.focusRank(a) - Hypr.focusRank(b))
 
+    // By title, by class, and by the name the card shows: "files" finds
+    // Nautilus.
     readonly property list<var> matched: {
         const q = root.query.trim().toLowerCase();
         if (!q)
             return root.ordered;
-        return root.ordered.filter(c => (c.title ?? "").toLowerCase().includes(q) || Hypr.classOf(c).toLowerCase().includes(q));
+        return root.ordered.filter(c => {
+            const cls = Hypr.classOf(c);
+            return (c.title ?? "").toLowerCase().includes(q) || cls.toLowerCase().includes(q) || Hypr.appName(cls).toLowerCase().includes(q);
+        });
     }
 
     // The design draws six windows. A real session holds many more and a grid
