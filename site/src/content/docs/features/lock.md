@@ -10,6 +10,8 @@ weather, unread notifications and the battery, and what is playing with its
 controls. A ring round the clock turns with the music. Unlock with your
 password, or your finger if the machine has a reader (fprintd).
 
+![The lock screen: the time inside a ring, the date, the weather, today's events, unread notifications and the battery, the password field, and the music playing in a corner.](../../../assets/screenshots/lock.webp)
+
 **Settings → Lock screen** chooses what it shows.
 
 ## When you step away
@@ -27,8 +29,9 @@ writes them there and restarts hypridle.
 
 ## The power menu
 
-**super + escape**, or the power button at the end of the bar. Each action has
-one key:
+**super + escape**, or the power button at the end of the bar. The menu hangs
+off that end of the bar, over a dim that leaves the bar itself lit. Each
+action has one key:
 
 | Key | Action |
 | --- | --- |

@@ -8,6 +8,8 @@ for it under the rest. With both open you see both, side by side. With one
 open, you see that one across the whole row. Once you close them, the cards
 go and the tab looks as it always did.
 
+![Above, the pill on the bar with Claude Code and Codex usage. Below, their cards on the System tab: each plan, what the tool is doing, and rings for the five-hour and weekly limits with when they reset.](../../../assets/screenshots/ai-tools.webp)
+
 ## What a card shows
 
 - **Your plan** (Max, Business and so on) beside the name.

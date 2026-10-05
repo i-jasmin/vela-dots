@@ -11,5 +11,7 @@ it. Apps are on the left of a divider, **stacks** on the right.
 - **Stacks** -- a folder at a glance, newest first: Downloads and the Trash to
   start with. Click one to open it out.
 
+![The dock at the bottom of the screen: apps on the left of a divider with a dot under each one running and the name of the one under the pointer, and the Downloads and Trash stacks on the right.](../../../assets/screenshots/dock.webp)
+
 **Settings → Bar** turns the dock on or off, chooses whether it hides, and
 edits the pinned apps and the stacks.

@@ -12,6 +12,8 @@ description: Save the windows you work with and bring them back, at login if you
   saved workspace. Floating windows come back at their size and position, and
   terminals come back in the folder they were left in.
 
+![The sessions panel: three saved layouts called Coding, Writing, and Mail and chat, each with a sketch of its windows, the apps it holds and a Restore button, and the switch that restores the last session at login.](../../../assets/screenshots/sessions.webp)
+
 ## At login
 
 The layout as it last stood is kept automatically. With **Restore last

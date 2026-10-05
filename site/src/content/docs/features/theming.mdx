@@ -3,15 +3,23 @@ title: Wallpapers and colours
 description: How the palette comes from your wallpaper, light and dark, evening warmth, and what follows along.
 ---
 
+import Compare from '../../../components/Compare.astro';
+import themeDark from '../../../assets/screenshots/theme-dark.webp';
+import themeLight from '../../../assets/screenshots/theme-light.webp';
+
 Every colour in vela comes from the wallpaper. Pick one, and
 [matugen](https://github.com/InioX/matugen) turns it into a Material 3
 palette that the shell and your apps all take.
+
+![The same desktop with three wallpapers: a dusk sky in dark mode, a forest in light mode and a violet one in dark mode, each with the bar and dashboard in its own colours.](../../../assets/screenshots/theming.webp)
 
 ## Choosing a wallpaper
 
 **super + W** opens the switcher: a strip of the images in
 `~/Pictures/Wallpapers`, with the palette each would give on the left and a
 small bar wearing it on the right.
+
+![The wallpaper switcher: a row of wallpaper cards, the selected one large, with its palette swatches and a small bar in its colours.](../../../assets/screenshots/wallpaper-switcher.webp)
 
 - **Arrows** move, **Enter** applies.
 - **Tab** chooses **light**, **dark** or **auto**; Enter applies it with the
@@ -46,6 +54,17 @@ window crosses over to the new colours together.
 light / dark / auto, the [app icons](#app-icons), how round the corners are,
 how see-through the panels are, and **motion**: full, reduced or off, and how fast -- Hyprland's own window
 animations follow the same setting.
+
+The same wallpaper gives a dark palette and a light one. Drag the handle
+across to compare them:
+
+<Compare
+	before={themeDark}
+	after={themeLight}
+	beforeLabel="Dark"
+	afterLabel="Light"
+	alt="The dashboard and bar over the same dusk wallpaper, in the dark palette on one side of the handle and the light palette on the other."
+/>
 
 ## App icons
 

@@ -54,6 +54,8 @@ always opens fresh; switching to another tab and back keeps it as it was.
 
 ## Reading the month
 
+![The month folded out on the Home tab: the October grid with today marked and dots under days with events, today's five events with a Join button on the next meeting, the calendars below, and when they last synced.](../../../assets/screenshots/calendar.webp)
+
 ### The grid
 
 - **Today** is the filled day. The **picked day** has an outline; click any

@@ -11,6 +11,8 @@ windows still work while it is open, so an autohiding bar can be tried out
 with the window up. Close it with **esc**, the **×** at the top of its menu, or
 super + I again. A page's **Reset** asks before it puts anything back.
 
+![The settings window on Appearance: the palette from the wallpaper, the scheme variant and light, dark or auto, the app icon theme, and the corner radius and panel opacity sliders.](../../../assets/screenshots/settings.webp)
+
 | Page | Covers |
 | --- | --- |
 | **General** | where you are (for the weather and sunset), units, evening warmth, your picture, the wallpaper / screenshot / recording folders, restoring your session at login, checking for updates |

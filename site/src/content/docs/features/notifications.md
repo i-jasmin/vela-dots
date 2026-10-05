@@ -6,6 +6,8 @@ description: Toasts, the history on the bell, do not disturb, and the focus dige
 Notifications pop up as cards, stacked one per app. The **bell** at the end of
 the tray -- or **super + N** -- opens the history.
 
+![On the left, notification cards as they arrive: a finished download, an email, a chat message with a photo and a calendar reminder. On the right, the history from the bell, grouped by app, with do not disturb at the top.](../../../assets/screenshots/notifications.webp)
+
 ## Like a phone
 
 - **Open one out.** A notification that says more than fits has a chevron; it

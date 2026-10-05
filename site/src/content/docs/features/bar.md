@@ -6,6 +6,8 @@ description: What is on the bar, where it can go, and the popouts that hang off 
 The bar runs along one edge of each monitor. By default it sits at the top,
 floating a little clear of the edge.
 
+![The bar, cut in two to fit the page: the workspaces, the focused window and the clock on its first half; the music, CPU and memory with the update count, the status icons, the battery and power on the second.](../../../assets/screenshots/bar.webp)
+
 ## What is on it
 
 From one end to the other, as it ships:
@@ -20,6 +22,10 @@ From one end to the other, as it ships:
 order. One item is not on the bar until you add it: the
 [Claude Code and Codex](../ai-tools/#the-pill-on-the-bar) pill, which goes
 before the fold arrow and stays while the bar is folded.
+
+On a laptop the battery warns you with a notification at 20%, again at 10%,
+and at 5%. The last two are urgent, which do not disturb lets through unless
+you have told it not to. Plugging in takes the warning away.
 
 ## Where it goes
 
@@ -53,6 +59,8 @@ item itself; opening another while one is open slides across to it.
 - **A tray app's menu** -- right-click an app's icon in the tray. The app
   decides what is in its menu; vela draws it like everything else, in your
   palette. A submenu opens in place, with a row at the top to go back.
+
+![Three popouts hanging from the bar: the networks in range with airplane mode, the sound output with the volume and a slider for the music, and Bluetooth with paired headphones and a keyboard.](../../../assets/screenshots/popouts.webp)
 
 ## Folding it away
 

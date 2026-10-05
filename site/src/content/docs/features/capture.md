@@ -21,11 +21,15 @@ While choosing: **space** takes the whole screen, **W** the window under the
 pointer. While recording, **super + shift + S** again stops. The folders and
 what Enter does are in [settings](../../configure/settings/) (`capture`).
 
+![Capture: a region dragged out over the desktop with its size shown, and the buttons under it: Copy, Save, Annotate, Record, GIF and OCR.](../../../assets/screenshots/capture.webp)
+
 ## Clipboard history
 
 **super + V**. Everything you copy, newest first: images as thumbnails,
 colours as swatches, links as links. Type to filter; **Enter** pastes into the
 window you were in. **Pin** an entry to keep it at the top.
+
+![Clipboard history: copied text, a link, a colour and an image in a list with a search field, and the selected image previewed on the right with where it was copied from and a Paste button.](../../../assets/screenshots/clipboard.webp)
 
 | Key or button | Does |
 | --- | --- |

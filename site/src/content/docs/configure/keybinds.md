@@ -6,6 +6,8 @@ description: Every shortcut, and how to add or change one.
 **super + <** -- or **super + /** on a US keyboard -- shows all of these,
 searchable, built from what Hyprland actually has bound at that moment.
 
+![The keybinds cheatsheet: every shortcut in groups for the shell, windows, workspaces, capture, sessions, and media and system, with a filter at the top.](../../../assets/screenshots/keybinds-cheatsheet.webp)
+
 ## The shell
 
 | Keys | Opens |

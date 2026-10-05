@@ -17,6 +17,10 @@ Four tabs, one job each. **Tab** or the number keys move between them.
 | **System** | live CPU, memory and GPU rings, the CPU's last minute, the busiest processes, [pending updates](#updates), and a card for [Claude Code and Codex](../ai-tools/) while they are open |
 | **Focus** | a focus timer, its lengths, and two switches |
 
+![The Media tab: a cover spinning inside a ring that moves with the sound, the track and artist, how far in it is, and the playback controls.](../../../assets/screenshots/dashboard-media.webp)
+
+![The System tab: CPU, memory and GPU rings, the CPU over the last minute, the busiest processes, a line with five pending updates, and cards for Claude Code and Codex with their usage.](../../../assets/screenshots/dashboard-system.webp)
+
 ## The month
 
 Home's month is the calendar. Fold it out with the arrow on the day's card,

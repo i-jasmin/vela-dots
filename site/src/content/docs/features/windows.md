@@ -15,6 +15,8 @@ card after them.
 - Within a card, drop a tiled window on another to **swap** them, or a floating
   one where you want it.
 
+![The workspace overview: a card for each workspace with its windows drawn in place, the focused one outlined, then the empty workspaces and a card for a new one.](../../../assets/screenshots/overview.webp)
+
 ## The window picker
 
 **alt + tab** shows every window as a live thumbnail, most recent first, with
@@ -27,6 +29,8 @@ alt + tab goes back, like it always has. Keep alt held and:
 - **shift + return** brings it here instead of travelling to it.
 
 Let go of alt to switch.
+
+![The window picker: every window as a card with its title, app and workspace, the selected one highlighted, a switch between all windows and this workspace, and the keys along the bottom.](../../../assets/screenshots/window-picker.webp)
 
 ## Moving windows
 
