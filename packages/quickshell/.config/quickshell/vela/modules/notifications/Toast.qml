@@ -30,6 +30,11 @@ import qs.components
 // centre; middle-click and Dismiss drop them. One that says more than three
 // lines, or carries a picture worth seeing, has a chevron that opens the card
 // out to all of it.
+//
+// From the phone (KDE Connect), a card is headed with the phone's app and the
+// phone -- "WhatsApp · Pixel 8" -- and may carry two things more: a field to
+// reply in, when the app on the phone takes replies, and a one-time code with
+// a button that copies it without it landing in the clipboard history.
 Item {
     id: root
 
@@ -55,9 +60,40 @@ Item {
     // Typed rather than `var`: QML compares object properties by identity and
     // only signals a real change, so another application's notification
     // arriving does not retick this card's countdown.
-    readonly property QtObject head: root.live[0] ?? root.entries[0] ?? null
+    //
+    // While a reply is being typed it stays the message being answered: a
+    // second one arriving from the same app mid-sentence only adds to the
+    // count, rather than taking the reply with it to someone else.
+    readonly property QtObject head: (root.replyTo && !root.replyTo.closing ? root.replyTo : null) ?? root.live[0] ?? root.entries[0] ?? null
     readonly property int count: root.live.length
     readonly property var actions: root.head?.buttons ?? []
+
+    // The name the card is headed with, and for the phone's, which phone.
+    readonly property string label: root.head?.displayName ?? root.app
+    readonly property string device: root.head?.device ?? ""
+    readonly property string countText: root.count > 1 ? qsTr("%1 messages").arg(root.count) : ""
+
+    // The message a reply is being typed to, from the first key.
+    property QtObject replyTo: null
+    readonly property bool replying: replyField.activeFocus || replyField.text !== ""
+    property bool copied: false
+
+    function send(): void {
+        const text = replyField.text.trim();
+        if (text === "" || !root.head)
+            return;
+        root.head.reply(text);
+        replyField.text = "";
+        root.replyTo = null;
+        Notifs.closePopupGroup(root.app);
+    }
+
+    // "482 913": a six- or eight-digit code read in halves.
+    function spaced(code: string): string {
+        if (code.length === 6 || code.length === 8)
+            return `${code.slice(0, code.length / 2)} ${code.slice(code.length / 2)}`;
+        return code;
+    }
 
     // One critical notification makes the whole card critical. Burying a disk
     // failure inside a calm grey card because four chat messages arrived after
@@ -79,9 +115,10 @@ Item {
     readonly property bool wide: root.pictured && picture.implicitWidth > picture.implicitHeight * 1.3
     readonly property bool expandable: root.expanded || summaryText.truncated || bodyText.truncated || root.wide
 
-    // Nothing may count down while the user is reading or holding the card
-    // -- this copy of it, or its twin on another monitor (`Notifs.pause`).
-    readonly property bool frozen: hover.hovered || swipe.swiping
+    // Nothing may count down while the user is reading or holding the card,
+    // or typing a reply on it -- this copy of it, or its twin on another
+    // monitor (`Notifs.pause`).
+    readonly property bool frozen: hover.hovered || swipe.swiping || root.replying
     readonly property bool held: (Notifs.paused[root.app] ?? 0) > 0
 
     onFrozenChanged: Notifs.pause(root.app, root.frozen)
@@ -123,6 +160,7 @@ Item {
     onShownChanged: root.retime()
     onHeadChanged: {
         root.expanded = false;
+        root.copied = false;
         root.retime();
     }
 
@@ -274,8 +312,8 @@ Item {
                     // Urgency has its own glyph; everything else is drawn as
                     // whatever the application is -- its own icon, when an icon
                     // theme is chosen.
-                    source: root.urgent ? "" : AppIcons.forClass(root.app)
-                    glyph: root.urgent ? "priority_high" : Apps.symbolForClass(root.app)
+                    source: root.urgent ? "" : root.head?.avatar ?? ""
+                    glyph: root.urgent ? "priority_high" : root.head?.glyph ?? ""
                     size: Appearance.size.iconMd
                     imageSize: Appearance.notifications.toastTile
                     color: root.urgent ? Colours.error : Colours.on.surfaceVariant
@@ -293,9 +331,9 @@ Item {
                     Layout.fillWidth: true
 
                     AppLine {
-                        label: root.urgent ? qsTr("Urgent · %1").arg(root.app) : root.app
+                        label: root.urgent ? qsTr("Urgent · %1").arg(root.label) : root.label
                         labelColour: root.urgent ? Colours.error : Colours.on.surface
-                        note: root.count > 1 ? qsTr("%1 messages").arg(root.count) : ""
+                        note: root.device ? ["·", root.device, root.countText].filter(s => s).join(" ") : root.countText
                         stamp: root.head ? Notifs.ago(root.head.time) : ""
 
                         Layout.fillWidth: true
@@ -440,6 +478,133 @@ Item {
                         source: root.head?.image ?? ""
                         fillMode: Image.PreserveAspectCrop
                         asynchronous: true
+                    }
+                }
+
+                // A one-time code, large, and the way to copy it.
+                ColumnLayout {
+                    visible: (root.head?.code ?? "") !== ""
+                    spacing: Appearance.space.xs
+
+                    Layout.fillWidth: true
+                    Layout.topMargin: root.actionGap
+
+                    RowLayout {
+                        spacing: Appearance.space.md
+
+                        Layout.fillWidth: true
+
+                        Text {
+                            text: root.spaced(root.head?.code ?? "")
+                            font.family: Appearance.font.mono
+                            font.pixelSize: Appearance.notifications.codeSize
+                            color: Colours.on.surface
+
+                            Layout.fillWidth: true
+                        }
+
+                        Pill {
+                            text: root.copied ? qsTr("Copied") : qsTr("Copy code")
+                            icon: root.copied ? "check" : "content_copy"
+                            tone: "accent"
+                            fontSize: Appearance.size.label
+                            onClicked: {
+                                Notifs.copyCode(root.head.code);
+                                root.copied = true;
+                            }
+                        }
+                    }
+
+                    RowLayout {
+                        spacing: Appearance.space.xs
+
+                        Icon {
+                            text: "visibility_off"
+                            size: Appearance.size.iconXs
+                            color: Colours.outline
+                        }
+
+                        Text {
+                            text: qsTr("Kept out of clipboard history")
+                            font.family: Appearance.font.ui
+                            font.pixelSize: Appearance.size.micro
+                            color: Colours.outline
+                        }
+                    }
+                }
+
+                // A reply, when the app on the phone takes them. Enter or the
+                // arrow sends it, and the card goes; esc empties the field.
+                RowLayout {
+                    visible: root.head?.canReply ?? false
+                    spacing: Appearance.space.sm
+
+                    Layout.fillWidth: true
+                    Layout.topMargin: root.actionGap
+
+                    Rectangle {
+                        implicitHeight: Appearance.notifications.replyHeight
+                        radius: height / 2
+                        color: Colours.surfaceContainerHigh
+                        border.width: 1
+                        border.color: replyField.activeFocus ? Colours.primary : "transparent"
+
+                        Layout.fillWidth: true
+
+                        TextInput {
+                            id: replyField
+
+                            anchors.fill: parent
+                            anchors.leftMargin: Appearance.space.md
+                            anchors.rightMargin: Appearance.space.md
+                            verticalAlignment: TextInput.AlignVCenter
+                            clip: true
+                            font.family: Appearance.font.ui
+                            font.pixelSize: Appearance.size.label
+                            color: Colours.on.surface
+                            selectionColor: Colours.primaryContainer
+                            selectedTextColor: Colours.on.primaryContainer
+
+                            onTextChanged: root.replyTo = replyField.text !== "" ? (root.replyTo ?? root.head) : null
+                            Keys.onReturnPressed: root.send()
+                            Keys.onEnterPressed: root.send()
+                            Keys.onEscapePressed: event => {
+                                replyField.text = "";
+                                replyField.focus = false;
+                                event.accepted = true;
+                            }
+
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: parent.width
+                                visible: !replyField.text
+                                text: root.head?.replyHint ?? ""
+                                font: replyField.font
+                                color: Colours.outline
+                                elide: Text.ElideRight
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        implicitWidth: Appearance.notifications.replyHeight
+                        implicitHeight: Appearance.notifications.replyHeight
+                        radius: width / 2
+                        color: replyField.text.trim() !== "" ? Colours.primary : Colours.surfaceContainerHigh
+
+                        Icon {
+                            anchors.centerIn: parent
+                            text: "send"
+                            size: Appearance.size.iconMd
+                            color: replyField.text.trim() !== "" ? Colours.on.primary : Colours.outline
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            enabled: replyField.text.trim() !== ""
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.send()
+                        }
                     }
                 }
 

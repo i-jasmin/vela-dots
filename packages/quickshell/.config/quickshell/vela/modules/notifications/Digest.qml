@@ -227,8 +227,8 @@ Item {
                                 spacing: root.gap
 
                                 AppIcon {
-                                    source: entry.urgent ? "" : AppIcons.forClass(entry.modelData)
-                                    glyph: entry.urgent ? "priority_high" : Apps.symbolForClass(entry.modelData)
+                                    source: entry.urgent ? "" : entry.newest?.avatar ?? ""
+                                    glyph: entry.urgent ? "priority_high" : entry.newest?.glyph ?? ""
                                     size: Appearance.size.iconMd
                                     imageSize: Appearance.size.iconMd + Appearance.size.appIconGrow
                                     // Neutral, except for the two things that

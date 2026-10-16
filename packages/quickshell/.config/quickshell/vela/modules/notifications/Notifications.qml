@@ -27,10 +27,11 @@ import qs.services
 // window underneath.
 //
 // KEYBOARD. A toast that takes the keyboard is a toast that interrupts typing,
-// so the window asks for none of it. The one exception is the digest, which is
-// a card with buttons rather than a notice: while it is up the window takes
-// focus *on demand*, which means when the user clicks it and not before, and
-// then esc puts it away.
+// so the window asks for none of it. The exceptions are the digest, which is
+// a card with buttons rather than a notice, and a card from the phone with a
+// field to reply in: while one is up the window takes focus *on demand*,
+// which means when the user clicks it and not before. Esc then puts the
+// digest away, or empties the field.
 Variants {
     model: Quickshell.screens
 
@@ -62,6 +63,7 @@ Variants {
         // The digest is the only thing here that is a control rather than a
         // notice, and the only thing that should ever hold a key.
         readonly property bool interactive: Notifs.digestDue && Notifs.heldCount > 0
+        readonly property bool replyable: Notifs.popups.some(e => e.canReply && !e.closing)
 
         // What the service says there is to draw. `popupApps` still counts a
         // group that has been retired but not yet released, which is what keeps
@@ -111,7 +113,7 @@ Variants {
         // The compositor does the backdrop blur; QML cannot blur what is behind
         // its own window. `layerrule = blur, ^(vela-.*)$` matches on this name.
         WlrLayershell.namespace: "vela-notifications"
-        WlrLayershell.keyboardFocus: win.interactive ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+        WlrLayershell.keyboardFocus: win.interactive || win.replyable ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
 
         // Everything outside the cards falls through. Without this the shadow
         // gutter and the swipe room -- two thirds of the window -- would be an

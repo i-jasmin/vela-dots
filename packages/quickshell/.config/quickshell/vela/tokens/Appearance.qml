@@ -243,6 +243,16 @@ QtObject {
         readonly property int centreEntryGap: 6
         readonly property int centreGroupGap: 12
         readonly property int centreTile: 30
+
+        // ---- the phone (KDE Connect) ----------------------------------------
+        //
+        // A control popout, a little wider: four actions side by side under
+        // the phone's own row, each a glyph over its word.
+        readonly property int phoneWidth: 320
+        readonly property int phoneTile: 64
+        readonly property int phoneTileGap: 8
+        readonly property int phoneThumb: 34
+        readonly property int phoneShown: 3
     }
 
     // ---- notifications ----------------------------------------------------
@@ -282,6 +292,10 @@ QtObject {
         readonly property int thumbRadius: 8
         // The chevron that opens one out.
         readonly property int chevron: 18
+        // From the phone: the field a reply is typed in, and a one-time code
+        // drawn large enough to read off.
+        readonly property int replyHeight: 34
+        readonly property int codeSize: 22
     }
 
     // ---- recolour -----------------------------------------------------------
@@ -1536,6 +1550,12 @@ QtObject {
         readonly property int listDivider: 26
         readonly property int listDividerGap: 2
         readonly property real hintSize: 11
+
+        // ---- the phone page ------------------------------------------------
+        // The paired phone's tile, and the strip a pairing key is read off.
+        readonly property int phoneTile: 40
+        readonly property int phoneKeyHeight: 46
+        readonly property real phoneKeySize: 17
         // Not in the design, which draws the square that adds a stack but
         // not what it opens. A folder has to be chosen from somewhere, and a
         // list of the ones in $HOME is the smallest honest answer.

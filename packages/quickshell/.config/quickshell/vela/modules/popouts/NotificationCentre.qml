@@ -31,11 +31,19 @@ import qs.modules.bar
 // The header carries the two switches that decide what reaches you at all: do
 // not disturb, and -- while a focus session is holding notifications back --
 // the digest, with a way to see it now.
+//
+// The phone's (KDE Connect) are grouped by its app and the phone, "WhatsApp ·
+// Pixel 8", and one may carry Reply, which opens a field under it, and Copy
+// code, as its card did.
 PopoutContent {
     id: root
 
     // What was new when the centre opened: marked, and then seen.
     property date newSince: new Date(0)
+    // The one notification a reply is being typed to, and the one whose code
+    // was just copied.
+    property var replyingTo: null
+    property var copiedFrom: null
     // Applications opened out past their newest few, by name.
     property var opened: ({})
     // Notifications opened out to all they say.
@@ -70,6 +78,19 @@ PopoutContent {
         action.invoke();
         if (!entry.resident)
             root.leave([entry]);
+    }
+
+    // Scrolls the history just far enough to show `item` whole: the reply
+    // field opening under a notification at the foot of the list. Not capped
+    // at the list's height, which lags a frame behind the card growing to
+    // make room for it.
+    function reveal(item: Item): void {
+        const top = item.mapToItem(groups, 0, 0).y;
+        const bottom = top + item.height + Appearance.space.sm;
+        if (bottom > history.contentY + history.height)
+            history.contentY = bottom - history.height;
+        else if (top < history.contentY)
+            history.contentY = top;
     }
 
     function toggle(entry: var): void {
@@ -289,8 +310,8 @@ PopoutContent {
                                     id: groupIcon
 
                                     anchors.centerIn: parent
-                                    source: group.urgent ? "" : AppIcons.forClass(group.modelData)
-                                    glyph: group.urgent ? "priority_high" : Apps.symbolForClass(group.modelData)
+                                    source: group.urgent ? "" : group.entries[0]?.avatar ?? ""
+                                    glyph: group.urgent ? "priority_high" : group.entries[0]?.glyph ?? ""
                                     size: Appearance.size.iconSm
                                     imageSize: Appearance.popout.centreTile
                                     color: group.urgent ? Colours.error : Colours.on.surfaceVariant
@@ -386,6 +407,10 @@ PopoutContent {
 
         Layout.fillWidth: true
         Layout.preferredHeight: entry.implicitHeight
+
+        // The list follows the card down as it opens to the reply field.
+        onCardHeightChanged: if (root.replyingTo === entry.modelData)
+            root.reveal(replyBox)
 
         Behavior on cardHeight {
             enabled: !entry.going
@@ -593,12 +618,39 @@ PopoutContent {
                     }
                 }
 
-                // The app's own buttons, as the toast offered them.
+                // The app's own buttons, as the toast offered them; and from
+                // the phone, Reply and Copy code.
                 Flow {
-                    visible: entry.modelData.buttons.length > 0
+                    visible: entry.modelData.buttons.length > 0 || entry.modelData.canReply || entry.modelData.code !== ""
                     spacing: Appearance.space.xs
 
                     Layout.fillWidth: true
+
+                    Pill {
+                        visible: entry.modelData.code !== ""
+                        text: root.copiedFrom === entry.modelData ? qsTr("Copied") : qsTr("Copy code")
+                        icon: root.copiedFrom === entry.modelData ? "check" : "content_copy"
+                        tone: "accent"
+                        pillHeight: Appearance.settings.segmentHeight
+                        fontSize: Appearance.size.caption
+                        onClicked: {
+                            Notifs.copyCode(entry.modelData.code);
+                            root.copiedFrom = entry.modelData;
+                        }
+                    }
+
+                    Pill {
+                        visible: entry.modelData.canReply && root.replyingTo !== entry.modelData
+                        text: qsTr("Reply")
+                        icon: "reply"
+                        tone: "subtle"
+                        pillHeight: Appearance.settings.segmentHeight
+                        fontSize: Appearance.size.caption
+                        onClicked: {
+                            root.replyingTo = entry.modelData;
+                            replyField.forceActiveFocus();
+                        }
+                    }
 
                     Repeater {
                         model: entry.modelData.buttons
@@ -611,6 +663,84 @@ PopoutContent {
                             pillHeight: Appearance.settings.segmentHeight
                             fontSize: Appearance.size.caption
                             onClicked: root.invoke(entry.modelData, modelData)
+                        }
+                    }
+                }
+
+                // The reply, once asked for. Enter sends it; esc closes the
+                // field first, and the centre only on the next press.
+                Rectangle {
+                    id: replyBox
+
+                    visible: root.replyingTo === entry.modelData
+                    implicitHeight: Appearance.settings.segmentHeight + Appearance.space.sm
+                    radius: height / 2
+                    color: Colours.surfaceContainerHigh
+                    border.width: 1
+                    border.color: replyField.activeFocus ? Colours.primary : "transparent"
+
+                    Layout.fillWidth: true
+                    Layout.rightMargin: Appearance.space.sm
+
+                    function send(): void {
+                        const text = replyField.text.trim();
+                        if (text === "")
+                            return;
+                        entry.modelData.reply(text);
+                        replyField.text = "";
+                        root.replyingTo = null;
+                    }
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: Appearance.space.md
+                        anchors.rightMargin: Appearance.space.xs
+                        spacing: Appearance.space.sm
+
+                        TextInput {
+                            id: replyField
+
+                            clip: true
+                            font.family: Appearance.font.ui
+                            font.pixelSize: Appearance.size.caption
+                            color: Colours.on.surface
+                            selectionColor: Colours.primaryContainer
+                            selectedTextColor: Colours.on.primaryContainer
+
+                            Layout.fillWidth: true
+                            Layout.alignment: Qt.AlignVCenter
+
+                            Keys.onReturnPressed: replyBox.send()
+                            Keys.onEnterPressed: replyBox.send()
+                            Keys.onEscapePressed: event => {
+                                replyField.text = "";
+                                root.replyingTo = null;
+                                event.accepted = true;
+                            }
+
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: parent.width
+                                visible: !replyField.text
+                                text: entry.modelData.replyHint
+                                font: replyField.font
+                                color: Colours.outline
+                                elide: Text.ElideRight
+                            }
+                        }
+
+                        Icon {
+                            text: "send"
+                            size: Appearance.size.iconXs
+                            color: replyField.text.trim() !== "" ? Colours.primary : Colours.outline
+
+                            MouseArea {
+                                anchors.fill: parent
+                                anchors.margins: -Appearance.space.xs
+                                enabled: replyField.text.trim() !== ""
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: replyBox.send()
+                            }
                         }
                     }
                 }

@@ -77,6 +77,11 @@ ShellRoot {
     // palette can open at the right warmth (Colours.sunKnown).
     readonly property bool sunStarted: Sun.available
 
+    // The phone, likewise, starts with the shell: it watches for one once
+    // KDE Connect is installed, whether or not its item is on the bar, and it
+    // answers `qs ipc call phone setUp`, which Set up sends when it is done.
+    readonly property bool phoneStarted: Phone.installed
+
     // The wallpaper goes first: it is the only thing on the background layer,
     // and everything else is drawn over it.
     Background {}

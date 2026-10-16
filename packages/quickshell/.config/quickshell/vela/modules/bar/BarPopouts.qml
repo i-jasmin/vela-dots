@@ -25,11 +25,12 @@ import qs.tokens
 //
 //   current      "" when nothing is open, otherwise one of
 //                "output" | "network" | "bluetooth" | "power" | "workspaces" |
-//                "notifications" | "privacy" | "tray". The first four are the
-//                bar's control popouts. "workspaces" is the workspace window
-//                list, "notifications" the notification centre off the bell,
-//                "privacy" who has the microphone, camera or screen, and
-//                "tray" a tray app's own menu -- popouts on the same anchor
+//                "notifications" | "privacy" | "tray" | "phone". The first
+//                four are the bar's control popouts. "workspaces" is the
+//                workspace window list, "notifications" the notification
+//                centre off the bell, "privacy" who has the microphone, camera
+//                or screen, "tray" a tray app's own menu, and "phone" the phone
+//                KDE Connect has in reach -- popouts on the same anchor
 //                machinery, outside those four.
 //   payload      free-form detail for the open popout. The workspace popout
 //                puts the workspace id here, a tray menu the tray item whose
@@ -50,7 +51,7 @@ import qs.tokens
 Singleton {
     id: root
 
-    readonly property list<string> names: ["output", "network", "bluetooth", "power", "workspaces", "notifications", "privacy", "tray"]
+    readonly property list<string> names: ["output", "network", "bluetooth", "power", "workspaces", "notifications", "privacy", "tray", "phone"]
 
     property string current: ""
     property var payload: undefined
@@ -172,7 +173,7 @@ Singleton {
     // BarExpander). Asked for by keybind while folded, the run opens first:
     // the popout is anchored on the item, and a hidden item has nowhere to be.
     // The bell stays while anything is unread, and then needs no unfolding.
-    readonly property list<string> folded: ["output", "network", "bluetooth", "power", "notifications"]
+    readonly property list<string> folded: ["output", "network", "bluetooth", "power", "notifications", "phone"]
     property string pending: ""
 
     function unfoldFor(name: string): void {

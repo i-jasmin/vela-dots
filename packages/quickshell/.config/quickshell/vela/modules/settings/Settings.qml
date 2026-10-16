@@ -97,6 +97,11 @@ PanelWindow {
             icon: "terminal"
         },
         {
+            key: "phone",
+            label: qsTr("Phone"),
+            icon: "smartphone"
+        },
+        {
             key: "about",
             label: qsTr("About"),
             icon: "info"
@@ -373,6 +378,8 @@ PanelWindow {
                         return modules;
                     case "ai":
                         return ai;
+                    case "phone":
+                        return phone;
                     default:
                         return about;
                     }
@@ -403,6 +410,12 @@ PanelWindow {
         id: ai
 
         AiPane {}
+    }
+
+    Component {
+        id: phone
+
+        PhonePane {}
     }
 
     Component {

@@ -102,6 +102,8 @@ BarFlow {
             return privacyComponent;
         case "ai":
             return aiComponent;
+        case "phone":
+            return phoneComponent;
         case "battery":
             return batteryComponent;
         case "clock":
@@ -252,6 +254,14 @@ BarFlow {
         id: aiComponent
 
         AiStatus {
+            bar: root.bar
+        }
+    }
+
+    Component {
+        id: phoneComponent
+
+        PhoneItem {
             bar: root.bar
         }
     }

@@ -327,6 +327,42 @@ Singleton {
         }
     }
 
+    // ---- From the phone --------------------------------------------------------
+
+    // The phone's apps have no desktop entry to ask for a glyph, so the usual
+    // ones are named here and the rest are drawn as a phone.
+    function phoneGlyph(app: string): string {
+        const a = app.toLowerCase();
+        if (/whatsapp|messenger|viber|threema|teams/.test(a))
+            return "chat_bubble";
+        if (/messages|sms/.test(a))
+            return "sms";
+        if (/phone|dialer|call/.test(a))
+            return "call";
+        const known = Hypr.symbolFor(a);
+        return known === "web_asset" ? "smartphone" : known;
+    }
+
+    // A one-time code: four to eight digits ("482913", "482 913") in a message
+    // that says it is a code, the first such number after it says so.
+    function codeIn(text: string): string {
+        const plain = text.replace(/<[^>]*>/g, " ");
+        const said = plain.search(/\b(code|codice|código|kod|otp|passcode|pin|verification|one[- ]time)\b/i);
+        if (said < 0)
+            return "";
+        const digits = /(?:^|\D)(\d{3}[ -]\d{3}|\d{4,8})(?!\d)/;
+        const found = plain.slice(said).match(digits) ?? plain.match(digits);
+        return found ? found[1].replace(/[ -]/g, "") : "";
+    }
+
+    // Copied without landing in the clipboard history: wl-copy marks it
+    // sensitive, and cliphist does not store what is marked so. A wl-copy too
+    // old for the flag copies it plainly, and the entry is taken back out of
+    // the history once cliphist has stored it.
+    function copyCode(code: string): void {
+        Quickshell.execDetached(["sh", "-c", 'printf %s "$1" | wl-copy --sensitive 2>/dev/null || { printf %s "$1" | wl-copy && sleep 1 && cliphist delete-query "$1"; }', "sh", code]);
+    }
+
     // Called by a popup once its exit animation has finished.
     function popupClosed(entry: Notif): void {
         popups = popups.filter(e => e !== entry);
@@ -412,14 +448,32 @@ Singleton {
 
         readonly property string appName: notification?.appName ?? ""
         readonly property string appIcon: notification?.appIcon ?? ""
+
+        // From the phone. KDE Connect posts each notification the phone gets
+        // here, marked with the phone's name; and because this server says it
+        // reads x-kde-display-appname, it sends the phone app's name apart
+        // from the sender's -- "WhatsApp", with "Marco" as the summary.
+        readonly property var hints: notification?.hints ?? ({})
+        readonly property string device: entry.hints["x-kdeconnect-source-device"] ?? ""
+        readonly property bool fromPhone: entry.device !== ""
+        // The app a card is headed with: the phone app's, or this one's.
+        readonly property string displayName: (entry.fromPhone ? entry.hints["x-kde-display-appname"] : "") || entry.appName || "Notification"
+
+        // What a card draws in its tile: the app's icon from the theme, else
+        // its glyph.
+        readonly property string avatar: entry.fromPhone ? "" : AppIcons.forClass(entry.group)
+        readonly property string glyph: entry.fromPhone ? root.phoneGlyph(entry.displayName) : Apps.symbolForClass(entry.group)
+
         // The picture a card draws large: a screenshot, a contact's photo, a
         // cover. "" when it would not draw -- an icon name the theme lacks
         // would be a magenta square (`AppIcons.usable`) -- and when it is only
         // the app's own icon (`notify-send -i firefox`), which the card's
-        // avatar already is.
+        // avatar already is. And from the phone, which sends the sender's
+        // face or else the app's status-bar glyph, white on nothing: on a
+        // light card that is a blank square.
         readonly property string image: {
             const src = notification?.image ?? "";
-            if (!AppIcons.usable(src))
+            if (entry.fromPhone || !AppIcons.usable(src))
                 return "";
             const named = AppIcons.iconName(src).toLowerCase();
             const own = [entry.appIcon, entry.appName, Hypr.entryFor(entry.appName)?.icon ?? ""].map(s => s.toLowerCase());
@@ -433,8 +487,22 @@ Singleton {
         readonly property bool low: urgency === NotificationUrgency.Low
 
         // What the popup stack groups on. Apps that send no name at all would
-        // otherwise all land in one nameless pile, so they stay separate.
-        readonly property string group: (notification?.appName ?? "") || "Notification"
+        // otherwise all land in one nameless pile, so they stay separate. The
+        // phone's are grouped by its app, and by phone: "WhatsApp · Pixel 8".
+        readonly property string group: entry.fromPhone ? `${entry.displayName} · ${entry.device}` : entry.displayName
+
+        // A reply typed on the card goes back through KDE Connect, and the
+        // phone sends it from the app.
+        readonly property bool canReply: notification?.hasInlineReply ?? false
+        readonly property string replyHint: entry.hints["x-kde-reply-placeholder-text"] || notification?.inlineReplyPlaceholder || qsTr("Reply")
+
+        function reply(text: string): void {
+            if (entry.canReply && !entry.gone)
+                entry.notification.sendInlineReply(text);
+        }
+
+        // A one-time code the phone was sent, for the card to copy.
+        readonly property string code: entry.fromPhone && Config.phone.codes ? root.codeIn(`${entry.summary} ${entry.body}`) : ""
 
         // The freedesktop "default" action is the whole-card click target
         // rather than a button of its own.
@@ -458,8 +526,17 @@ Singleton {
         actionsSupported: true
         actionIconsSupported: true
         imageSupported: true
+        // Both for KDE Connect: a reply field on the phone's notifications,
+        // and the phone app's name sent apart from the sender's.
+        inlineReplySupported: true
+        extraHints: ["x-kde-display-appname"]
 
         onNotification: n => {
+            // The phone's, when Settings, Phone has them off: left unclaimed,
+            // which the phone never hears about.
+            if (!Config.phone.notifications && (n.hints["x-kdeconnect-source-device"] ?? "") !== "")
+                return;
+
             // The server discards anything not claimed before this returns.
             n.tracked = true;
 

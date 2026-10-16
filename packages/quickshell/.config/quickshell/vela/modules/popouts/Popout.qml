@@ -20,8 +20,10 @@ import qs.modules.bar
 // list, the bar's own popout; the notification centre off the bell -- the
 // history, which is the notifications' control in the sense that matters,
 // since it is where you act on one you missed; off the privacy capsule, who
-// has the microphone, camera or screen, with the microphone's mute; and off a
-// tray icon, that app's own menu, the app's control by definition.
+// has the microphone, camera or screen, with the microphone's mute; off a
+// tray icon, that app's own menu, the app's control by definition; and off the
+// phone's item, the phone KDE Connect has in reach -- a device's controls, as
+// Bluetooth's are.
 //
 // ONE OPEN, SHELL-WIDE. `BarPopouts` is a singleton because the design's rule
 // is that popouts never stack: one is open, shell-wide, or none is. Every
@@ -153,6 +155,8 @@ Item {
             return inUseContent;
         case "tray":
             return trayContent;
+        case "phone":
+            return phoneContent;
         }
         return null;
     }
@@ -297,5 +301,11 @@ Item {
         TrayMenu {
             item: root.subject
         }
+    }
+
+    Component {
+        id: phoneContent
+
+        PhonePopout {}
     }
 }

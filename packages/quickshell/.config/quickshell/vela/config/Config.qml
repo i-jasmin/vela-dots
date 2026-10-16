@@ -30,6 +30,7 @@ Singleton {
     readonly property UpdatesCfg updates: adapter.updates
     readonly property Keybinds keybinds: adapter.keybinds
     readonly property AiCfg ai: adapter.ai
+    readonly property PhoneCfg phone: adapter.phone
 
     readonly property string path: `${Quickshell.env("HOME")}/.config/vela/shell.json`
 
@@ -334,6 +335,17 @@ Singleton {
         property bool notifyNearLimit: true
     }
 
+    // The phone, through KDE Connect (services/Phone.qml). What KDE Connect
+    // keeps for itself -- pairing, sending the clipboard -- stays in its own
+    // files; these are what vela does with what it hears.
+    component PhoneCfg: JsonObject {
+        // Its notifications, as cards here. Off, vela drops them.
+        property bool notifications: true
+        // A Copy code button on a phone notification that carries a
+        // one-time code, copied out of clipboard history's reach.
+        property bool codes: true
+    }
+
     component UpdatesCfg: JsonObject {
         // Fedora, not Arch: the design's `checkupdates` and `paru -Qua` are
         // pacman tooling and do not exist on Fedora.
@@ -549,6 +561,7 @@ Singleton {
             property UpdatesCfg updates: UpdatesCfg {}
             property Keybinds keybinds: Keybinds {}
             property AiCfg ai: AiCfg {}
+            property PhoneCfg phone: PhoneCfg {}
         }
     }
 }

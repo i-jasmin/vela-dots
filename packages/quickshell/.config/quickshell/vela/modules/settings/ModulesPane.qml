@@ -74,6 +74,10 @@ PaneScroll {
                 label: qsTr("Claude Code & Codex"),
                 icon: "terminal"
             },
+            phone: {
+                label: qsTr("Phone"),
+                icon: "smartphone"
+            },
             battery: {
                 label: qsTr("Battery"),
                 icon: "battery_full"
