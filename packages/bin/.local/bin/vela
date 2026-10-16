@@ -62,6 +62,15 @@ usage: vela <command> [args]
                                       is saved first)
   ai statusline | ai hook <tool>      What Claude Code and Codex run once
                                       connected
+  phone setup                         Install KDE Connect for the phone and
+                                      open its ports in the firewall
+  phone status                        The phones KDE Connect knows (JSON)
+  phone ring|pick|clipboard|browse <device>
+                                      Ring it, send it files, send it the
+                                      clipboard, open its files
+  phone send <device> <file>...       Send it files
+  phone pair|refuse|unpair <device>   Pair, refuse a request, unpair
+  phone autoshare <device> on|off     Send what you copy here to it
 USAGE
 }
 
@@ -819,6 +828,23 @@ cmd_doctor() {
         pgrep -x hypridle >/dev/null && pass "hypridle is running" || note "hypridle is not running: nothing dims, locks or suspends on its own"
     else
         note "not inside Hyprland, so whether the shell is running was not checked"
+    fi
+
+    # The phone, once KDE Connect is set up (Settings, Phone).
+    if [ -e /usr/share/dbus-1/services/org.kde.kdeconnect.service ] || command -v kdeconnectd >/dev/null 2>&1; then
+        if gdbus call --session --dest org.freedesktop.DBus --object-path /org/freedesktop/DBus \
+            --method org.freedesktop.DBus.NameHasOwner org.kde.kdeconnect 2>/dev/null | grep -q true; then
+            pass "KDE Connect is running (the phone)"
+        else
+            note "KDE Connect is installed but not running: the shell starts it"
+        fi
+        command -v sshfs >/dev/null 2>&1 || note "missing: sshfs (browsing the phone's files)"
+        # 1 is "no"; anything else is firewalld unable to say, left alone.
+        if systemctl is-active --quiet firewalld 2>/dev/null; then
+            local fw=0
+            firewall-cmd --query-service=kdeconnect >/dev/null 2>&1 || fw=$?
+            [ "$fw" -ne 1 ] || note "the firewall keeps the phone out: vela phone setup opens KDE Connect's ports"
+        fi
     fi
 
     # A graphics card the open driver cannot run well.
@@ -2421,6 +2447,400 @@ else:
     die("usage: vela ai [status|claude-usage|icons [--force]|connect claude|codex|disconnect claude|codex|statusline|hook claude|codex]")
 PY
 
+# The phone, through KDE Connect's background service (kdeconnectd), which
+# does the talking to the phone; this only asks it things over D-Bus. Not
+# installed with vela: `phone setup` puts it in, from Settings, Phone.
+PHONE_STATE="$STATE_DIR/phone.json"
+
+cmd_phone() {
+    case "${1:-}" in
+        setup) phone_setup ;;
+        # exec: `watch` runs as long as the shell does, and the shell stopping
+        # it has to reach Python, not a shell left waiting for it.
+        *) VELA_PHONE_STATE="$PHONE_STATE" exec python3 -c "$VELA_PHONE_PY" "$@" ;;
+    esac
+}
+
+# Run in a terminal from Settings, Phone: dnf asks before it installs, and
+# sudo wants the password.
+phone_setup() {
+    cat <<'EOF'
+Setting up KDE Connect for your phone: its notifications, battery, files and
+clipboard on this PC.
+
+  1. Install kdeconnectd (KDE Connect's background service, without the KDE
+     desktop), sshfs (to browse the phone's files) and python3-gobject-base
+     (how vela talks to it).
+  2. Open KDE Connect's ports, 1714 to 1764, in the firewall.
+  3. Start it.
+
+EOF
+    local pkg=kdeconnectd
+    # Older Fedora releases package the service with the rest of KDE Connect.
+    dnf -q info kdeconnectd >/dev/null 2>&1 || pkg=kde-connect
+    sudo dnf install "$pkg" sshfs python3-gobject-base || die "nothing was installed"
+    if systemctl is-active --quiet firewalld 2>/dev/null; then
+        sudo firewall-cmd --permanent --add-service=kdeconnect >/dev/null &&
+            sudo firewall-cmd --reload >/dev/null &&
+            echo "Firewall: KDE Connect's ports are open."
+    fi
+    gdbus call --session --dest org.freedesktop.DBus --object-path /org/freedesktop/DBus \
+        --method org.freedesktop.DBus.StartServiceByName org.kde.kdeconnect 0 >/dev/null 2>&1 || true
+    cat <<'EOF'
+
+Done. Now install KDE Connect on the phone (Play Store or F-Droid), keep it on
+the same Wi-Fi as this PC, and pair from Settings, Phone.
+EOF
+}
+
+read -r -d '' VELA_PHONE_PY <<'PY' || true
+import configparser, json, os, shutil, signal, subprocess, sys, time
+
+def die(msg):
+    print(f"vela: {msg}", file=sys.stderr)
+    sys.exit(1)
+
+try:
+    import gi
+    gi.require_version("Gio", "2.0")
+    from gi.repository import Gio, GLib
+except (ImportError, ValueError):
+    die("python3-gobject is not installed (sudo dnf install python3-gobject-base)")
+
+NAME = "org.kde.kdeconnect"
+DAEMON = "/modules/kdeconnect"
+DEVICES = "/modules/kdeconnect/devices/"
+DEVICE = "org.kde.kdeconnect.device"
+STATE = os.environ["VELA_PHONE_STATE"]
+CONFIG = os.path.join(GLib.get_user_config_dir(), "kdeconnect")
+# The files the phone sent most recently, for the popout. KDE Connect keeps
+# no list of its own; it says when one arrives, and this remembers it.
+KEEP = 6
+
+try:
+    bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
+except GLib.Error as e:
+    die(f"no session bus: {e.message}")
+
+
+def installed():
+    return (os.path.exists("/usr/share/dbus-1/services/org.kde.kdeconnect.service")
+            or shutil.which("kdeconnectd") is not None)
+
+
+def running():
+    try:
+        r = bus.call_sync("org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus", "NameHasOwner",
+                          GLib.Variant("(s)", (NAME,)), None, Gio.DBusCallFlags.NONE, 2000, None)
+        return r.unpack()[0]
+    except GLib.Error:
+        return False
+
+
+def call(path, iface, method, args=None, timeout=5000):
+    r = bus.call_sync(NAME, path, iface, method, args, None, Gio.DBusCallFlags.NONE, timeout, None)
+    return r.unpack() if r is not None else ()
+
+
+def props(path, iface):
+    return call(path, "org.freedesktop.DBus.Properties", "GetAll", GLib.Variant("(s)", (iface,)))[0]
+
+
+# A plugin's settings, which KDE Connect keeps as QSettings INI files and
+# reloads when told (configChanged, below).
+def ini(dev, plugin):
+    path = os.path.join(CONFIG, dev, plugin, "config")
+    cp = configparser.ConfigParser(interpolation=None, strict=False)
+    cp.optionxform = str
+    try:
+        cp.read(path)
+    except configparser.Error:
+        pass
+    if not cp.has_section("General"):
+        cp.add_section("General")
+    return path, cp
+
+
+def autoshare(dev):
+    g = ini(dev, "kdeconnect_clipboard")[1]["General"]
+    return g.get("autoShare", g.get("sendUnknown", "true")).strip('"').lower() == "true"
+
+
+def folder(dev, name):
+    path = ini(dev, "kdeconnect_share")[1]["General"].get("incoming_path", "").strip('"')
+    if not path:
+        path = GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_DOWNLOAD) or os.path.expanduser("~/Downloads")
+    return path.replace("%1", name)
+
+
+def load():
+    try:
+        with open(STATE) as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return {}
+
+
+def save(data):
+    os.makedirs(os.path.dirname(STATE), exist_ok=True)
+    tmp = STATE + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(data, f)
+    os.replace(tmp, STATE)
+
+
+def record(url, dev):
+    if not url.startswith("file://"):
+        return
+    path = Gio.File.new_for_uri(url).get_path()
+    if not path:
+        return
+    try:
+        name = props(DEVICES + dev, DEVICE).get("name", "")
+    except GLib.Error:
+        name = ""
+    data = load()
+    kept = [r for r in data.get("received", []) if r.get("path") != path]
+    data["received"] = [{"path": path, "device": name, "time": int(time.time())}, *kept][:KEEP]
+    save(data)
+
+
+def received():
+    out = []
+    for r in load().get("received", []):
+        try:
+            st = os.stat(r["path"])
+        except (OSError, KeyError):
+            continue
+        out.append({**r, "name": os.path.basename(r["path"]), "size": st.st_size})
+    return out
+
+
+def device(dev):
+    p = props(DEVICES + dev, DEVICE)
+    paired = bool(p.get("isPaired", False))
+    reachable = bool(p.get("isReachable", False))
+    key = p.get("verificationKey", "")
+    if not isinstance(key, str):
+        key = bytes(key).decode(errors="replace")
+    d = {
+        "id": dev,
+        "name": p.get("name", ""),
+        "type": p.get("type", "unknown"),
+        "paired": paired,
+        "reachable": reachable,
+        # Asking to pair with this PC, and this PC asking to pair with it.
+        "incoming": bool(p.get("isPairRequestedByPeer", False)),
+        "outgoing": bool(p.get("isPairRequested", False)),
+        "key": key,
+        "via": [n.replace("LinkProvider", "").lower() for n in p.get("activeProviderNames", [])],
+        "plugins": [],
+        "battery": None,
+        "network": None,
+        "autoShare": autoshare(dev) if paired else False,
+        "folder": folder(dev, p.get("name", "")),
+    }
+    if not (paired and reachable):
+        return d
+    try:
+        d["plugins"] = [x.replace("kdeconnect_", "") for x in call(DEVICES + dev, DEVICE, "loadedPlugins")[0]]
+    except GLib.Error:
+        pass
+    if "battery" in d["plugins"]:
+        try:
+            b = props(DEVICES + dev + "/battery", DEVICE + ".battery")
+            if b.get("charge", -1) >= 0 and b.get("hasBattery", True):
+                d["battery"] = {"charge": b["charge"], "charging": bool(b.get("isCharging", False))}
+        except GLib.Error:
+            pass
+    if "connectivity_report" in d["plugins"]:
+        try:
+            c = props(DEVICES + dev + "/connectivity_report", DEVICE + ".connectivity_report")
+            if c.get("cellularNetworkType"):
+                d["network"] = {"type": c["cellularNetworkType"], "strength": c.get("cellularNetworkStrength", -1)}
+        except GLib.Error:
+            pass
+    return d
+
+
+def snapshot():
+    up = running()
+    out = {"installed": installed() or up, "running": up, "name": "", "devices": [], "received": received()}
+    if not up:
+        return out
+    try:
+        out["name"] = call(DAEMON, NAME + ".daemon", "announcedName")[0]
+        ids = call(DAEMON, NAME + ".daemon", "devices", GLib.Variant("(bb)", (False, False)))[0]
+    except GLib.Error:
+        return out
+    for dev in ids:
+        try:
+            out["devices"].append(device(dev))
+        except GLib.Error:
+            continue
+    out["devices"].sort(key=lambda d: (not d["paired"], not d["reachable"], d["name"].lower()))
+    return out
+
+
+# One line of JSON each time anything changes, for services/Phone.qml. Any
+# signal KDE Connect sends -- a device found or lost, paired, its battery,
+# its plugins reloaded -- is reason enough to ask again: they come seldom.
+def watch():
+    signal.signal(signal.SIGINT, signal.SIG_DFL)
+    signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+    state = {"last": None, "timer": 0}
+
+    def emit():
+        state["timer"] = 0
+        line = json.dumps(snapshot(), sort_keys=True)
+        if line != state["last"]:
+            state["last"] = line
+            print(line, flush=True)
+        return False
+
+    def soon(delay=150):
+        if state["timer"]:
+            GLib.source_remove(state["timer"])
+        state["timer"] = GLib.timeout_add(delay, emit)
+
+    def on_signal(conn, sender, path, iface, member, params):
+        if member == "shareReceived" and path.startswith(DEVICES):
+            record(params.unpack()[0], path[len(DEVICES):].split("/")[0])
+        soon()
+
+    bus.signal_subscribe(NAME, None, None, None, None, Gio.DBusSignalFlags.NONE, on_signal)
+    # A plugin's settings changed -- by `autoshare` here, or KDE Connect's own
+    # settings window -- which the daemon does not announce itself.
+    bus.signal_subscribe(None, "org.kde.kdeconnect.config", "configChanged", None, None, Gio.DBusSignalFlags.NONE, on_signal)
+    # Installed, it is started with the session: Hyprland does not run the
+    # autostart entry KDE Connect ships.
+    flags = Gio.BusNameWatcherFlags.AUTO_START if installed() else Gio.BusNameWatcherFlags.NONE
+    Gio.bus_watch_name_on_connection(bus, NAME, flags,
+                                     lambda *a: soon(0), lambda *a: soon(0))
+
+    # Installed later (Settings, Phone, Set up): noticed and started.
+    def tick():
+        if not running() and installed():
+            bus.call("org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus",
+                     "StartServiceByName", GLib.Variant("(su)", (NAME, 0)), None, Gio.DBusCallFlags.NONE, -1, None, None)
+        soon()
+        return True
+
+    GLib.timeout_add_seconds(30, tick)
+    soon(0)
+    GLib.MainLoop().run()
+
+
+# The desktop's own file chooser, through the portal; zenity where there is
+# no portal to ask.
+def choose(title):
+    token = f"vela{os.getpid()}"
+    handle = "/org/freedesktop/portal/desktop/request/" + bus.get_unique_name()[1:].replace(".", "_") + "/" + token
+    loop = GLib.MainLoop()
+    got = {"uris": []}
+
+    def done(conn, sender, path, iface, member, params):
+        code, results = params.unpack()
+        if code == 0:
+            got["uris"] = list(results.get("uris", []))
+        loop.quit()
+
+    sub = bus.signal_subscribe(None, "org.freedesktop.portal.Request", "Response", handle, None,
+                               Gio.DBusSignalFlags.NONE, done)
+    try:
+        options = {"handle_token": GLib.Variant("s", token), "multiple": GLib.Variant("b", True)}
+        bus.call_sync("org.freedesktop.portal.Desktop", "/org/freedesktop/portal/desktop",
+                      "org.freedesktop.portal.FileChooser", "OpenFile",
+                      GLib.Variant("(ssa{sv})", ("", title, options)), None, Gio.DBusCallFlags.NONE, 10000, None)
+    except GLib.Error:
+        bus.signal_unsubscribe(sub)
+        if not shutil.which("zenity"):
+            die("no file chooser: xdg-desktop-portal-gtk or zenity is needed")
+        p = subprocess.run(["zenity", "--file-selection", "--multiple", "--separator=\n", f"--title={title}"],
+                           capture_output=True, text=True)
+        return [Gio.File.new_for_path(x).get_uri() for x in p.stdout.splitlines() if x]
+    loop.run()
+    return got["uris"]
+
+
+def need(dev):
+    try:
+        p = props(DEVICES + dev, DEVICE)
+    except GLib.Error:
+        die(f"no such device: {dev}")
+    return p
+
+
+def plugin(dev, name, method, args=None, timeout=5000):
+    try:
+        return call(f"{DEVICES}{dev}/{name}", f"{DEVICE}.{name}", method, args, timeout)
+    except GLib.Error as e:
+        die(f"{name}: {e.message}")
+
+
+def share(dev, uris):
+    if uris:
+        plugin(dev, "share", "shareUrls", GLib.Variant("(as)", (uris,)))
+        print(f"sent {len(uris)} to {need(dev).get('name', dev)}")
+
+
+def browse(dev):
+    if not plugin(dev, "sftp", "mountAndWait", None, 30000)[0]:
+        die(plugin(dev, "sftp", "getMountError")[0] or "the phone's files could not be reached")
+    dirs = plugin(dev, "sftp", "getDirectories")[0]
+    target = next(iter(dirs), "") or plugin(dev, "sftp", "mountPoint")[0]
+    try:
+        Gio.AppInfo.launch_default_for_uri(Gio.File.new_for_path(target).get_uri(), None)
+    except GLib.Error:
+        if not shutil.which("xdg-open") or subprocess.run(["xdg-open", target]).returncode != 0:
+            die("no file manager to open the phone's files in")
+
+
+def set_autoshare(dev, on):
+    path, cp = ini(dev, "kdeconnect_clipboard")
+    cp["General"]["autoShare"] = "true" if on else "false"
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as f:
+        cp.write(f, space_around_delimiters=False)
+    bus.emit_signal(None, f"/kdeconnect/{dev}/kdeconnect_clipboard", "org.kde.kdeconnect.config", "configChanged", None)
+
+
+args = sys.argv[1:]
+cmd, dev = (args + ["", ""])[:2]
+if cmd == "watch":
+    watch()
+elif cmd == "status":
+    print(json.dumps(snapshot(), indent=2))
+elif not running():
+    die("KDE Connect is not running (set it up in Settings, Phone, or with `vela phone setup`)")
+elif cmd == "ring" and dev:
+    plugin(dev, "findmyphone", "ring")
+elif cmd == "send" and dev and len(args) > 2:
+    share(dev, [Gio.File.new_for_commandline_arg(a).get_uri() for a in args[2:]])
+elif cmd == "pick" and dev:
+    share(dev, choose(f"Send to {need(dev).get('name', 'the phone')}"))
+elif cmd == "clipboard" and dev:
+    plugin(dev, "clipboard", "sendClipboard")
+elif cmd == "browse" and dev:
+    browse(dev)
+elif cmd == "pair" and dev:
+    try:
+        call(DEVICES + dev, DEVICE, "acceptPairing" if need(dev).get("isPairRequestedByPeer") else "requestPairing")
+    except GLib.Error as e:
+        die(e.message)
+elif cmd in ("refuse", "unpair") and dev:
+    need(dev)
+    try:
+        call(DEVICES + dev, DEVICE, "cancelPairing" if cmd == "refuse" else "unpair")
+    except GLib.Error as e:
+        die(e.message)
+elif cmd == "autoshare" and dev and args[2:3] in (["on"], ["off"]):
+    need(dev)
+    set_autoshare(dev, args[2] == "on")
+else:
+    die("usage: vela phone [setup|status|watch|ring|pick|send <files>|clipboard|browse|pair|refuse|unpair|autoshare on|off] <device>")
+PY
+
 case "${1:-}" in
     wallpaper) shift; cmd_wallpaper "$@" ;;
     theme)     shift; cmd_theme "$@" ;;
@@ -2433,6 +2853,7 @@ case "${1:-}" in
     idle)      shift; cmd_idle "$@" ;;
     doctor)    cmd_doctor ;;
     ai)        shift; cmd_ai "$@" ;;
+    phone)     shift; cmd_phone "$@" ;;
     -h|--help|help|"") usage ;;
     *) die "unknown command: $1 (try 'vela help')" ;;
 esac
