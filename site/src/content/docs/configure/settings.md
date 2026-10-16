@@ -25,6 +25,7 @@ super + I again. A page's **Reset** asks before it puts anything back.
 | **Keybinds** | every keybind: change its keys, turn it off, add your own -- see [Keybinds](../keybinds/#changing-one) |
 | **Modules** | which items each end of the bar carries, and in what order |
 | **AI tools** | connecting Claude Code and Codex, their cards in the System tab, the 90% notification, the pill on the bar -- see [Claude Code and Codex](../../features/ai-tools/) |
+| **Phone** | setting up KDE Connect, pairing and unpairing, the phone's notifications, one-time codes, sending what you copy to the phone, the phone on the bar -- see [Your phone](../../features/phone/) |
 
 ## shell.json
 
@@ -66,6 +67,8 @@ knowing:
 | `ai.claudeUsage` | `true` | ask Claude Code for what `/usage` shows (Fable's week, the plan) |
 | `ai.logos` | `true` | the tools' own logos on their cards and the bar's pill |
 | `ai.notifyNearLimit` | `true` | one notification as a plan window passes 90% |
+| `phone.notifications` | `true` | the phone's notifications as cards here |
+| `phone.codes` | `true` | **Copy code** on a phone notification with a one-time code |
 
 The file itself carries a comment on most keys.
 

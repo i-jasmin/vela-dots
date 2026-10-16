@@ -74,6 +74,20 @@ vela ai disconnect claude|codex # take them out again
 `vela ai statusline` and `vela ai hook <tool>` are what the tools run once
 connected. See [Claude Code and Codex](../../features/ai-tools/).
 
+## Your phone
+
+```sh
+vela phone setup                      # install KDE Connect and open its ports
+vela phone status                     # the devices KDE Connect knows (JSON)
+vela phone ring|pick|clipboard|browse <device>
+vela phone send <device> <file>...    # send it files
+vela phone pair|refuse|unpair <device>
+vela phone autoshare <device> on|off  # send what you copy here to it
+```
+
+`vela phone watch` is what the shell runs: the same JSON, a line each time it
+changes. See [Your phone](../../features/phone/).
+
 ## Other
 
 ```sh

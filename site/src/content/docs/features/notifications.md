@@ -32,3 +32,6 @@ the rest wait for its digest.
 
 **Settings → Notifications** sets where cards appear, how long they stay, and
 how many stack.
+
+The phone's notifications come up here too, with Reply and Copy code -- see
+[Your phone](../phone/#notifications).

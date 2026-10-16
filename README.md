@@ -34,6 +34,8 @@ Targets **Hyprland 0.56** (Lua config manager), **Quickshell 0.3.1** and
   clipboard history.
 - **A lock screen** with idle times for power and battery, a dock, and a
   keybinds cheatsheet and editor.
+- **Your phone** through KDE Connect: its notifications with Reply, its
+  battery on the bar, files and the clipboard both ways.
 - **Claude Code and Codex** usage on the dashboard, and a pill on the bar.
 - **Settings for all of it** (super + I), applied as you change them.
 
