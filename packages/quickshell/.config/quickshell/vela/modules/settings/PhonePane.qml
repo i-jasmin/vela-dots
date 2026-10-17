@@ -67,6 +67,16 @@ PaneScroll {
         onTriggered: root.confirming = ""
     }
 
+    // KDE Connect installed some other way -- dnf in a terminal -- while the
+    // page is open: looked for again every few seconds until it is there,
+    // rather than only when the window next opens.
+    Timer {
+        interval: Appearance.settings.phoneRecheck
+        running: ShellState.settings && !Phone.installed
+        repeat: true
+        onTriggered: Phone.check()
+    }
+
     PaneHeader {
         title: qsTr("Phone")
     }
@@ -114,13 +124,19 @@ PaneScroll {
                 color: Colours.on.surfaceVariant
             }
 
+            // The window goes first: it is drawn over every window, so the
+            // terminal would open under it, and the keyboard -- the sudo
+            // password -- would stay with it.
             Pill {
                 text: qsTr("Set up")
                 icon: "download"
                 tone: "filled"
                 pillHeight: Appearance.settings.actionHeight
                 fontSize: Appearance.settings.actionSize
-                onClicked: Phone.setup()
+                onClicked: {
+                    ShellState.close("settings");
+                    Phone.setup();
+                }
 
                 Layout.alignment: Qt.AlignVCenter
             }

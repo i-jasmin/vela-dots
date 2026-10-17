@@ -1556,6 +1556,8 @@ QtObject {
         readonly property int phoneTile: 40
         readonly property int phoneKeyHeight: 46
         readonly property real phoneKeySize: 17
+        // How often the page looks for KDE Connect while it is not there.
+        readonly property int phoneRecheck: 3000
         // Not in the design, which draws the square that adds a stack but
         // not what it opens. A folder has to be chosen from somewhere, and a
         // list of the ones in $HOME is the smallest honest answer.
