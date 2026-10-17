@@ -104,9 +104,36 @@ Singleton {
             root.run(["pick", root.phone.id]);
     }
 
+    // Nothing shows on either screen when the clipboard arrives, so the
+    // popout says so itself: `clipboardSent`, once KDE Connect has taken it.
+    // Waited on rather than detached for that, and a failure is announced
+    // the way `run` announces one.
+    signal clipboardSent
+
     function sendClipboard(): void {
-        if (root.phone)
-            root.run(["clipboard", root.phone.id]);
+        if (root.phone && !clipboard.running) {
+            clipboard.command = ["sh", "-c", 'PATH="$HOME/.local/bin:$PATH" exec vela phone clipboard "$1"', "sh", root.phone.id];
+            clipboard.running = true;
+        }
+    }
+
+    // `vela phone` writes to stderr only when it fails, so the error is read
+    // when that stream closes, whichever of it and the exit comes first.
+    Process {
+        id: clipboard
+
+        stderr: StdioCollector {
+            onStreamFinished: {
+                const err = this.text.trim().split("\n").pop() ?? "";
+                if (err)
+                    Quickshell.execDetached(["notify-send", "-a", "vela", "-i", "dialog-error", qsTr("Phone"), err.replace(/^vela:\s*/, "")]);
+            }
+        }
+
+        onExited: code => {
+            if (code === 0)
+                root.clipboardSent();
+        }
     }
 
     // The phone's storage, mounted over SFTP and opened in Files.

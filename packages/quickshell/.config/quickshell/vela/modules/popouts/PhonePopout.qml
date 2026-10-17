@@ -22,6 +22,26 @@ PopoutContent {
 
     readonly property var phone: Phone.phone
 
+    // The clipboard has gone to the phone: its tile says so for a moment,
+    // since nothing shows on the phone.
+    property bool sent: false
+
+    Connections {
+        target: Phone
+
+        function onClipboardSent(): void {
+            root.sent = true;
+            sentFor.restart();
+        }
+    }
+
+    Timer {
+        id: sentFor
+
+        interval: Appearance.popout.phoneSentFor
+        onTriggered: root.sent = false
+    }
+
     // "Connected · same Wi-Fi", "Connected · Bluetooth · 5G".
     readonly property string detail: {
         if (!Phone.connected)
@@ -143,6 +163,7 @@ PopoutContent {
                 required property var modelData
 
                 readonly property bool usable: Phone.connected && Phone.has(tile.modelData.plugin)
+                readonly property bool done: root.sent && tile.modelData.plugin === "clipboard"
 
                 radius: Appearance.radius.tile
                 color: Colours.surfaceContainerHigh
@@ -180,14 +201,14 @@ PopoutContent {
                     spacing: Appearance.space.xs
 
                     Icon {
-                        text: tile.modelData.icon
+                        text: tile.done ? "check" : tile.modelData.icon
                         size: Appearance.size.iconMd
-                        color: Colours.on.surface
+                        color: tile.done ? Colours.primary : Colours.on.surface
                         Layout.alignment: Qt.AlignHCenter
                     }
 
                     Text {
-                        text: tile.modelData.label
+                        text: tile.done ? qsTr("Sent") : tile.modelData.label
                         font.family: Appearance.font.ui
                         font.pixelSize: Appearance.size.micro
                         color: Colours.on.surfaceVariant

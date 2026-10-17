@@ -253,6 +253,8 @@ QtObject {
         readonly property int phoneTileGap: 8
         readonly property int phoneThumb: 34
         readonly property int phoneShown: 3
+        // How long the Clipboard tile says Sent.
+        readonly property int phoneSentFor: 2000
     }
 
     // ---- notifications ----------------------------------------------------
