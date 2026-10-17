@@ -86,9 +86,11 @@ Singleton {
 
     // Detached, so a file chooser left open does not hold anything up; what
     // went wrong, if anything did, comes back as a notification rather than
-    // into a log nobody reads.
+    // into a log nobody reads. A failure with nothing to say is one KDE
+    // Connect has already announced (`vela phone browse`), and is not
+    // announced twice.
     function run(args: var): void {
-        Quickshell.execDetached(["sh", "-c", 'PATH="$HOME/.local/bin:$PATH"; err=$(vela phone "$@" 2>&1 >/dev/null) || notify-send -a vela -i dialog-error "$0" "${err#vela: }"', qsTr("Phone"), ...args]);
+        Quickshell.execDetached(["sh", "-c", 'PATH="$HOME/.local/bin:$PATH"; err=$(vela phone "$@" 2>&1 >/dev/null) || [ -z "$err" ] || notify-send -a vela -i dialog-error "$0" "${err#vela: }"', qsTr("Phone"), ...args]);
     }
 
     function ring(): void {

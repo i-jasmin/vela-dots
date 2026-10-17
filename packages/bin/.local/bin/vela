@@ -2785,8 +2785,11 @@ def share(dev, uris):
 
 
 def browse(dev):
+    # A mount that fails is announced by KDE Connect itself, with its reason
+    # (Daemon::reportError); saying it again would be the same notification
+    # twice. So it fails without a word.
     if not plugin(dev, "sftp", "mountAndWait", None, 30000)[0]:
-        die(plugin(dev, "sftp", "getMountError")[0] or "the phone's files could not be reached")
+        sys.exit(1)
     dirs = plugin(dev, "sftp", "getDirectories")[0]
     target = next(iter(dirs), "") or plugin(dev, "sftp", "mountPoint")[0]
     try:
