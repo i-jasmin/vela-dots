@@ -87,7 +87,7 @@ curl -fsSL https://vela.ijasmin.it/install.sh | VELA_DIR=~/src/vela-dots bash
 
 ## matugen
 
-vela needs matugen 4 or newer, and Fedora's own is older (3.1 on Fedora 44).
+vela needs matugen 4 or newer, and Fedora's own is older (3.1 on Fedora 44 and 45).
 So vela builds matugen itself, from `packaging/fedora/matugen.spec`, for each
 Fedora release it supports, and the installer puts that in place of Fedora's
 -- only when Fedora's is older, so a newer one from Fedora is left alone.

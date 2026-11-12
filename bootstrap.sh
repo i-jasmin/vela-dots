@@ -157,7 +157,7 @@ targets() {
     done
 }
 
-# Fedora's own matugen is older than vela is made for -- 3.1 on Fedora 44,
+# Fedora's own matugen is older than vela is made for -- 3.1 on Fedora 44 and 45,
 # and 4.0 is what added --source-color-index -- so vela builds its own from
 # packaging/fedora/matugen.spec and installs that in its place. Only when
 # what is there is older than the spec: a newer matugen from Fedora is left

@@ -34,7 +34,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        fedora: ["43", "44"]
+        fedora: ["43", "44", "45"]
     container:
       image: fedora:${{ matrix.fedora }}
     steps:

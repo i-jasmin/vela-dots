@@ -1,5 +1,5 @@
 # matugen for vela. Fedora's own is older than vela is made for (3.1 on
-# Fedora 44; 4.0 added --source-color-index), so vela builds this one and
+# Fedora 44 and 45; 4.0 added --source-color-index), so vela builds this one and
 # bootstrap.sh installs it in place of Fedora's whenever that is older.
 #
 # Built by .github/workflows/packages.yml, once per Fedora release, onto the
