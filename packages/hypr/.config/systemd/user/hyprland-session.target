@@ -1,0 +1,14 @@
+[Unit]
+# Started by conf/autostart.lua once the session's environment is exported,
+# and stopped again on hyprland.shutdown.
+#
+# It exists for graphical-session.target, which systemd refuses to start by
+# hand (RefuseManualStart) and so only comes up bound to a target like this
+# one. Fedora 45's xdg-desktop-portal Requires graphical-session.target:
+# without it the portal fails every start with "dependency", and with it go
+# file pickers, screen sharing and the dark-mode signal browsers follow.
+Description=Hyprland session (vela)
+Documentation=man:systemd.special(7)
+BindsTo=graphical-session.target
+Wants=graphical-session-pre.target
+After=graphical-session-pre.target

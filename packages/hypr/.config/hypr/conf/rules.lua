@@ -120,6 +120,18 @@ hl.layer_rule({ match = { namespace = "^(launcher)$" }, ignore_alpha = 0.3 })
 hl.workspace_rule({
     workspace = "special:scratch",
     gaps_out = 60,
-    gaps_in = 5,
-    on_created_empty = "kitty"
+    gaps_in = 5
 })
+
+-- The terminal. Hyprland 0.57 deprecated the rule's `on_created_empty` in
+-- favour of this event. `is_empty` is what keeps it to the old behaviour,
+-- measured in a nested session: opening an empty scratchpad reports true and
+-- starts one terminal; sending a window into a closed one (super + shift + X)
+-- creates the workspace with that window already in it and reports false, so
+-- no stray terminal follows it in. The workspace rule on the launch puts the
+-- terminal on the scratchpad, not on whatever was focused a moment before.
+hl.on("workspace.created", function(ws)
+    if ws.name == "special:scratch" and ws.is_empty then
+        hl.exec_cmd("kitty", { workspace = "special:scratch" })
+    end
+end)

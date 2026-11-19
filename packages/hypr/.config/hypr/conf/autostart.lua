@@ -16,17 +16,28 @@ hl.on("hyprland.start", function()
 
     hl.exec_cmd("hypridle")
 
-    -- Make the session's variables visible to user services and portals.
-    -- Without this, screen sharing and file pickers launched from a systemd
-    -- unit come up with no WAYLAND_DISPLAY.
-    hl.exec_cmd("dbus-update-activation-environment --systemd --all")
-    hl.exec_cmd("systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP HYPRLAND_INSTANCE_SIGNATURE")
+    -- Make the session's variables visible to user services and portals,
+    -- then bring up the session target (~/.config/systemd/user/
+    -- hyprland-session.target), which starts graphical-session.target with
+    -- it. Fedora 45's xdg-desktop-portal Requires that target, so without it
+    -- the portal never starts: no file pickers, no screen sharing.
+    --
+    -- One shell, in this order: two separate exec_cmd calls run side by side,
+    -- and the portal must not start before WAYLAND_DISPLAY is exported.
+    hl.exec_cmd("sh -c 'dbus-update-activation-environment --systemd --all; systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP HYPRLAND_INSTANCE_SIGNATURE; systemctl --user start hyprland-session.target'")
 
     -- Polkit agent: first one that exists wins. Without an agent, anything
     -- asking for authentication fails silently rather than prompting.
     hl.exec_cmd("sh -c 'for a in hyprpolkitagent /usr/libexec/hyprpolkitagent /usr/libexec/kf6/polkit-kde-authentication-agent-1 /usr/libexec/polkit-gnome-authentication-agent-1; do command -v \"$a\" >/dev/null 2>&1 && exec \"$a\"; done'")
 
-    hl.exec_cmd("gnome-keyring-daemon --start --components=secrets")
+    -- The keyring (calendar passwords live in it). Fedora 45 replaced
+    -- gnome-keyring with oo7: at login, GDM's pam_oo7 hands the password to an
+    -- oo7-daemon-login helper that waits 120 s for the daemon to collect it,
+    -- and the upgrade leaves the daemon's unit disabled -- measured: "Timed
+    -- out after 120s, no daemon connected", and no keyring for the session.
+    -- Starting it here lands well inside that window. gnome-keyring is the
+    -- fallback where oo7 does not exist.
+    hl.exec_cmd("sh -c 'systemctl --user start oo7-daemon.service 2>/dev/null || exec gnome-keyring-daemon --start --components=secrets'")
 
     -- Clipboard history, read by the shell's clipboard panel (SUPER+V).
     hl.exec_cmd("wl-paste --type text --watch cliphist store")
@@ -34,6 +45,12 @@ hl.on("hyprland.start", function()
 
     -- XCURSOR_* covers XWayland and GTK; this sets Hyprland's own cursor.
     hl.exec_cmd("hyprctl setcursor Bibata-Modern-Classic 24")
+end)
+
+-- Take the session target down with the compositor, so the next login starts
+-- graphical-session.target afresh rather than finding a stale one still up.
+hl.on("hyprland.shutdown", function()
+    hl.exec_cmd("systemctl --user stop hyprland-session.target")
 end)
 
 -- Not started here, deliberately:
